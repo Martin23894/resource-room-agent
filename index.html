@@ -925,9 +925,7 @@ async function downloadODT(){
     return `[[DIAG_FRAME_${idx}]]`;
   }
 
-  let contentLines=raw.split('
-').map(lineToODT).join('
-');
+  let contentLines=raw.split('\n').map(lineToODT).join('\n');
 
   // Build ODT content.xml
   const diagImages=Object.keys(diagPngMap).map(idx=>{
