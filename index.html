@@ -1035,8 +1035,7 @@ ${endDiagXml}
   <manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/>
   <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
   <manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>
-${Object.keys(diagPngMap).map(idx=>`  <manifest:file-entry manifest:full-path="Pictures/diagram${idx}.png" manifest:media-type="image/png"/>`).join('
-')}
+${Object.keys(diagPngMap).map(idx=>`  <manifest:file-entry manifest:full-path="Pictures/diagram${idx}.png" manifest:media-type="image/png"/>`).join('\n')}
 </manifest:manifest>`;
 
   // Build ZIP (ODT)
