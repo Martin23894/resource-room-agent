@@ -859,7 +859,7 @@ async function svgToPngDataUrl(svgString){
   });
 }
 
-async function downloadWord(){
+function downloadWord(){
   if(!window._cur)return;
   const raw=window._cur;
   const subj=document.getElementById('subj').value||'Resource';
@@ -955,27 +955,20 @@ async function downloadWord(){
     bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;color:${color};margin:3pt 0;line-height:1.65;">${esc(trimmed)}</p>`;
   }
 
-  // Convert SVG diagrams to PNG for Word compatibility
-  async function buildWordDiagram(d){
+  // Build diagram block for Word — embed SVG directly (Word 2016+ supports SVG natively)
+  function buildWordDiagram(d){
     if(!d||!d.svg) return '';
-    const pngDataUrl=await svgToPngDataUrl(d.svg);
-    if(pngDataUrl){
-      return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;">
-  <tr><td style="background:#f8f7f3;padding:12pt 16pt;text-align:center;">
-    <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;text-align:left;">${d.title||''}</p>
-    <img src="${pngDataUrl}" width="480" style="max-width:100%;display:block;margin:0 auto;"/>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;border-top:1px solid #e4e2da;padding-top:6pt;text-align:left;">${d.caption||''}</p>
-  </td></tr>
-</table>`;
-    } else {
-      return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;">
+    // Add explicit width/height to SVG for Word rendering
+    let svg=d.svg;
+    if(!svg.includes('width=')) svg=svg.replace('<svg','<svg width="480"');
+    if(!svg.includes('height=')) svg=svg.replace('<svg','<svg height="300"');
+    return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;border-collapse:collapse;">
   <tr><td style="background:#f8f7f3;padding:12pt 16pt;">
     <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;">${d.title||''}</p>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;">[Diagram: ${d.title||'see on-screen version'}]</p>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;">${d.caption||''}</p>
+    <div style="text-align:center;margin:8pt 0;">${svg}</div>
+    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;border-top:1px solid #e4e2da;padding-top:6pt;">${d.caption||''}</p>
   </td></tr>
 </table>`;
-    }
   }
 
   const diagrams=window._diagrams||[];
@@ -985,20 +978,27 @@ async function downloadWord(){
   let diagramWordMap={};
 
   if(diagrams.length>0){
-    for(const d of diagrams){
-      const html=await buildWordDiagram(d);
+    diagrams.forEach(d=>{
+      const html=buildWordDiagram(d);
       if(placement==='beginning') diagramWordHtml+=html;
       else if(placement==='end') diagramWordHtmlEnd+=html;
       else diagramWordMap[d.index]=html;
-    }
+    });
   }
 
-  // For inline placement, replace placeholders in bodyHtml after it's built
+  // For inline — replace [DIAGRAM_N] placeholders inside bodyHtml
   function injectWordDiagrams(html){
     if(placement!=='inline') return html;
     let result=html;
     Object.keys(diagramWordMap).forEach(i=>{
-      result=result.split(`[DIAGRAM_${i}]`).join(diagramWordMap[i]);
+      // Placeholder may be wrapped in a <p> tag — replace the whole <p> with the diagram table
+      const wrapped=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;color:#1a1a18;margin:3pt 0;line-height:1.65;">[DIAGRAM_${i}]</p>`;
+      if(result.includes(wrapped)){
+        result=result.split(wrapped).join(diagramWordMap[i]);
+      } else {
+        // Fallback: plain text replacement
+        result=result.split(`[DIAGRAM_${i}]`).join(diagramWordMap[i]);
+      }
     });
     return result;
   }
