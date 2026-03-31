@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>The Resource Room — Grade 6 Term 3</title>
+<title>The Resource Room — CAPS Agent Gr1–7</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -11,138 +11,157 @@
   --t1:#9FE1CB;--t05:#E1F5EE;
   --ink:#1a1a18;--ink2:#3d3d3a;--ink3:#73726c;--ink4:#9c9a92;
   --sur:#f8f7f3;--sur2:#ffffff;--bdr:#e4e2da;--bdr2:#d3d1c7;
-  --amber:#BA7517;--amber05:#FAEEDA;
-  --blue:#185FA5;--blue05:#E6F1FB;
+  --amber:#BA7517;--amber05:#FAEEDA;--blue:#185FA5;--blue05:#E6F1FB;
 }
 body{font-family:system-ui,sans-serif;background:var(--sur);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
-
-/* HEADER */
-.hdr{background:var(--t8);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.hdr{background:var(--t8);padding:13px 22px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .logo{line-height:1.1;}
 .l-the{font-size:8px;font-weight:700;letter-spacing:5px;color:var(--t1);}
-.l-res{font-size:20px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1;}
+.l-res{font-size:19px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1;}
 .l-wrap{display:inline-block;background:var(--t4);padding:1px 7px 3px 0;}
-.l-room{font-size:20px;font-weight:700;color:var(--t9);letter-spacing:-1px;line-height:1;}
+.l-room{font-size:19px;font-weight:700;color:var(--t9);letter-spacing:-1px;line-height:1;}
 .hdr-right{display:flex;align-items:center;gap:10px;}
-.badge{background:var(--t9);border:1px solid var(--t6);border-radius:20px;padding:5px 12px;font-size:10px;font-weight:700;color:var(--t1);letter-spacing:.8px;}
+.badge{background:var(--t9);border:1px solid var(--t6);border-radius:20px;padding:4px 11px;font-size:9px;font-weight:700;color:var(--t1);letter-spacing:.8px;}
 .tab-toggle{display:flex;background:var(--t9);border-radius:8px;padding:3px;gap:2px;}
-.tt-btn{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:700;color:var(--t1);background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
+.tt-btn{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:700;color:var(--t1);background:transparent;border:none;cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap;}
 .tt-btn.on{background:var(--t4);color:var(--t9);}
-
-/* LAYOUT */
 .layout{display:flex;flex:1;min-height:0;}
-
-/* SIDEBAR */
-.side{width:268px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--bdr);padding:18px 15px;display:flex;flex-direction:column;gap:13px;overflow-y:auto;}
-.slabel{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;margin-bottom:5px;}
-.flabel{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px;}
+.side{width:272px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--bdr);padding:16px 14px;display:flex;flex-direction:column;gap:11px;overflow-y:auto;}
+.slabel{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;margin-bottom:4px;}
+.flabel{font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:3px;}
 .sw{position:relative;}
 .sw::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--ink4);font-size:11px;pointer-events:none;}
-select{width:100%;padding:8px 28px 8px 10px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:12px;color:var(--ink);background:var(--sur);appearance:none;cursor:pointer;font-family:inherit;transition:border-color .15s;}
+select{width:100%;padding:7px 26px 7px 9px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;color:var(--ink);background:var(--sur);appearance:none;cursor:pointer;font-family:inherit;transition:border-color .15s;}
 select:focus{outline:none;border-color:var(--t4);}
-.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.tbtn{padding:8px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:11px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.tbtn{padding:7px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:11px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
 .tbtn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
-.lrow{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
-.lbtn{padding:8px 0;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.lrow{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.lbtn{padding:7px 0;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
 .lbtn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
-.dgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;}
-.dbtn{padding:7px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:700;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;line-height:1.3;}
+.dgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
+.dbtn{padding:6px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:700;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;line-height:1.3;}
 .dbtn.on.below{border-color:#BA7517;background:#FAEEDA;color:#633806;}
 .dbtn.on.on-grade{border-color:var(--t6);background:var(--t05);color:var(--t8);}
 .dbtn.on.above{border-color:var(--blue);background:var(--blue05);color:#0C447C;}
-.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border:1.5px solid var(--bdr2);border-radius:8px;background:var(--sur);}
-.toggle-label{font-size:12px;font-weight:600;color:var(--ink2);}
-.toggle{position:relative;width:36px;height:20px;flex-shrink:0;}
+/* Bloom's */
+.blooms-mode{display:flex;gap:4px;margin-bottom:6px;}
+.bmode-btn{flex:1;padding:6px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:700;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.bmode-btn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
+.blooms-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
+.bloom-btn{padding:6px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;line-height:1.3;}
+.bloom-btn.on{border-color:#534AB7;background:#EEEDFE;color:#3C3489;}
+/* Toggle */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border:1.5px solid var(--bdr2);border-radius:7px;background:var(--sur);}
+.toggle-label{font-size:11px;font-weight:600;color:var(--ink2);}
+.toggle{position:relative;width:34px;height:19px;flex-shrink:0;}
 .toggle input{opacity:0;width:0;height:0;}
 .toggle-slider{position:absolute;inset:0;background:var(--bdr2);border-radius:20px;cursor:pointer;transition:background .2s;}
-.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle-slider::before{content:'';position:absolute;width:13px;height:13px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform .2s;}
 .toggle input:checked + .toggle-slider{background:var(--t6);}
-.toggle input:checked + .toggle-slider::before{transform:translateX(16px);}
+.toggle input:checked + .toggle-slider::before{transform:translateX(15px);}
 .hdiv{border:none;border-top:1px solid var(--bdr);}
-.genbtn{width:100%;padding:13px;background:var(--t8);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit;margin-top:auto;}
+.genbtn{width:100%;padding:12px;background:var(--t8);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit;margin-top:auto;}
 .genbtn:hover:not(:disabled){background:var(--t6);}
 .genbtn:disabled{background:var(--ink4);cursor:not-allowed;}
-.hist-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;transition:background .15s;}
+.hist-item{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:6px;cursor:pointer;transition:background .15s;}
 .hist-item:hover{background:var(--t05);}
 .hdot{width:5px;height:5px;border-radius:50%;background:var(--t4);flex-shrink:0;}
-.htxt{font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-/* MAIN */
-.main{flex:1;padding:24px;display:flex;flex-direction:column;overflow-y:auto;}
+.htxt{font-size:10px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Main */
+.main{flex:1;padding:22px;display:flex;flex-direction:column;overflow-y:auto;}
 .panel{display:none;flex:1;flex-direction:column;}
 .panel.vis{display:flex;}
-
-/* EMPTY */
+/* Empty */
 .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:40px;}
-.eico{width:60px;height:60px;background:var(--t05);border-radius:50%;display:flex;align-items:center;justify-content:center;}
-.empty h2{font-size:20px;font-weight:600;color:var(--ink);}
-.empty p{font-size:13px;color:var(--ink3);max-width:300px;line-height:1.6;}
+.eico{width:58px;height:58px;background:var(--t05);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.empty h2{font-size:19px;font-weight:600;color:var(--ink);}
+.empty p{font-size:13px;color:var(--ink3);max-width:320px;line-height:1.6;}
 .qrow{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
 .qpill{padding:6px 12px;border:1.5px solid var(--bdr2);border-radius:20px;font-size:11px;font-weight:600;color:var(--ink3);cursor:pointer;background:var(--sur2);transition:all .15s;font-family:inherit;}
 .qpill:hover{border-color:var(--t4);color:var(--t8);background:var(--t05);}
-
-/* LOADING */
+/* Loading */
 .loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
 .spin{width:38px;height:38px;border:3px solid var(--t05);border-top-color:var(--t6);border-radius:50%;animation:sp .8s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg);}}
 .ltxt{font-size:14px;color:var(--ink3);}
 .lsub{font-size:12px;color:var(--ink4);}
-
-/* OUTPUT */
+/* Output */
 .out-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
-.out-title{font-size:20px;font-weight:700;color:var(--ink);margin-bottom:3px;}
-.out-sub{font-size:12px;color:var(--ink3);}
+.out-title{font-size:19px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.out-sub{font-size:11px;color:var(--ink3);}
 .brow{display:flex;gap:6px;flex-wrap:wrap;}
-.abtn{padding:7px 13px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--sur2);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;}
+.abtn{padding:6px 12px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:11px;font-weight:600;color:var(--ink2);background:var(--sur2);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;}
 .abtn:hover{border-color:var(--t4);color:var(--t8);background:var(--t05);}
 .abtn.pri{background:var(--t8);border-color:var(--t8);color:#fff;}
 .abtn.pri:hover{background:var(--t6);border-color:var(--t6);}
 .abtn.pdf{background:#A32D2D;border-color:#A32D2D;color:#fff;}
-.abtn.pdf:hover{background:#791F1F;border-color:#791F1F;}
+.abtn.pdf:hover{background:#791F1F;}
 .abtn.word{background:var(--blue);border-color:var(--blue);color:#fff;}
-.abtn.word:hover{background:#0C447C;border-color:#0C447C;}
-
-/* PACK */
-.pack{background:var(--sur2);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;}
-.pack-top{background:var(--t9);padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-.pt-title{font-size:14px;font-weight:600;color:#fff;}
-.pt-badges{display:flex;gap:6px;flex-wrap:wrap;}
-.pt-badge{border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;white-space:nowrap;}
+.abtn.word:hover{background:#0C447C;}
+/* Pack */
+.pack{background:var(--sur2);border:1px solid var(--bdr);border-radius:13px;overflow:hidden;margin-bottom:16px;}
+.pack-top{background:var(--t9);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.pt-title{font-size:13px;font-weight:600;color:#fff;}
+.pt-badges{display:flex;gap:5px;flex-wrap:wrap;}
+.pt-badge{border-radius:20px;padding:2px 9px;font-size:9px;font-weight:700;white-space:nowrap;}
 .pt-badge.green{background:var(--t6);color:var(--t05);}
 .pt-badge.amber{background:#854F0B;color:#FAEEDA;}
 .pt-badge.blue{background:#185FA5;color:#E6F1FB;}
-.pack-body{padding:22px;font-size:13px;line-height:1.9;color:var(--ink2);white-space:pre-wrap;font-family:'Courier New',monospace;max-height:62vh;overflow-y:auto;background:#fafaf8;}
-.pack-foot{padding:0 22px 16px;display:flex;gap:8px;flex-wrap:wrap;}
-.cbtn{padding:8px 16px;background:var(--t05);border:1.5px solid var(--t2);border-radius:7px;font-size:12px;font-weight:600;color:var(--t8);cursor:pointer;transition:all .15s;font-family:inherit;}
+.pt-badge.purple{background:#534AB7;color:#EEEDFE;}
+.pack-body{padding:20px;font-size:13px;line-height:1.85;color:var(--ink2);white-space:pre-wrap;font-family:'Courier New',monospace;max-height:55vh;overflow-y:auto;background:#fafaf8;}
+.pack-foot{padding:0 20px 14px;display:flex;gap:7px;flex-wrap:wrap;}
+.cbtn{padding:7px 14px;background:var(--t05);border:1.5px solid var(--t2);border-radius:7px;font-size:11px;font-weight:600;color:var(--t8);cursor:pointer;transition:all .15s;font-family:inherit;}
 .cbtn:hover{background:var(--t1);}
-.err{background:#fff5f5;border:1.5px solid #f09595;border-radius:10px;padding:16px 20px;color:#A32D2D;font-size:13px;line-height:1.7;}
-
-/* COVER PAGE PANEL */
+/* REFINEMENT CHAT */
+.refine-box{background:var(--sur2);border:1.5px solid var(--bdr);border-radius:13px;overflow:hidden;margin-bottom:16px;}
+.refine-header{background:var(--t05);padding:10px 16px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--bdr);}
+.refine-icon{width:28px;height:28px;background:var(--t8);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;color:#fff;}
+.refine-title{font-size:13px;font-weight:700;color:var(--t8);}
+.refine-subtitle{font-size:11px;color:var(--ink3);}
+.refine-history{padding:12px 16px;display:flex;flex-direction:column;gap:8px;max-height:180px;overflow-y:auto;}
+.refine-msg{padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.5;}
+.refine-msg.teacher{background:var(--t05);border:1px solid var(--bdr);color:var(--ink2);align-self:flex-start;max-width:85%;}
+.refine-msg.agent{background:var(--sur);border:1px solid var(--bdr2);color:var(--ink2);align-self:flex-end;max-width:85%;}
+.refine-msg .msg-label{font-size:10px;font-weight:700;color:var(--ink4);margin-bottom:3px;}
+.refine-input-row{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--bdr);align-items:flex-end;}
+.refine-input{flex:1;padding:9px 12px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:12px;font-family:inherit;color:var(--ink);background:var(--sur);resize:none;line-height:1.5;min-height:40px;max-height:100px;transition:border-color .15s;}
+.refine-input:focus{outline:none;border-color:var(--t4);}
+.refine-send{padding:9px 16px;background:var(--t8);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;transition:background .15s;flex-shrink:0;}
+.refine-send:hover:not(:disabled){background:var(--t6);}
+.refine-send:disabled{background:var(--ink4);cursor:not-allowed;}
+.refine-spinning{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:4px;}
+/* Diagram block */
+.diag-block{background:#f8f7f3;border:1.5px solid var(--bdr);border-radius:9px;padding:14px 18px;margin:14px 0;}
+.diag-label{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--ink4);text-transform:uppercase;margin-bottom:5px;}
+.diag-title{font-size:13px;font-weight:600;color:var(--t8);margin-bottom:8px;}
+.diag-caption{font-size:11px;color:var(--ink3);font-style:italic;border-top:1px solid var(--bdr);padding-top:7px;margin-top:8px;}
+/* Cover panel */
 .cover-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:40px;}
-.cover-card{background:var(--sur2);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;margin-bottom:16px;}
-.cover-top{background:var(--t9);padding:18px 24px;}
-.cover-product-title{font-size:22px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:6px;}
-.cover-tagline{font-size:13px;color:var(--t1);font-style:italic;}
-.cover-body{padding:24px;display:flex;flex-direction:column;gap:18px;}
-.cover-section-title{font-size:11px;font-weight:700;letter-spacing:1.2px;color:var(--ink4);text-transform:uppercase;margin-bottom:8px;}
-.cover-desc{font-size:14px;color:var(--ink2);line-height:1.7;}
-.cover-list{display:flex;flex-direction:column;gap:6px;}
-.cover-list-item{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--ink2);}
-.cover-tick{width:18px;height:18px;background:var(--t05);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:var(--t8);}
-.cover-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.cover-meta-item{background:var(--sur);border-radius:8px;padding:10px 14px;}
-.cover-meta-label{font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px;}
-.cover-meta-value{font-size:13px;font-weight:600;color:var(--ink);}
-.cover-price{background:var(--t8);border-radius:10px;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
-.cover-price-label{font-size:12px;color:var(--t1);}
-.cover-price-value{font-size:28px;font-weight:700;color:#fff;}
-.kw-row{display:flex;gap:6px;flex-wrap:wrap;}
-.kw-pill{background:var(--t05);border:1px solid var(--t2);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--t8);font-weight:600;}
-
-/* PRINT STYLES */
-@media print {
-  .hdr,.side,.out-hdr,.pack-foot,.brow{display:none!important;}
+.cover-card{background:var(--sur2);border:1px solid var(--bdr);border-radius:13px;overflow:hidden;margin-bottom:14px;}
+.cover-top{background:var(--t9);padding:16px 22px;}
+.cover-product-title{font-size:20px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:5px;}
+.cover-tagline{font-size:12px;color:var(--t1);font-style:italic;}
+.cover-body{padding:20px;display:flex;flex-direction:column;gap:16px;}
+.cover-section-title{font-size:10px;font-weight:700;letter-spacing:1.2px;color:var(--ink4);text-transform:uppercase;margin-bottom:7px;}
+.cover-desc{font-size:13px;color:var(--ink2);line-height:1.7;}
+.cover-list{display:flex;flex-direction:column;gap:5px;}
+.cover-list-item{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:var(--ink2);}
+.cover-tick{width:17px;height:17px;background:var(--t05);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:var(--t8);}
+.cover-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cover-meta-item{background:var(--sur);border-radius:7px;padding:9px 12px;}
+.cover-meta-label{font-size:10px;font-weight:700;color:var(--ink4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px;}
+.cover-meta-value{font-size:12px;font-weight:600;color:var(--ink);}
+.cover-price{background:var(--t8);border-radius:9px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;}
+.cover-price-label{font-size:11px;color:var(--t1);}
+.cover-price-value{font-size:24px;font-weight:700;color:#fff;}
+.kw-row{display:flex;gap:5px;flex-wrap:wrap;}
+.kw-pill{background:var(--t05);border:1px solid var(--t2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--t8);font-weight:600;}
+.err{background:#fff5f5;border:1.5px solid #f09595;border-radius:9px;padding:14px 18px;color:#A32D2D;font-size:13px;line-height:1.7;}
+/* Print */
+@media print{
+  .hdr,.side,.out-hdr,.pack-foot,.brow,.refine-box{display:none!important;}
   .layout{display:block;}
   .main{padding:0;}
   .pack{border:none;border-radius:0;}
@@ -154,7 +173,6 @@ select:focus{outline:none;border-color:var(--t4);}
 </style>
 </head>
 <body>
-
 <div class="hdr">
   <div class="logo">
     <div class="l-the">THE</div>
@@ -166,51 +184,60 @@ select:focus{outline:none;border-color:var(--t4);}
       <button class="tt-btn on" onclick="switchTab('generator',this)">Resource Generator</button>
       <button class="tt-btn" onclick="switchTab('cover',this)">Teacha Cover Page</button>
     </div>
-    <div class="badge">GR6 · T3 · CAPS</div>
+    <div class="badge">GR1–7 · ALL TERMS · CAPS</div>
   </div>
 </div>
-
 <div class="layout">
   <!-- SIDEBAR -->
   <div class="side">
     <div>
       <div class="slabel">Configure resource</div>
-
-      <div style="margin-bottom:11px;">
+      <!-- Grade & Term -->
+      <div class="two-col" style="margin-bottom:10px;">
+        <div>
+          <div class="flabel">Grade</div>
+          <div class="sw">
+            <select id="grade" onchange="loadSubjects()">
+              <option value="1">Grade 1</option>
+              <option value="2">Grade 2</option>
+              <option value="3">Grade 3</option>
+              <option value="4">Grade 4</option>
+              <option value="5">Grade 5</option>
+              <option value="6" selected>Grade 6</option>
+              <option value="7">Grade 7</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <div class="flabel">Term</div>
+          <div class="sw">
+            <select id="term">
+              <option value="1">Term 1</option>
+              <option value="2">Term 2</option>
+              <option value="3" selected>Term 3</option>
+              <option value="4">Term 4</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- Subject -->
+      <div style="margin-bottom:10px;">
         <div class="flabel">Subject</div>
         <div class="sw">
           <select id="subj" onchange="loadTopics()">
             <option value="">— Select subject —</option>
-            <optgroup label="Languages">
-              <option>English Home Language</option>
-              <option>English First Additional Language</option>
-              <option>Afrikaans Huistaal</option>
-              <option>Afrikaans Eerste Addisionele Taal</option>
-            </optgroup>
-            <optgroup label="Core Subjects">
-              <option>Mathematics</option>
-              <option>Natural Sciences</option>
-              <option>Social Sciences</option>
-              <option>Technology</option>
-              <option>Economic and Management Sciences</option>
-            </optgroup>
-            <optgroup label="Life Skills">
-              <option>Creative Arts</option>
-              <option>Physical Education</option>
-              <option>Personal and Social Well-being</option>
-            </optgroup>
           </select>
         </div>
       </div>
-
-      <div style="margin-bottom:11px;">
+      <!-- Topic -->
+      <div style="margin-bottom:10px;">
         <div class="flabel">Topic</div>
         <div class="sw">
           <select id="topic"><option value="">— Select subject first —</option></select>
         </div>
       </div>
-
-      <div style="margin-bottom:11px;">
+      <!-- Resource type -->
+      <div style="margin-bottom:10px;">
         <div class="flabel">Resource type</div>
         <div class="tgrid">
           <button class="tbtn on" data-t="Assessment & Test" onclick="setType(this)">Assessment</button>
@@ -219,16 +246,16 @@ select:focus{outline:none;border-color:var(--t4);}
           <button class="tbtn" data-t="Exam Prep Pack" onclick="setType(this)">Exam Prep</button>
         </div>
       </div>
-
-      <div style="margin-bottom:11px;">
+      <!-- Language -->
+      <div style="margin-bottom:10px;">
         <div class="flabel">Language</div>
         <div class="lrow">
           <button class="lbtn on" data-l="English" onclick="setLang(this)">English</button>
           <button class="lbtn" data-l="Afrikaans" onclick="setLang(this)">Afrikaans</button>
         </div>
       </div>
-
-      <div style="margin-bottom:11px;">
+      <!-- Difficulty -->
+      <div style="margin-bottom:10px;">
         <div class="flabel">Difficulty level</div>
         <div class="dgrid">
           <button class="dbtn below" data-d="below" onclick="setDiff(this)">Below<br>grade</button>
@@ -236,8 +263,8 @@ select:focus{outline:none;border-color:var(--t4);}
           <button class="dbtn above" data-d="above" onclick="setDiff(this)">Above<br>grade</button>
         </div>
       </div>
-
-      <div style="margin-bottom:11px;">
+      <!-- Duration -->
+      <div style="margin-bottom:10px;">
         <div class="flabel">Duration / marks</div>
         <div class="sw">
           <select id="dur">
@@ -249,28 +276,40 @@ select:focus{outline:none;border-color:var(--t4);}
           </select>
         </div>
       </div>
-
-      <div style="margin-bottom:11px;">
-        <div class="toggle-row">
-          <span class="toggle-label">Include marking rubric</span>
-          <label class="toggle">
-            <input type="checkbox" id="rubric"/>
-            <span class="toggle-slider"></span>
-          </label>
+      <!-- Bloom's Taxonomy -->
+      <div style="margin-bottom:10px;">
+        <div class="flabel">Bloom's Taxonomy</div>
+        <div class="blooms-mode">
+          <button class="bmode-btn" data-m="single" onclick="setBloomsMode(this)">Single level</button>
+          <button class="bmode-btn" data-m="mixed" onclick="setBloomsMode(this)">Mixed blend</button>
+          <button class="bmode-btn on" data-m="none" onclick="setBloomsMode(this)">Auto</button>
+        </div>
+        <div id="blooms-levels" style="display:none;">
+          <div class="blooms-grid">
+            <button class="bloom-btn" data-b="remember" onclick="toggleBloom(this)">Remember</button>
+            <button class="bloom-btn" data-b="understand" onclick="toggleBloom(this)">Understand</button>
+            <button class="bloom-btn" data-b="apply" onclick="toggleBloom(this)">Apply</button>
+            <button class="bloom-btn" data-b="analyse" onclick="toggleBloom(this)">Analyse</button>
+            <button class="bloom-btn" data-b="evaluate" onclick="toggleBloom(this)">Evaluate</button>
+            <button class="bloom-btn" data-b="create" onclick="toggleBloom(this)">Create</button>
+          </div>
         </div>
       </div>
-
-      <div>
-        <div class="toggle-row" style="margin-bottom:6px;">
-          <span class="toggle-label">Include diagram / graph</span>
-          <label class="toggle">
-            <input type="checkbox" id="diagToggle" onchange="toggleDiagOptions()"/>
-            <span class="toggle-slider"></span>
-          </label>
+      <!-- Toggles -->
+      <div style="margin-bottom:8px;">
+        <div class="toggle-row">
+          <span class="toggle-label">Include marking rubric</span>
+          <label class="toggle"><input type="checkbox" id="rubric"/><span class="toggle-slider"></span></label>
         </div>
-        <div id="diag-options" style="display:none;margin-top:6px;">
+      </div>
+      <div>
+        <div class="toggle-row" style="margin-bottom:5px;">
+          <span class="toggle-label">Include diagram / graph</span>
+          <label class="toggle"><input type="checkbox" id="diagToggle" onchange="toggleDiagOptions()"/><span class="toggle-slider"></span></label>
+        </div>
+        <div id="diag-options" style="display:none;margin-top:5px;">
           <div class="flabel">Diagram type</div>
-          <div class="sw" style="margin-top:4px;">
+          <div class="sw" style="margin-top:3px;">
             <select id="diagramType">
               <option value="agent">Agent decides (recommended)</option>
               <option value="bar">Bar graph / Pie chart</option>
@@ -284,20 +323,17 @@ select:focus{outline:none;border-color:var(--t4);}
         </div>
       </div>
     </div>
-
     <hr class="hdiv"/>
     <div id="hist-sec" style="display:none;">
       <div class="slabel">Recent packs</div>
-      <div id="hist-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;"></div>
+      <div id="hist-list" style="display:flex;flex-direction:column;gap:3px;margin-bottom:8px;"></div>
       <hr class="hdiv"/>
     </div>
-
-    <button class="genbtn" id="gbtn" onclick="generate()">Generate resource pack ↗</button>
+    <button class="genbtn" id="gbtn" onclick="doGenerate()">Generate resource pack ↗</button>
   </div>
 
-  <!-- MAIN CONTENT -->
+  <!-- MAIN -->
   <div class="main">
-
     <!-- GENERATOR PANEL -->
     <div class="panel vis" id="panel-generator">
       <div class="empty" id="es">
@@ -310,22 +346,21 @@ select:focus{outline:none;border-color:var(--t4);}
           </svg>
         </div>
         <h2>CAPS agent ready</h2>
-        <p>Select subject, topic, difficulty and resource type — then generate your full teacher pack.</p>
+        <p>Select grade, term, subject and resource type — then generate a complete CAPS-aligned teacher pack.</p>
         <div class="qrow">
-          <button class="qpill" onclick="qf('Mathematics','Fractions and decimals','Assessment & Test','English','on')">Maths Assessment</button>
-          <button class="qpill" onclick="qf('Natural Sciences','Matter and Materials','Worksheet','English','on')">Natural Sciences WS</button>
-          <button class="qpill" onclick="qf('Social Sciences','Geography – map skills','Lesson Plan','Afrikaans','on')">Sosiale Wetenskappe LP</button>
-          <button class="qpill" onclick="qf('English Home Language','Poetry and comprehension','Exam Prep Pack','English','above')">English Exam Prep ↑</button>
+          <button class="qpill" onclick="qf(3,1,'Mathematics','Number patterns','Assessment & Test','English','on')">Gr3 Maths Assessment</button>
+          <button class="qpill" onclick="qf(5,2,'Natural Sciences','Food chains','Worksheet','English','on')">Gr5 Science Worksheet</button>
+          <button class="qpill" onclick="qf(7,3,'Social Sciences','Map skills','Lesson Plan','Afrikaans','above')">Gr7 Sosiale Wetenskappe</button>
+          <button class="qpill" onclick="qf(4,4,'Mathematics','Fractions','Exam Prep Pack','English','on')">Gr4 Maths Exam Prep</button>
         </div>
       </div>
       <div class="loading" id="ls" style="display:none;">
         <div class="spin"></div>
         <div class="ltxt" id="ltxt">Generating your teacher pack...</div>
-        <div class="lsub">CAPS-aligned · Grade 6 · Term 3</div>
+        <div class="lsub" id="lsub">CAPS-aligned · Grade 6 · Term 3</div>
       </div>
       <div id="os" style="display:none;"></div>
     </div>
-
     <!-- COVER PANEL -->
     <div class="panel" id="panel-cover">
       <div class="cover-empty" id="cover-empty">
@@ -335,14 +370,11 @@ select:focus{outline:none;border-color:var(--t4);}
             <line x1="7" y1="8" x2="19" y2="8"/>
             <line x1="7" y1="12" x2="19" y2="12"/>
             <line x1="7" y1="16" x2="14" y2="16"/>
-            <circle cx="18" cy="18" r="5" fill="#E1F5EE" stroke="#085041"/>
-            <line x1="18" y1="15" x2="18" y2="21"/>
-            <line x1="15" y1="18" x2="21" y2="18"/>
           </svg>
         </div>
         <h2>Teacha cover page generator</h2>
-        <p>Configure your resource in the sidebar, then generate a ready-to-use Teacha product listing with title, description, price suggestion and keywords.</p>
-        <button class="qpill" onclick="generateCover()">Generate cover page ↗</button>
+        <p>Configure your resource in the sidebar then generate a complete Teacha product listing — title, description, price and keywords ready to copy.</p>
+        <button class="qpill" onclick="generateCover()">Generate Teacha listing ↗</button>
       </div>
       <div class="loading" id="cover-ls" style="display:none;">
         <div class="spin"></div>
@@ -351,48 +383,138 @@ select:focus{outline:none;border-color:var(--t4);}
       </div>
       <div id="cover-out" style="display:none;"></div>
     </div>
-
   </div>
 </div>
 
 <script>
-const TOPICS={
-  "Mathematics":["Fractions and decimals","Whole numbers","2D shapes","3D objects","Patterns and algebra","Data handling","Area and perimeter","Common fractions","Decimal fractions"],
-  "English Home Language":["Poetry and comprehension","Reading and viewing","Writing – narratives","Writing – transactional texts","Language structures","Listening and speaking","Short stories"],
-  "English First Additional Language":["Reading comprehension","Vocabulary building","Writing – formal letters","Language in use","Listening skills"],
-  "Afrikaans Huistaal":["Poësie en begrip","Lees en kyk","Skryf – verhale","Skryf – transaksionele tekste","Taalstrukture","Luister en praat"],
-  "Afrikaans Eerste Addisionele Taal":["Leesbegrip","Woordeskat","Skryf – formele briewe","Taal in gebruik","Luistervaardighede"],
-  "Natural Sciences":["Matter and Materials","Energy and Change","Life and Living","Earth and Beyond","Electricity and circuits","Food and nutrition","Ecosystems"],
-  "Social Sciences":["Geography – map skills","Geography – climate and weather","History – Ancient civilisations","History – SA indigenous knowledge","Trade and resources"],
-  "Technology":["Structures and mechanisms","Food technology","Systems and control","Impact of technology"],
-  "Economic and Management Sciences":["Entrepreneurship","Financial literacy","The economy and trade","Business and the consumer"],
-  "Creative Arts":["Visual Arts – colour and design","Music – rhythm and melody","Drama – performance","Dance – creative movement"],
-  "Physical Education":["Athletics and movement","Ball games and teamwork","Health and fitness"],
-  "Personal and Social Well-being":["Healthy relationships","Decision making","Environmental responsibility"]
+// ═══════════════════════════════════════
+// CAPS TOPICS — Grade 1–7 All Terms
+// ═══════════════════════════════════════
+const SUBJECTS = {
+  foundation: ['Home Language','First Additional Language','Mathematics','Life Skills'],
+  intermediate: ['Home Language','First Additional Language','Mathematics','Natural Sciences & Technology','Social Sciences','Technology','Economic and Management Sciences','Life Skills'],
+  senior: ['Home Language','First Additional Language','Mathematics','Natural Sciences','Social Sciences','Technology','Economic and Management Sciences','Life Orientation']
 };
 
-let rtype="Assessment & Test", lang="English", diff="on", hist=[], activeTab="generator";
+const TOPICS = {
+  'Mathematics': {
+    1: { 1:['Number concept 1–10','Counting & ordering','Shapes and patterns'], 2:['Addition & subtraction to 20','Measurement basics','Data collection'], 3:['Numbers to 50','Time – days and months','Symmetry'], 4:['Numbers to 100','Money – coins and notes','Data – sorting objects'] },
+    2: { 1:['Number concept 1–100','Repeated addition','2D shapes'], 2:['Addition & subtraction to 99','Fractions – halves and quarters','Length and mass'], 3:['Multiplication – groups of','Time – hours and half hours','3D objects'], 4:['Numbers to 200','Money – calculating change','Data – pictographs'] },
+    3: { 1:['Whole numbers to 500','Number patterns','Addition & subtraction'], 2:['Multiplication & division','Fractions – thirds and fifths','Perimeter'], 3:['Numbers to 999','Time – minutes','Mass and capacity'], 4:['Data handling','Money problems','Symmetry and tessellation'] },
+    4: { 1:['Whole numbers to 10 000','Common fractions','Geometric patterns'], 2:['Decimal fractions','2D shapes – angles','Data – bar graphs'], 3:['Whole numbers – multiples & factors','Fractions – equivalent','Perimeter and area'], 4:['Measurement – capacity and mass','Transformations','Data – pie charts'] },
+    5: { 1:['Whole numbers to 100 000','Common fractions','Geometric patterns'], 2:['Decimal fractions','Properties of 2D shapes','Data – double bar graphs'], 3:['Whole numbers – prime & composite','Addition and subtraction of fractions','Volume and capacity'], 4:['Percentages','Transformations – reflection','Data – line graphs'] },
+    6: { 1:['Whole numbers to 999 999','Common fractions','Geometric patterns'], 2:['Decimal fractions','Properties of 3D objects','Data – pie charts'], 3:['Fractions and decimals','Area and perimeter','Patterns and algebra'], 4:['Ratio and rate','Transformations','Data handling – mean, mode, median'] },
+    7: { 1:['Whole numbers – exponents','Fractions, decimals, percentages','Number patterns'], 2:['Integers','Geometry – angles and triangles','Area and perimeter'], 3:['Ratio, rate and proportion','Algebra – expressions and equations','Data – scatter plots'], 4:['Geometry – circles','Probability','Financial mathematics'] }
+  },
+  'Home Language': {
+    1: { 1:['Listening & speaking – stories','Phonics – initial sounds','Letter formation'], 2:['Reading aloud','Phonics – blending','Shared writing'], 3:['Comprehension – pictures','Phonics – word families','Creative writing – sentences'], 4:['Storytelling','Sight words','Handwriting'] },
+    2: { 1:['Listening & speaking','Phonics – digraphs','Reading comprehension'], 2:['Oral storytelling','Word building','Sentence construction'], 3:['Poetry – rhyme','Comprehension – short texts','Paragraph writing'], 4:['Drama – role play','Vocabulary development','Punctuation basics'] },
+    3: { 1:['Oral communication','Reading strategies','Writing – recounts'], 2:['Comprehension – longer texts','Parts of speech – nouns and verbs','Transactional writing'], 3:['Poetry and figurative language','Writing – narratives','Language structures – sentences'], 4:['Literature – short stories','Spelling strategies','Report writing'] },
+    4: { 1:['Listening & speaking skills','Reading comprehension','Writing – personal narrative'], 2:['Poetry – themes and mood','Transactional texts – letters','Adjectives and adverbs'], 3:['Literature – short story analysis','Comprehension strategies','Writing – descriptive texts'], 4:['Drama','Tenses – past present future','Formal writing'] },
+    5: { 1:['Oral presentation skills','Reading – inference','Writing – essays'], 2:['Poetry – devices','Transactional texts – formal letters','Subject-verb agreement'], 3:['Comprehension – multiple texts','Creative writing','Language structures – clauses'], 4:['Novel study','Argumentative writing','Vocabulary enrichment'] },
+    6: { 1:['Oral – debate and discussion','Reading comprehension – inference','Writing – narrative'], 2:['Poetry and comprehension','Transactional texts','Language structures & conventions'], 3:['Reading and viewing','Writing – narratives','Listening and speaking'], 4:['Literature – short stories','Exam preparation writing','Language revision'] },
+    7: { 1:['Oral – formal speech','Reading – critical analysis','Writing – argumentative'], 2:['Poetry – extended analysis','Report writing','Grammar – complex sentences'], 3:['Novel/drama study','Comprehension – visual texts','Creative & critical writing'], 4:['Exam revision – all genres','Language structures consolidation','Formal writing'] }
+  },
+  'First Additional Language': {
+    1: { 1:['Greetings and basic vocabulary','Phonics and sounds','Listening comprehension'], 2:['Classroom language','Reading readiness','Simple sentences'], 3:['Action words – basic verbs','Short reading texts','Writing – own name and labels'], 4:['Vocabulary – family and home','Simple stories','Copying and tracing words'] },
+    2: { 1:['Vocabulary – colours and numbers','Listening to instructions','Simple sentences'], 2:['Reading short texts','Question words','Describing words'], 3:['Story comprehension','Basic punctuation','Short paragraph writing'], 4:['Retelling stories','Plurals and simple tenses','Vocabulary games'] },
+    3: { 1:['Oral fluency building','Reading short passages','Sentence types'], 2:['Comprehension – literal questions','Writing – short messages','Tense introduction'], 3:['Vocabulary in context','Reading with expression','Paragraph construction'], 4:['Storytelling','Spelling patterns','Simple letters'] },
+    4: { 1:['Reading comprehension','Vocabulary building','Writing – short paragraphs'], 2:['Listening skills','Language in use – prepositions','Transactional texts'], 3:['Reading comprehension','Writing – formal letters','Language in use'], 4:['Literature appreciation','Grammar revision','Exam writing skills'] },
+    5: { 1:['Comprehension strategies','Vocabulary in context','Essay writing basics'], 2:['Oral communication','Language structures – tenses','Letter writing'], 3:['Reading comprehension','Vocabulary building','Writing – formal letters'], 4:['Grammar consolidation','Exam reading skills','Creative writing'] },
+    6: { 1:['Reading comprehension','Vocabulary building','Writing – formal letters'], 2:['Listening skills','Language in use','Transactional writing'], 3:['Reading comprehension','Vocabulary and vocabulary building','Writing – formal letters'], 4:['Grammar revision','Reading for information','Exam preparation'] },
+    7: { 1:['Extended reading comprehension','Advanced vocabulary','Argumentative writing'], 2:['Oral – structured discussion','Grammar – complex structures','Report writing'], 3:['Critical reading','Language in use','Formal writing'], 4:['Exam preparation – all skills','Grammar revision','Summarising and note-taking'] }
+  },
+  'Natural Sciences & Technology': {
+    4: { 1:['Materials – properties and uses','Structures – building strong','The skeleton and muscles'], 2:['Energy – heat and light','Food and nutrition','Simple circuits'], 3:['Matter and Materials – states','Technology – design process','Life and Living – habitats'], 4:['Earth and Beyond – sky and seasons','Water – the water cycle','Revision and consolidation'] },
+    5: { 1:['Matter – mixtures and solutions','Structures – bridges and towers','Ecosystems – food webs'], 2:['Energy – electricity basics','Human body – digestion','Technology design challenge'], 3:['Matter and Materials','Energy and Change','Life and Living – adaptations'], 4:['Earth and Beyond – solar system','Conservation of resources','Revision'] },
+    6: { 1:['Matter and Materials','Electricity and circuits','Life and Living – reproduction'], 2:['Energy – force and movement','Food and nutrition','Technology – systems'], 3:['Matter and Materials','Energy and Change','Ecosystems'], 4:['Earth and Beyond','Water cycle and conservation','Revision'] }
+  },
+  'Natural Sciences': {
+    7: { 1:['Matter – atoms and molecules','Life and Living – cells','Energy – electricity'], 2:['Chemical reactions – everyday','Human body – nervous system','Forces and Newton\'s laws'], 3:['Matter and Materials – mixtures','Ecosystems and biodiversity','Solar system and beyond'], 4:['Photosynthesis and respiration','Acids and bases','Revision and consolidation'] }
+  },
+  'Social Sciences': {
+    4: { 1:['Geography – local area maps','History – heritage and identity','Geography – compass directions'], 2:['History – ancient SA civilisations','Geography – South African regions','Map skills – grid references'], 3:['Geography – map skills','History – SA indigenous knowledge','Trade and resources'], 4:['History – colonisation introduction','Geography – climate and biomes','Revision'] },
+    5: { 1:['Geography – SA biomes','History – early SA farming communities','Map skills – contours'], 2:['History – Khoikhoi and San','Geography – resources and sustainability','Scale on maps'], 3:['Geography – climate and weather','History – SA indigenous knowledge','Trade routes'], 4:['History – early European exploration','Geography – environmental issues','Revision'] },
+    6: { 1:['Geography – map skills','History – ancient civilisations','SA and world history connections'], 2:['History – Ancient Egypt and Greece','Geography – climate and vegetation zones','Water sources and dams'], 3:['Geography – map skills','History – Ancient civilisations','Trade and resources in SA'], 4:['History – SA in world context','Geography – environmental challenges','Revision'] },
+    7: { 1:['Geography – population and settlement','History – colonialism in SA','Map reading – topographic maps'], 2:['History – SA resistance movements','Geography – economic activities','Migration patterns'], 3:['Geography – map skills and GIS','History – apartheid overview','SA economy and trade'], 4:['History – SA democracy','Geography – global issues','Revision and consolidation'] }
+  },
+  'Life Skills': {
+    1: { 1:['My body and personal hygiene','Safety at school and home','Creative Arts – drawing'], 2:['Healthy eating','Emotions and feelings','Physical Education – movement'], 3:['My family and community','Making friends','Arts and Crafts – collage'], 4:['Caring for the environment','Goal setting','Drama – expression'] },
+    2: { 1:['Healthy habits','Bullying – saying no','Creative Arts – colour'], 2:['Road safety','Cooperation and teamwork','Physical movement – ball skills'], 3:['Community helpers','Responsibility','Arts – texture and design'], 4:['Environmental care','Managing feelings','Drama and music'] },
+    3: { 1:['Growing and changing','Relationships and respect','Creative Arts – patterns'], 2:['Nutrition and exercise','Peer pressure','Physical Education – games'], 3:['Community and belonging','Personal values','Arts – 3D construction'], 4:['Life skills revision','Goal setting for next year','Creative celebration'] }
+  },
+  'Life Orientation': {
+    4: { 1:['Personal development – identity','Health and hygiene','Physical Education – athletics'], 2:['Social skills – conflict resolution','Safety and first aid','Recreational activities'], 3:['Study skills and time management','Community involvement','Team sports'], 4:['Career awareness','Environmental responsibility','Revision'] },
+    5: { 1:['Self-awareness and goals','Healthy relationships','Physical Education – gymnastics'], 2:['Bullying and peer pressure','Democracy and rights','Team building activities'], 3:['Decision making skills','Community service','Fitness and wellness'], 4:['Future planning','Citizenship','Revision'] },
+    6: { 1:['Personal development','Healthy relationships and boundaries','Physical Education'], 2:['Social responsibility','Rights and responsibilities','Recreational sport'], 3:['Decision making and values','Environmental responsibility','Fitness'], 4:['Career exploration','Community involvement','Revision'] },
+    7: { 1:['Identity and self-esteem','Health – puberty and changes','Physical Education – athletics'], 2:['Relationships – peer pressure','Human rights and the Constitution','Team sports and recreation'], 3:['Decision making – substance abuse','Environmental issues','Fitness testing'], 4:['Career guidance','Citizenship and democracy','Revision and consolidation'] }
+  },
+  'Economic and Management Sciences': {
+    4: { 1:['Needs and wants','Production – making goods','Basic financial literacy'], 2:['The economy – trade basics','Entrepreneurship introduction','Simple budgeting'], 3:['Business and the consumer','Financial literacy','Entrepreneurship'], 4:['SA economy basics','Saving and spending','Revision'] },
+    5: { 1:['Economic systems','Entrepreneurship – business idea','Income and expenditure'], 2:['Trade – local and national','Financial planning','Production and consumption'], 3:['The economy and trade','Business and the consumer','Financial literacy'], 4:['Economic growth','Budgeting project','Revision'] },
+    6: { 1:['Entrepreneurship – characteristics','Financial documents','Trade and markets'], 2:['Business plan basics','Income statement','Supply and demand'], 3:['Entrepreneurship','Financial literacy – budgeting','The economy and trade'], 4:['SA economy and trade','Business evaluation','Revision'] },
+    7: { 1:['Entrepreneurship – business plan','Financial literacy – profit and loss','Economic systems'], 2:['Business – marketing','Cash flow statements','Trade – imports and exports'], 3:['Formal vs informal economy','Financial planning','Consumer rights'], 4:['Economic growth and development','Business evaluation','Revision and exam prep'] }
+  },
+  'Technology': {
+    4: { 1:['Structures – making and testing','Design process introduction','Materials and tools'], 2:['Processing – food technology','Systems – input and output','Mechanisms – levers'], 3:['Structures and mechanisms','Processing – food technology','Systems and control'], 4:['Impact of technology','Design challenge','Revision'] },
+    5: { 1:['Structures – bridges','Mechanisms – pulleys and gears','Design brief'], 2:['Processing – textiles','Electrical systems','Design and make'], 3:['Structures and mechanisms','Systems and control','Food technology'], 4:['Impact of technology on society','Design project','Revision'] },
+    6: { 1:['Structures – frames and shells','Mechanical systems','Designing solutions'], 2:['Electrical systems – circuits','Processing – food and materials','Prototype building'], 3:['Structures and mechanisms','Processing – food technology','Systems and control'], 4:['Impact of technology','Design and evaluate','Revision'] },
+    7: { 1:['Civil structures','Mechanical advantage','Design process – research'], 2:['Electrical systems – control','Biotechnology introduction','Technical drawing'], 3:['Structures – strength and stability','Systems and control – automation','Processing'], 4:['Impact of technology on environment','Design project','Revision'] }
+  }
+};
+
+// Aliases
+TOPICS['Afrikaans Huistaal'] = TOPICS['Home Language'];
+TOPICS['Afrikaans Eerste Addisionele Taal'] = TOPICS['First Additional Language'];
+
+let rtype='Assessment & Test', lang='English', diff='on', bloomsMode='none', hist=[], activeTab='generator';
+
+function getPhase(g){ return g<=3?'foundation':g<=6?'intermediate':'senior'; }
+
+function loadSubjects(){
+  const g=parseInt(document.getElementById('grade').value)||6;
+  const phase=getPhase(g);
+  const subjs=SUBJECTS[phase];
+  const sel=document.getElementById('subj');
+  sel.innerHTML='<option value="">— Select subject —</option>'+subjs.map(s=>`<option value="${s}">${s}</option>`).join('');
+  document.getElementById('topic').innerHTML='<option value="">— Select subject first —</option>';
+}
 
 function loadTopics(){
-  const s=document.getElementById('subj').value;
-  const t=document.getElementById('topic');
-  const list=TOPICS[s]||[];
-  t.innerHTML=list.length?list.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option value="">— Select subject first —</option>';
+  const subj=document.getElementById('subj').value;
+  const g=parseInt(document.getElementById('grade').value)||6;
+  const t=parseInt(document.getElementById('term').value)||3;
+  const topicEl=document.getElementById('topic');
+  const gradeTopics=(TOPICS[subj]||{})[g]||{};
+  const list=gradeTopics[t]||[];
+  topicEl.innerHTML=list.length?list.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option value="">— No topics found, type your own —</option>';
+  if(!list.length){topicEl.innerHTML='<option value="custom">Type topic manually</option>';}
 }
+
 function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;}
 function setLang(el){document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');lang=el.dataset.l;}
-function setDiff(el){
-  document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on'); diff=el.dataset.d;
+function setDiff(el){document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');diff=el.dataset.d;}
+function setBloomsMode(el){
+  document.querySelectorAll('.bmode-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on'); bloomsMode=el.dataset.m;
+  document.getElementById('blooms-levels').style.display=bloomsMode==='none'?'none':'block';
 }
-function switchTab(tab, btn){
+function toggleBloom(el){el.classList.toggle('on');}
+function toggleDiagOptions(){
+  const on=document.getElementById('diagToggle').checked;
+  document.getElementById('diag-options').style.display=on?'block':'none';
+}
+function getBloomsLevels(){
+  return Array.from(document.querySelectorAll('.bloom-btn.on')).map(b=>b.dataset.b);
+}
+function switchTab(tab,btn){
   activeTab=tab;
   document.querySelectorAll('.tt-btn').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
-  document.getElementById('panel-generator').classList.toggle('vis', tab==='generator');
-  document.getElementById('panel-cover').classList.toggle('vis', tab==='cover');
-  document.getElementById('gbtn').textContent = tab==='generator' ? 'Generate resource pack ↗' : 'Generate Teacha listing ↗';
-  document.getElementById('gbtn').onclick = tab==='generator' ? generate : generateCover;
+  document.getElementById('panel-generator').classList.toggle('vis',tab==='generator');
+  document.getElementById('panel-cover').classList.toggle('vis',tab==='cover');
+  document.getElementById('gbtn').textContent=tab==='generator'?'Generate resource pack ↗':'Generate Teacha listing ↗';
+  document.getElementById('gbtn').onclick=tab==='generator'?doGenerate:generateCover;
 }
 function showGen(s){
   document.getElementById('es').style.display=s==='e'?'flex':'none';
@@ -404,36 +526,42 @@ function showCover(s){
   document.getElementById('cover-ls').style.display=s==='l'?'flex':'none';
   document.getElementById('cover-out').style.display=s==='o'?'block':'none';
 }
-function qf(s,t,tp,l,d){
-  document.getElementById('subj').value=s; loadTopics();
-  setTimeout(()=>{document.getElementById('topic').value=t;},80);
+function qf(g,t,s,topic,tp,l,d){
+  document.getElementById('grade').value=g;
+  document.getElementById('term').value=t;
+  loadSubjects();
+  setTimeout(()=>{
+    document.getElementById('subj').value=s;
+    loadTopics();
+    setTimeout(()=>{document.getElementById('topic').value=topic;},80);
+  },50);
   document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('on',b.dataset.t===tp)); rtype=tp;
   document.querySelectorAll('.lbtn').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); lang=l;
   document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d)); diff=d;
-  setTimeout(generate,160);
+  setTimeout(doGenerate,300);
 }
 
-function toggleDiagOptions(){
-  const on=document.getElementById('diagToggle').checked;
-  document.getElementById('diag-options').style.display=on?'block':'none';
-}
-
-async function generate(){
+async function doGenerate(){
   const subj=document.getElementById('subj').value;
   const topic=document.getElementById('topic').value;
   const dur=document.getElementById('dur').value;
+  const grade=document.getElementById('grade').value;
+  const term=document.getElementById('term').value;
   const includeRubric=document.getElementById('rubric').checked;
   const includeDiagram=document.getElementById('diagToggle').checked;
   const diagramType=document.getElementById('diagramType').value;
+  const bloomsLevels=getBloomsLevels();
   if(!subj){alert('Please select a subject.');return;}
   if(!topic||topic==='— Select subject first —'){alert('Please select a topic.');return;}
+  if((bloomsMode==='single'||bloomsMode==='mixed')&&bloomsLevels.length===0){alert('Please select at least one Bloom\'s level.');return;}
   showGen('l');
   document.getElementById('gbtn').disabled=true;
+  document.getElementById('lsub').textContent=`CAPS-aligned · Grade ${grade} · Term ${term}`;
   const msgs=[
-    'Generating your '+lang+' '+rtype+'...',
-    'Applying '+diff+'-grade difficulty...',
-    includeDiagram?'Creating diagram / graph...':'Writing questions and memorandum...',
-    includeRubric?'Adding marking rubric...':'Finalising teacher pack...'
+    `Generating your Grade ${grade} ${lang} ${rtype}...`,
+    `Aligning to CAPS Grade ${grade} Term ${term}...`,
+    bloomsMode!=='none'?`Applying Bloom\'s taxonomy — ${bloomsLevels.join(', ')}...`:'Writing questions and memorandum...',
+    includeDiagram?'Creating diagram / graph...':includeRubric?'Adding marking rubric...':'Finalising teacher pack...'
   ];
   let mi=0;
   const iv=setInterval(()=>{mi=(mi+1)%msgs.length;const el=document.getElementById('ltxt');if(el)el.textContent=msgs[mi];},2200);
@@ -441,13 +569,13 @@ async function generate(){
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,includeDiagram,diagramType})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,includeDiagram,diagramType,grade,term,bloomsMode,bloomsLevels})
     });
     clearInterval(iv);
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||'Server error');
-    addHist(subj,topic,d.content,d.diagram);
-    renderOut(subj,topic,d.content,d.diagram);
+    addHist(subj,topic,d.content,d.diagram,grade,term);
+    renderOut(subj,topic,d.content,d.diagram,grade,term);
   }catch(e){
     clearInterval(iv);
     document.getElementById('os').innerHTML=`<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Check your API key in Vercel → Settings → Environment Variables.</div>`;
@@ -456,9 +584,131 @@ async function generate(){
   document.getElementById('gbtn').disabled=false;
 }
 
+function renderOut(subj,topic,content,diagram,grade,term){
+  window._cur=content;
+  window._diagram=diagram||null;
+  window._subj=subj;
+  window._topic=topic;
+  window._grade=grade||document.getElementById('grade').value;
+  window._term=term||document.getElementById('term').value;
+  const diffBadge=diff==='below'?'<span class="pt-badge amber">Below grade</span>':diff==='above'?'<span class="pt-badge blue">Above grade</span>':'<span class="pt-badge green">On grade</span>';
+  const bloomsBadge=bloomsMode!=='none'&&getBloomsLevels().length?`<span class="pt-badge purple">Bloom\'s: ${getBloomsLevels().join(', ')}</span>`:'';
+  let diagHtml='';
+  if(diagram&&diagram.svg){
+    diagHtml=`<div class="diag-block">
+      <div class="diag-label">Diagram / Graph</div>
+      <div class="diag-title">${esc(diagram.title||'')}</div>
+      <div style="overflow-x:auto;text-align:center;margin:8px 0;">${diagram.svg}</div>
+      <div class="diag-caption">${esc(diagram.caption||'')}</div>
+    </div>`;
+  }
+  document.getElementById('os').innerHTML=`
+<div class="out-hdr">
+  <div>
+    <div class="out-title">${esc(subj)}</div>
+    <div class="out-sub">${esc(topic)} · ${esc(rtype)} · ${esc(lang)} · Grade ${grade} Term ${term}</div>
+  </div>
+  <div class="brow">
+    <button class="abtn" onclick="doCopy(this)">Copy</button>
+    <button class="abtn word" onclick="downloadWord()">⬇ Word</button>
+    <button class="abtn pdf" onclick="window.print()">⬇ PDF</button>
+    <button class="abtn pri" onclick="doGenerate()">Regenerate ↺</button>
+  </div>
+</div>
+<div class="pack">
+  <div class="pack-top">
+    <div class="pt-title">${esc(rtype)} — ${esc(subj)}</div>
+    <div class="pt-badges">
+      <span class="pt-badge green">CAPS · Gr${grade} · T${term}</span>
+      ${diffBadge}
+      ${bloomsBadge}
+      ${diagram?'<span class="pt-badge blue">Diagram included</span>':''}
+      ${document.getElementById('rubric').checked?'<span class="pt-badge blue">Rubric included</span>':''}
+    </div>
+  </div>
+  ${diagHtml}
+  <div class="pack-body">${esc(content)}</div>
+  <div class="pack-foot">
+    <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
+    <button class="cbtn" onclick="window.print()">Print / Save PDF</button>
+  </div>
+</div>
+
+<!-- REFINEMENT CHAT -->
+<div class="refine-box" id="refine-box">
+  <div class="refine-header">
+    <div class="refine-icon">✦</div>
+    <div>
+      <div class="refine-title">Refine this resource</div>
+      <div class="refine-subtitle">Ask the agent to make any changes — add more questions, change difficulty, adjust context, and more</div>
+    </div>
+  </div>
+  <div class="refine-history" id="refine-history"></div>
+  <div class="refine-input-row">
+    <textarea class="refine-input" id="refine-input" rows="1" placeholder="e.g. Add 3 more maths questions using South African wildlife context... Make Section B harder... Add a true/false section..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendRefinement();}"></textarea>
+    <button class="refine-send" id="refine-send" onclick="sendRefinement()">Send ↗</button>
+  </div>
+</div>`;
+  showGen('o');
+  // Auto-resize textarea
+  const ta=document.getElementById('refine-input');
+  if(ta) ta.addEventListener('input',()=>{ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';});
+}
+
+async function sendRefinement(){
+  const instruction=document.getElementById('refine-input').value.trim();
+  if(!instruction)return;
+  if(!window._cur){alert('No resource loaded to refine.');return;}
+  const sendBtn=document.getElementById('refine-send');
+  const histEl=document.getElementById('refine-history');
+  const inputEl=document.getElementById('refine-input');
+  // Show teacher message
+  histEl.innerHTML+=`<div class="refine-msg teacher"><div class="msg-label">You</div>${esc(instruction)}</div>`;
+  inputEl.value='';
+  inputEl.style.height='auto';
+  sendBtn.disabled=true;
+  sendBtn.innerHTML='<span class="refine-spinning"></span>Refining...';
+  histEl.scrollTop=histEl.scrollHeight;
+  try{
+    const r=await fetch('/api/refine',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        originalContent:window._cur,
+        refinementInstruction:instruction,
+        subject:window._subj||document.getElementById('subj').value,
+        topic:window._topic||document.getElementById('topic').value,
+        resourceType:rtype,
+        language:lang,
+        grade:window._grade||document.getElementById('grade').value,
+        term:window._term||document.getElementById('term').value,
+        difficulty:diff,
+        bloomsMode,
+        bloomsLevels:getBloomsLevels()
+      })
+    });
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Server error');
+    // Update displayed content
+    window._cur=d.content;
+    const packBody=document.getElementById('pack-body')||document.querySelector('.pack-body');
+    if(packBody) packBody.textContent=d.content;
+    // Show agent response
+    const summary=d.changesSummary||'Resource updated successfully.';
+    histEl.innerHTML+=`<div class="refine-msg agent"><div class="msg-label">Agent</div>✓ ${esc(summary)}</div>`;
+    histEl.scrollTop=histEl.scrollHeight;
+  }catch(e){
+    histEl.innerHTML+=`<div class="refine-msg agent"><div class="msg-label">Agent</div>Sorry, that didn't work: ${esc(e.message)}</div>`;
+  }
+  sendBtn.disabled=false;
+  sendBtn.textContent='Send ↗';
+}
+
 async function generateCover(){
   const subj=document.getElementById('subj').value;
   const topic=document.getElementById('topic').value;
+  const grade=document.getElementById('grade').value;
+  const term=document.getElementById('term').value;
   if(!subj){alert('Please select a subject.');return;}
   if(!topic||topic==='— Select subject first —'){alert('Please select a topic.');return;}
   showCover('l');
@@ -467,7 +717,7 @@ async function generateCover(){
     const r=await fetch('/api/cover',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,difficulty:diff,grade:6,term:3})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,difficulty:diff,grade,term})
     });
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||'Server error');
@@ -479,65 +729,12 @@ async function generateCover(){
   document.getElementById('gbtn').disabled=false;
 }
 
-function renderOut(subj,topic,content,diagram){
-  window._cur=content;
-  window._diagram=diagram||null;
-  const diffBadge = diff==='below'
-    ? '<span class="pt-badge amber">Below grade</span>'
-    : diff==='above'
-    ? '<span class="pt-badge blue">Above grade</span>'
-    : '<span class="pt-badge green">On grade</span>';
-
-  // Build diagram block if present
-  let diagHtml='';
-  if(diagram && diagram.svg){
-    diagHtml=`
-<div style="background:#f8f7f3;border:1.5px solid #e4e2da;border-radius:10px;padding:16px 20px;margin:16px 0;">
-  <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#9c9a92;text-transform:uppercase;margin-bottom:6px;">Diagram / Graph</div>
-  <div style="font-size:14px;font-weight:600;color:#085041;margin-bottom:8px;">${esc(diagram.title||'')}</div>
-  <div style="overflow-x:auto;text-align:center;margin-bottom:10px;">${diagram.svg}</div>
-  <div style="font-size:12px;color:#73726c;font-style:italic;border-top:1px solid #e4e2da;padding-top:8px;">${esc(diagram.caption||'')}</div>
-</div>`;
-  }
-
-  document.getElementById('os').innerHTML=`
-<div class="out-hdr">
-  <div><div class="out-title">${esc(subj)}</div><div class="out-sub">${esc(topic)} · ${esc(rtype)} · ${esc(lang)} · Grade 6 Term 3</div></div>
-  <div class="brow">
-    <button class="abtn" onclick="doCopy(this)">Copy</button>
-    <button class="abtn word" onclick="downloadWord()">⬇ Word</button>
-    <button class="abtn pdf" onclick="window.print()">⬇ PDF</button>
-    <button class="abtn pri" onclick="generate()">Regenerate ↺</button>
-  </div>
-</div>
-<div class="pack">
-  <div class="pack-top">
-    <div class="pt-title">${esc(rtype)} — ${esc(subj)}</div>
-    <div class="pt-badges">
-      <span class="pt-badge green">CAPS · GR6 · T3</span>
-      ${diffBadge}
-      ${document.getElementById('rubric').checked?'<span class="pt-badge blue">Rubric included</span>':''}
-      ${diagram?'<span class="pt-badge blue">Diagram included</span>':''}
-    </div>
-  </div>
-  ${diagHtml}
-  <div class="pack-body" id="pack-body">${esc(content)}</div>
-  <div class="pack-foot">
-    <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
-    <button class="cbtn" onclick="window.print()">Print / Save PDF</button>
-  </div>
-</div>`;
-  showGen('o');
-}
-
 function renderCover(d){
   window._coverData=d;
   document.getElementById('cover-out').innerHTML=`
 <div class="out-hdr">
   <div><div class="out-title">Teacha listing ready</div><div class="out-sub">Copy each section into your Teacha product page</div></div>
-  <div class="brow">
-    <button class="abtn" onclick="copyCover()">Copy all text</button>
-  </div>
+  <div class="brow"><button class="abtn" onclick="copyCover()">Copy all text</button></div>
 </div>
 <div class="cover-card">
   <div class="cover-top">
@@ -545,26 +742,14 @@ function renderCover(d){
     <div class="cover-tagline">${esc(d.tagline||'')}</div>
   </div>
   <div class="cover-body">
-    <div>
-      <div class="cover-section-title">Product description</div>
-      <div class="cover-desc">${esc(d.description||'')}</div>
-    </div>
-    <div>
-      <div class="cover-section-title">What's included</div>
-      <div class="cover-list">${(d.whatIncluded||[]).map(i=>`<div class="cover-list-item"><div class="cover-tick">✓</div><span>${esc(i)}</span></div>`).join('')}</div>
-    </div>
+    <div><div class="cover-section-title">Product description</div><div class="cover-desc">${esc(d.description||'')}</div></div>
+    <div><div class="cover-section-title">What's included</div><div class="cover-list">${(d.whatIncluded||[]).map(i=>`<div class="cover-list-item"><div class="cover-tick">✓</div><span>${esc(i)}</span></div>`).join('')}</div></div>
     <div class="cover-meta">
       <div class="cover-meta-item"><div class="cover-meta-label">Suitable for</div><div class="cover-meta-value">${esc(d.suitableFor||'')}</div></div>
       <div class="cover-meta-item"><div class="cover-meta-label">Language</div><div class="cover-meta-value">${esc(lang)}</div></div>
     </div>
-    <div>
-      <div class="cover-section-title">Search keywords</div>
-      <div class="kw-row">${(d.keywords||[]).map(k=>`<span class="kw-pill">${esc(k)}</span>`).join('')}</div>
-    </div>
-    <div class="cover-price">
-      <div class="cover-price-label">Suggested listing price</div>
-      <div class="cover-price-value">${esc(d.suggestedPrice||'R60')}</div>
-    </div>
+    <div><div class="cover-section-title">Search keywords</div><div class="kw-row">${(d.keywords||[]).map(k=>`<span class="kw-pill">${esc(k)}</span>`).join('')}</div></div>
+    <div class="cover-price"><div class="cover-price-label">Suggested listing price</div><div class="cover-price-value">${esc(d.suggestedPrice||'R60')}</div></div>
   </div>
 </div>`;
   showCover('o');
@@ -577,6 +762,25 @@ function copyCover(){
   navigator.clipboard.writeText(txt).then(()=>alert('Copied! Paste into your Teacha listing.')).catch(()=>alert('Please copy manually.'));
 }
 
+function doCopy(btn){
+  if(!window._cur)return;
+  navigator.clipboard.writeText(window._cur).then(()=>{const o=btn.textContent;btn.textContent='Copied!';setTimeout(()=>btn.textContent=o,1800);}).catch(()=>alert('Please select and copy manually.'));
+}
+
+function addHist(subj,topic,content,diagram,grade,term){
+  hist.unshift({subj,topic,rtype,lang,diff,content,diagram:diagram||null,grade,term});
+  if(hist.length>6)hist.pop();
+  document.getElementById('hist-sec').style.display='block';
+  document.getElementById('hist-list').innerHTML=hist.map((h,i)=>`<div class="hist-item" onclick="loadH(${i})"><div class="hdot"></div><div class="htxt">Gr${h.grade} ${esc(h.subj)} — ${esc(h.rtype)}</div></div>`).join('');
+}
+function loadH(i){const h=hist[i];rtype=h.rtype;lang=h.lang;diff=h.diff;renderOut(h.subj,h.topic,h.content,h.diagram,h.grade,h.term);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// Init
+loadSubjects();
+document.getElementById('subj').addEventListener('change',loadTopics);
+document.getElementById('grade').addEventListener('change',()=>{loadSubjects();loadTopics();});
+document.getElementById('term').addEventListener('change',loadTopics);
 async function svgToPngDataUrl(svgString){
   return new Promise((resolve)=>{
     try{
@@ -604,6 +808,8 @@ async function downloadWord(){
   if(!window._cur)return;
   const raw=window._cur;
   const subj=document.getElementById('subj').value||'Resource';
+  const gradeVal=document.getElementById('grade').value||'6';
+  const termVal=document.getElementById('term').value||'3';
   const topic=document.getElementById('topic').value||'';
 
   // Convert plain text content into formatted HTML for Word
@@ -789,19 +995,6 @@ ${bodyHtml}
   URL.revokeObjectURL(url);
 }
 
-function doCopy(btn){
-  if(!window._cur)return;
-  navigator.clipboard.writeText(window._cur).then(()=>{const o=btn.textContent;btn.textContent='Copied!';setTimeout(()=>btn.textContent=o,1800);}).catch(()=>alert('Please select and copy manually.'));
-}
-
-function addHist(subj,topic,content,diagram){
-  hist.unshift({subj,topic,rtype,lang,diff,content,diagram:diagram||null});
-  if(hist.length>6)hist.pop();
-  document.getElementById('hist-sec').style.display='block';
-  document.getElementById('hist-list').innerHTML=hist.map((h,i)=>`<div class="hist-item" onclick="loadH(${i})"><div class="hdot"></div><div class="htxt">${esc(h.subj)} — ${esc(h.rtype)}</div></div>`).join('');
-}
-function loadH(i){const h=hist[i];rtype=h.rtype;lang=h.lang;diff=h.diff;window._cur=h.content;window._diagram=h.diagram;renderOut(h.subj,h.topic,h.content,h.diagram);}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
 </body>
 </html>
