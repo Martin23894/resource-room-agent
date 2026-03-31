@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Resource Room — Grade 6 Term 3</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --t9:#04342C;--t8:#085041;--t6:#0F6E56;--t4:#1D9E75;--t1:#9FE1CB;--t05:#E1F5EE;
+  --ink:#1a1a18;--ink2:#3d3d3a;--ink3:#73726c;--ink4:#9c9a92;
+  --sur:#f8f7f3;--sur2:#ffffff;--bdr:#e4e2da;--bdr2:#d3d1c7;
+}
+body{font-family:system-ui,sans-serif;background:var(--sur);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
+ 
+.hdr{background:var(--t8);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+.logo{line-height:1.1;}
+.l-the{font-size:8px;font-weight:700;letter-spacing:5px;color:var(--t1);}
+.l-res{font-size:20px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1;}
+.l-wrap{display:inline-block;background:var(--t4);padding:1px 7px 3px 0;}
+.l-room{font-size:20px;font-weight:700;color:var(--t9);letter-spacing:-1px;line-height:1;}
+.badge{background:var(--t9);border:1px solid var(--t6);border-radius:20px;padding:5px 12px;font-size:10px;font-weight:700;color:var(--t1);letter-spacing:.8px;}
+ 
+.layout{display:flex;flex:1;}
+ 
+.side{width:260px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--bdr);padding:20px 16px;display:flex;flex-direction:column;gap:14px;}
+.slabel{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;margin-bottom:5px;}
+.flabel{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:4px;}
+.sw{position:relative;}
+.sw::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--ink4);font-size:11px;pointer-events:none;}
+select{width:100%;padding:8px 28px 8px 10px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:12px;color:var(--ink);background:var(--sur);appearance:none;cursor:pointer;font-family:inherit;}
+select:focus{outline:none;border-color:var(--t4);}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.tbtn{padding:8px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:11px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.tbtn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
+.lrow{display:grid;grid-template-columns:1fr 1fr;gap:5px;}
+.lbtn{padding:8px 0;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
+.lbtn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
+.hdiv{border:none;border-top:1px solid var(--bdr);}
+.genbtn{width:100%;padding:13px;background:var(--t8);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;transition:background .15s;font-family:inherit;margin-top:auto;}
+.genbtn:hover:not(:disabled){background:var(--t6);}
+.genbtn:disabled{background:var(--ink4);cursor:not-allowed;}
+.hist-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;transition:background .15s;}
+.hist-item:hover{background:var(--t05);}
+.hdot{width:5px;height:5px;border-radius:50%;background:var(--t4);flex-shrink:0;}
+.htxt{font-size:11px;color:var(--ink3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+ 
+.main{flex:1;padding:24px;display:flex;flex-direction:column;overflow-y:auto;}
+ 
+.empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:40px;}
+.eico{width:60px;height:60px;background:var(--t05);border-radius:50%;display:flex;align-items:center;justify-content:center;}
+.empty h2{font-size:20px;font-weight:600;color:var(--ink);}
+.empty p{font-size:13px;color:var(--ink3);max-width:300px;line-height:1.6;}
+.qrow{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-top:4px;}
+.qpill{padding:6px 12px;border:1.5px solid var(--bdr2);border-radius:20px;font-size:11px;font-weight:600;color:var(--ink3);cursor:pointer;background:var(--sur2);transition:all .15s;font-family:inherit;}
+.qpill:hover{border-color:var(--t4);color:var(--t8);background:var(--t05);}
+ 
+.loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.spin{width:38px;height:38px;border:3px solid var(--t05);border-top-color:var(--t6);border-radius:50%;animation:sp .8s linear infinite;}
+@keyframes sp{to{transform:rotate(360deg);}}
+.ltxt{font-size:14px;color:var(--ink3);}
+.lsub{font-size:12px;color:var(--ink4);}
+ 
+.out-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;}
+.out-title{font-size:22px;font-weight:700;color:var(--ink);margin-bottom:3px;}
+.out-sub{font-size:12px;color:var(--ink3);}
+.brow{display:flex;gap:6px;flex-shrink:0;}
+.abtn{padding:7px 13px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;font-weight:600;color:var(--ink2);background:var(--sur2);cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit;}
+.abtn:hover{border-color:var(--t4);color:var(--t8);background:var(--t05);}
+.abtn.pri{background:var(--t8);border-color:var(--t8);color:#fff;}
+.abtn.pri:hover{background:var(--t6);border-color:var(--t6);}
+.pack{background:var(--sur2);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;}
+.pack-top{background:var(--t9);padding:16px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.pt-title{font-size:15px;font-weight:600;color:#fff;}
+.pt-badge{background:var(--t6);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--t05);white-space:nowrap;}
+.pack-body{padding:22px;font-size:13px;line-height:1.9;color:var(--ink2);white-space:pre-wrap;font-family:'Courier New',monospace;max-height:65vh;overflow-y:auto;background:#fafaf8;}
+.pack-foot{padding:0 22px 16px;display:flex;gap:8px;}
+.cbtn{padding:8px 16px;background:var(--t05);border:1.5px solid var(--t1);border-radius:7px;font-size:12px;font-weight:600;color:var(--t8);cursor:pointer;transition:all .15s;font-family:inherit;}
+.cbtn:hover{background:var(--t1);}
+.err{background:#fff5f5;border:1.5px solid #f09595;border-radius:10px;padding:16px 20px;color:#A32D2D;font-size:13px;line-height:1.7;}
+</style>
+</head>
+<body>
+ 
+<div class="hdr">
+  <div class="logo">
+    <div class="l-the">THE</div>
+    <div><span class="l-res">RESOURCE</span></div>
+    <div><div class="l-wrap"><span class="l-room">ROOM</span></div></div>
+  </div>
+  <div class="badge">GRADE 6 · TERM 3 · CAPS AGENT</div>
+</div>
+ 
+<div class="layout">
+  <div class="side">
+    <div>
+      <div class="slabel">Configure resource</div>
+ 
+      <div style="margin-bottom:11px;">
+        <div class="flabel">Subject</div>
+        <div class="sw">
+          <select id="subj" onchange="loadTopics()">
+            <option value="">— Select subject —</option>
+            <optgroup label="Languages">
+              <option>English Home Language</option>
+              <option>English First Additional Language</option>
+              <option>Afrikaans Huistaal</option>
+              <option>Afrikaans Eerste Addisionele Taal</option>
+            </optgroup>
+            <optgroup label="Core Subjects">
+              <option>Mathematics</option>
+              <option>Natural Sciences</option>
+              <option>Social Sciences</option>
+              <option>Technology</option>
+              <option>Economic and Management Sciences</option>
+            </optgroup>
+            <optgroup label="Life Skills">
+              <option>Creative Arts</option>
+              <option>Physical Education</option>
+              <option>Personal and Social Well-being</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+ 
+      <div style="margin-bottom:11px;">
+        <div class="flabel">Topic</div>
+        <div class="sw">
+          <select id="topic"><option value="">— Select subject first —</option></select>
+        </div>
+      </div>
+ 
+      <div style="margin-bottom:11px;">
+        <div class="flabel">Resource type</div>
+        <div class="tgrid">
+          <button class="tbtn on" data-t="Assessment & Test" onclick="setType(this)">Assessment</button>
+          <button class="tbtn" data-t="Worksheet" onclick="setType(this)">Worksheet</button>
+          <button class="tbtn" data-t="Lesson Plan" onclick="setType(this)">Lesson Plan</button>
+          <button class="tbtn" data-t="Exam Prep Pack" onclick="setType(this)">Exam Prep</button>
+        </div>
+      </div>
+ 
+      <div style="margin-bottom:11px;">
+        <div class="flabel">Language</div>
+        <div class="lrow">
+          <button class="lbtn on" data-l="English" onclick="setLang(this)">English</button>
+          <button class="lbtn" data-l="Afrikaans" onclick="setLang(this)">Afrikaans</button>
+        </div>
+      </div>
+ 
+      <div>
+        <div class="flabel">Duration / marks</div>
+        <div class="sw">
+          <select id="dur">
+            <option value="1 hour, 50 marks">1 hour — 50 marks</option>
+            <option value="45 minutes, 40 marks">45 min — 40 marks</option>
+            <option value="30 minutes, 30 marks">30 min — 30 marks</option>
+            <option value="2 hours, 100 marks">2 hours — 100 marks</option>
+            <option value="flexible duration">Flexible / Worksheet</option>
+          </select>
+        </div>
+      </div>
+    </div>
+ 
+    <hr class="hdiv"/>
+    <div id="hist-sec" style="display:none;">
+      <div class="slabel">Recent packs</div>
+      <div id="hist-list" style="display:flex;flex-direction:column;gap:4px;margin-bottom:10px;"></div>
+      <hr class="hdiv"/>
+    </div>
+ 
+    <button class="genbtn" id="gbtn" onclick="generate()">Generate resource pack ↗</button>
+  </div>
+ 
+  <div class="main" id="mainarea">
+    <div class="empty" id="es">
+      <div class="eico">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#085041" stroke-width="1.8">
+          <rect x="4" y="2" width="18" height="22" rx="3"/>
+          <line x1="8" y1="9" x2="18" y2="9"/>
+          <line x1="8" y1="13" x2="18" y2="13"/>
+          <line x1="8" y1="17" x2="14" y2="17"/>
+        </svg>
+      </div>
+      <h2>CAPS agent ready</h2>
+      <p>Select a subject, topic and resource type — then generate a complete CAPS-aligned teacher pack instantly.</p>
+      <div class="qrow">
+        <button class="qpill" onclick="qf('Mathematics','Fractions and decimals','Assessment & Test','English')">Maths Assessment</button>
+        <button class="qpill" onclick="qf('Natural Sciences','Matter and Materials','Worksheet','English')">Natural Sciences WS</button>
+        <button class="qpill" onclick="qf('Social Sciences','Geography – map skills','Lesson Plan','Afrikaans')">Sosiale Wetenskappe LP</button>
+        <button class="qpill" onclick="qf('English Home Language','Poetry and comprehension','Exam Prep Pack','English')">English Exam Prep</button>
+      </div>
+    </div>
+    <div class="loading" id="ls" style="display:none;">
+      <div class="spin"></div>
+      <div class="ltxt" id="ltxt">Generating your teacher pack...</div>
+      <div class="lsub">CAPS-aligned · Grade 6 · Term 3</div>
+    </div>
+    <div id="os" style="display:none;"></div>
+  </div>
+</div>
+ 
+<script>
+const TOPICS={
+  "Mathematics":["Fractions and decimals","Whole numbers","2D shapes","3D objects","Patterns and algebra","Data handling","Area and perimeter","Common fractions","Decimal fractions"],
+  "English Home Language":["Poetry and comprehension","Reading and viewing","Writing – narratives","Writing – transactional texts","Language structures","Listening and speaking","Short stories"],
+  "English First Additional Language":["Reading comprehension","Vocabulary building","Writing – formal letters","Language in use","Listening skills"],
+  "Afrikaans Huistaal":["Poësie en begrip","Lees en kyk","Skryf – verhale","Skryf – transaksionele tekste","Taalstrukture","Luister en praat"],
+  "Afrikaans Eerste Addisionele Taal":["Leesbegrip","Woordeskat","Skryf – formele briewe","Taal in gebruik","Luistervaardighede"],
+  "Natural Sciences":["Matter and Materials","Energy and Change","Life and Living","Earth and Beyond","Electricity and circuits","Food and nutrition","Ecosystems"],
+  "Social Sciences":["Geography – map skills","Geography – climate and weather","History – Ancient civilisations","History – SA indigenous knowledge","Trade and resources"],
+  "Technology":["Structures and mechanisms","Food technology","Systems and control","Impact of technology"],
+  "Economic and Management Sciences":["Entrepreneurship","Financial literacy","The economy and trade","Business and the consumer"],
+  "Creative Arts":["Visual Arts – colour and design","Music – rhythm and melody","Drama – performance","Dance – creative movement"],
+  "Physical Education":["Athletics and movement","Ball games and teamwork","Health and fitness"],
+  "Personal and Social Well-being":["Healthy relationships","Decision making","Environmental responsibility"]
+};
+ 
+let rtype="Assessment & Test",lang="English",hist=[];
+ 
+function loadTopics(){
+  const s=document.getElementById('subj').value;
+  const t=document.getElementById('topic');
+  const list=TOPICS[s]||[];
+  t.innerHTML=list.length?list.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option value="">— Select subject first —</option>';
+}
+function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;}
+function setLang(el){document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');lang=el.dataset.l;}
+function show(s){
+  document.getElementById('es').style.display=s==='e'?'flex':'none';
+  document.getElementById('ls').style.display=s==='l'?'flex':'none';
+  document.getElementById('os').style.display=s==='o'?'block':'none';
+}
+function qf(s,t,tp,l){
+  document.getElementById('subj').value=s;loadTopics();
+  setTimeout(()=>{document.getElementById('topic').value=t;},80);
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.toggle('on',b.dataset.t===tp));rtype=tp;
+  document.querySelectorAll('.lbtn').forEach(b=>b.classList.toggle('on',b.dataset.l===l));lang=l;
+  setTimeout(generate,160);
+}
+ 
+async function generate(){
+  const subj=document.getElementById('subj').value;
+  const topic=document.getElementById('topic').value;
+  const dur=document.getElementById('dur').value;
+  if(!subj){alert('Please select a subject.');return;}
+  if(!topic||topic==='— Select subject first —'){alert('Please select a topic.');return;}
+  show('l');
+  document.getElementById('gbtn').disabled=true;
+  const msgs=['Generating your '+lang+' '+rtype+'...','Aligning to CAPS Grade 6 Term 3...','Writing questions and memorandum...','Structuring your full teacher pack...'];
+  let mi=0;
+  const iv=setInterval(()=>{mi=(mi+1)%msgs.length;const el=document.getElementById('ltxt');if(el)el.textContent=msgs[mi];},2200);
+  try{
+    const r=await fetch('/api/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur})
+    });
+    clearInterval(iv);
+    const d=await r.json();
+    if(!r.ok||d.error)throw new Error(d.error||'Server error');
+    addHist(subj,topic,d.content);
+    renderOut(subj,topic,d.content);
+  }catch(e){
+    clearInterval(iv);
+    document.getElementById('os').innerHTML=`<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Please check your API key is set in Vercel → Settings → Environment Variables.</div>`;
+    show('o');
+  }
+  document.getElementById('gbtn').disabled=false;
+}
+ 
+function renderOut(subj,topic,content){
+  window._cur=content;
+  document.getElementById('os').innerHTML=`
+<div class="out-hdr">
+  <div><div class="out-title">${esc(subj)}</div><div class="out-sub">${esc(topic)} · ${esc(rtype)} · ${esc(lang)} · Grade 6 Term 3</div></div>
+  <div class="brow">
+    <button class="abtn" onclick="doCopy(this)">Copy text</button>
+    <button class="abtn pri" onclick="generate()">Regenerate ↺</button>
+  </div>
+</div>
+<div class="pack">
+  <div class="pack-top">
+    <div class="pt-title">${esc(rtype)} — ${esc(subj)}</div>
+    <div class="pt-badge">CAPS · GR6 · TERM 3 · ${esc(lang.toUpperCase())}</div>
+  </div>
+  <div class="pack-body">${esc(content)}</div>
+  <div class="pack-foot">
+    <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
+    <button class="cbtn" onclick="window.print()">Print / Save PDF</button>
+  </div>
+</div>`;
+  show('o');
+}
+ 
+function doCopy(btn){
+  if(!window._cur)return;
+  navigator.clipboard.writeText(window._cur).then(()=>{const o=btn.textContent;btn.textContent='Copied!';setTimeout(()=>btn.textContent=o,1800);}).catch(()=>alert('Please select and copy the text manually.'));
+}
+ 
+function addHist(subj,topic,content){
+  hist.unshift({subj,topic,rtype,lang,content});
+  if(hist.length>6)hist.pop();
+  document.getElementById('hist-sec').style.display='block';
+  document.getElementById('hist-list').innerHTML=hist.map((h,i)=>`<div class="hist-item" onclick="loadH(${i})"><div class="hdot"></div><div class="htxt">${esc(h.subj)} — ${esc(h.rtype)}</div></div>`).join('');
+}
+function loadH(i){const h=hist[i];rtype=h.rtype;lang=h.lang;window._cur=h.content;renderOut(h.subj,h.topic,h.content);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
