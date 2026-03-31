@@ -215,7 +215,7 @@ select:focus{outline:none;border-color:var(--t4);}
         <div>
           <div class="flabel">Term</div>
           <div class="sw">
-            <select id="term">
+            <select id="term" onchange="loadTopics()">
               <option value="1">Term 1</option>
               <option value="2">Term 2</option>
               <option value="3" selected>Term 3</option>
@@ -488,7 +488,10 @@ const TOPICS = {
   'Life Skills': {
     1: { 1:['My body and personal hygiene','Safety at school and home','Creative Arts – drawing'], 2:['Healthy eating','Emotions and feelings','Physical Education – movement'], 3:['My family and community','Making friends','Arts and Crafts – collage'], 4:['Caring for the environment','Goal setting','Drama – expression'] },
     2: { 1:['Healthy habits','Bullying – saying no','Creative Arts – colour'], 2:['Road safety','Cooperation and teamwork','Physical movement – ball skills'], 3:['Community helpers','Responsibility','Arts – texture and design'], 4:['Environmental care','Managing feelings','Drama and music'] },
-    3: { 1:['Growing and changing','Relationships and respect','Creative Arts – patterns'], 2:['Nutrition and exercise','Peer pressure','Physical Education – games'], 3:['Community and belonging','Personal values','Arts – 3D construction'], 4:['Life skills revision','Goal setting for next year','Creative celebration'] }
+    3: { 1:['Growing and changing','Relationships and respect','Creative Arts – patterns'], 2:['Nutrition and exercise','Peer pressure','Physical Education – games'], 3:['Community and belonging','Personal values','Arts – 3D construction'], 4:['Life skills revision','Goal setting for next year','Creative celebration'] },
+    4: { 1:['Personal development – identity','Health and hygiene','Physical Education – athletics'], 2:['Social skills – conflict resolution','Safety at home and school','Recreational activities'], 3:['Study skills and time management','Community involvement','Team sports'], 4:['Career awareness','Environmental responsibility','Revision'] },
+    5: { 1:['Self-awareness and goals','Healthy relationships','Physical Education – gymnastics'], 2:['Bullying and peer pressure','Democracy and rights','Team building activities'], 3:['Decision making skills','Community service','Fitness and wellness'], 4:['Future planning','Citizenship','Revision'] },
+    6: { 1:['Personal development','Healthy relationships and boundaries','Physical Education'], 2:['Social responsibility','Rights and responsibilities','Recreational sport'], 3:['Decision making and values','Environmental responsibility','Fitness'], 4:['Career exploration','Community involvement','Revision'] }
   },
   'Life Orientation': {
     4: { 1:['Personal development – identity','Health and hygiene','Physical Education – athletics'], 2:['Social skills – conflict resolution','Safety and first aid','Recreational activities'], 3:['Study skills and time management','Community involvement','Team sports'], 4:['Career awareness','Environmental responsibility','Revision'] },
@@ -518,24 +521,33 @@ let rtype='Assessment & Test', lang='English', diff='on', bloomsMode='none', his
 
 function getPhase(g){ return g<=3?'foundation':g<=6?'intermediate':'senior'; }
 
+function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+
 function loadSubjects(){
   const g=parseInt(document.getElementById('grade').value)||6;
   const phase=getPhase(g);
   const subjs=SUBJECTS[phase];
   const sel=document.getElementById('subj');
-  sel.innerHTML='<option value="">— Select subject —</option>'+subjs.map(s=>`<option value="${s}">${s}</option>`).join('');
+  sel.innerHTML='<option value="">— Select subject —</option>'+subjs.map(s=>`<option value="${escAttr(s)}">${escAttr(s)}</option>`).join('');
   document.getElementById('topic').innerHTML='<option value="">— Select subject first —</option>';
 }
 
 function loadTopics(){
-  const subj=document.getElementById('subj').value;
+  // Decode &amp; back to & for TOPICS object key lookup
+  const raw=document.getElementById('subj').value;
+  const subj=raw.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
   const g=parseInt(document.getElementById('grade').value)||6;
   const t=parseInt(document.getElementById('term').value)||3;
   const topicEl=document.getElementById('topic');
-  const gradeTopics=(TOPICS[subj]||{})[g]||{};
-  const list=gradeTopics[t]||[];
-  topicEl.innerHTML=list.length?list.map(x=>`<option value="${x}">${x}</option>`).join(''):'<option value="">— No topics found, type your own —</option>';
-  if(!list.length){topicEl.innerHTML='<option value="custom">Type topic manually</option>';}
+  if(!subj){topicEl.innerHTML='<option value="">— Select subject first —</option>';return;}
+  const subjectTopics=TOPICS[subj]||{};
+  const gradeTopics=subjectTopics[g]||subjectTopics[String(g)]||{};
+  const list=gradeTopics[t]||gradeTopics[String(t)]||[];
+  if(list.length){
+    topicEl.innerHTML=list.map(x=>`<option value="${escAttr(x)}">${escAttr(x)}</option>`).join('');
+  } else {
+    topicEl.innerHTML='<option value="">— Type your own topic —</option>';
+  }
 }
 
 function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;}
@@ -589,7 +601,8 @@ function qf(g,t,s,topic,tp,l,d){
 }
 
 async function doGenerate(){
-  const subj=document.getElementById('subj').value;
+  const rawSubj=document.getElementById('subj').value;
+  const subj=rawSubj.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
   const topic=document.getElementById('topic').value;
   const dur=document.getElementById('dur').value;
   const grade=document.getElementById('grade').value;
@@ -1082,11 +1095,7 @@ function updateFontPreview(){
   if(note) note.style.display=font.includes('Teachers Pet')?'block':'none';
 }
 
-// Init
-loadSubjects();
-document.getElementById('subj').addEventListener('change',loadTopics);
-document.getElementById('grade').addEventListener('change',()=>{loadSubjects();loadTopics();});
-document.getElementById('term').addEventListener('change',loadTopics);
+// (init moved to end)
 async function svgToPngDataUrl(svgString){
   return new Promise((resolve)=>{
     try{
@@ -1357,6 +1366,12 @@ ${diagramWordHtmlEnd}
   a.href=url; a.download=filename; a.click();
   URL.revokeObjectURL(url);
 }
+
+// Init — runs after all functions are defined
+loadSubjects();
+document.getElementById('subj').addEventListener('change',loadTopics);
+document.getElementById('grade').addEventListener('change',function(){loadSubjects();loadTopics();});
+document.getElementById('term').addEventListener('change',loadTopics);
 
 </script>
 </body>
