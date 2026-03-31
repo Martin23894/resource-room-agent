@@ -7,9 +7,8 @@ export default async function handler(req, res) {
 
   const {
     subject, topic, resourceType, language, duration, difficulty,
-    includeRubric, includeDiagram, diagramType,
-    grade, term,
-    bloomsMode, bloomsLevels
+    includeRubric, diagramCount, diagramType, diagramPlacement,
+    grade, term, bloomsMode, bloomsLevels
   } = req.body;
 
   if (!subject || !topic || !resourceType || !language) {
@@ -19,96 +18,117 @@ export default async function handler(req, res) {
   const gradeNum = parseInt(grade) || 6;
   const termNum = parseInt(term) || 3;
   const phase = gradeNum <= 3 ? 'Foundation Phase' : gradeNum <= 6 ? 'Intermediate Phase' : 'Senior Phase';
+  const numDiagrams = parseInt(diagramCount) || 0;
 
   const difficultyNote = difficulty === 'below'
-    ? 'BELOW grade level — simplified language, smaller numbers, more scaffolding, confidence-building tasks.'
+    ? 'BELOW grade level — simplified language, more scaffolding, confidence-building tasks.'
     : difficulty === 'above'
-    ? 'ABOVE grade level — multi-step problems, higher-order thinking, extended responses, genuine stretch tasks.'
+    ? 'ABOVE grade level — multi-step problems, higher-order thinking, genuine stretch tasks.'
     : `ON grade level — standard CAPS expectations for Grade ${gradeNum} Term ${termNum}.`;
 
-  // Bloom's Taxonomy guidance
   const bloomsDescriptions = {
-    remember: 'REMEMBER — recall, define, list, identify, name, recognise facts and basic concepts',
-    understand: 'UNDERSTAND — explain, describe, summarise, classify, compare in own words',
-    apply: 'APPLY — use knowledge in new situations, solve problems, demonstrate, calculate',
-    analyse: 'ANALYSE — break down, differentiate, organise, examine, compare and contrast',
-    evaluate: 'EVALUATE — judge, justify, critique, argue, assess, defend a position',
-    create: 'CREATE — design, construct, plan, produce, compose, devise something new'
+    remember: 'REMEMBER — recall, define, list, identify, name facts',
+    understand: 'UNDERSTAND — explain, describe, summarise, classify',
+    apply: 'APPLY — use in new situations, solve, demonstrate, calculate',
+    analyse: 'ANALYSE — break down, differentiate, compare and contrast',
+    evaluate: 'EVALUATE — judge, justify, critique, defend a position',
+    create: 'CREATE — design, construct, plan, produce, compose'
   };
 
   let bloomsNote = '';
-  if (bloomsMode === 'single' && bloomsLevels && bloomsLevels.length > 0) {
-    const level = bloomsLevels[0];
-    bloomsNote = `\nBLOOM'S TAXONOMY — Single level focus: ${bloomsDescriptions[level] || level}\nAll questions and tasks must target this specific cognitive level. Use appropriate action verbs for this level throughout.`;
-  } else if (bloomsMode === 'mixed' && bloomsLevels && bloomsLevels.length > 0) {
-    const levelDescs = bloomsLevels.map(l => bloomsDescriptions[l] || l).join('\n  • ');
-    bloomsNote = `\nBLOOM'S TAXONOMY — Mixed cognitive levels:\n  • ${levelDescs}\nDistribute questions across these levels. Label each section or question type with its Bloom's level in brackets e.g. (Remember) (Apply). Progress from lower to higher order thinking.`;
+  if (bloomsMode === 'single' && bloomsLevels?.length > 0) {
+    bloomsNote = `\nBLOOM'S — Single level: ${bloomsDescriptions[bloomsLevels[0]] || bloomsLevels[0]}`;
+  } else if (bloomsMode === 'mixed' && bloomsLevels?.length > 0) {
+    const descs = bloomsLevels.map(l => bloomsDescriptions[l] || l).join('; ');
+    bloomsNote = `\nBLOOM'S — Mixed levels: ${descs}. Label each section with its Bloom's level. Progress lower → higher order.`;
   }
 
-  const rubricSection = includeRubric ? `
-
-═══════════════════════════════════
-MARKING RUBRIC
-═══════════════════════════════════
-[4-level rubric (Level 1-4) with specific, practical descriptors aligned to the Bloom's levels used in this resource.]` : '';
+  const rubricSection = includeRubric
+    ? `\n\n═══════════════════════════════════\nMARKING RUBRIC\n═══════════════════════════════════\n[4-level rubric with practical descriptors aligned to Bloom's levels used.]`
+    : '';
 
   const diagramTypeMap = {
-    agent: 'Choose the most educationally appropriate diagram type for this specific topic and grade level.',
+    agent: 'Choose the most educationally appropriate diagram type for the topic and grade.',
     bar: 'Bar graph or pie chart (data handling)',
     line: 'Line graph (trends over time)',
-    science: 'Scientific diagram (food chain, plant parts, water cycle, life cycle, body systems)',
-    flow: 'Flow diagram (process, cause-and-effect, sequence of steps)',
-    map: 'Map, grid or compass rose (Geography / Social Sciences)',
+    science: 'Scientific diagram (food chain, plant parts, water cycle, life cycle)',
+    flow: 'Flow diagram (process, cause-and-effect, steps)',
+    map: 'Map, grid or compass rose (Geography)',
     maths: 'Number line, geometric shapes, or mathematical diagram'
   };
 
-  const diagramInstruction = includeDiagram ? `
+  const svgRules = `SVG rules for EVERY diagram:
+- viewBox="0 0 520 300" width="520" height="300"
+- First element: <rect width="520" height="300" fill="white"/>
+- font-family="Arial, sans-serif" on ALL text elements
+- Professional colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780 #E6F1FB
+- Clear labels, clean lines, grade-appropriate for Grade ${gradeNum}
+- Title text at top of SVG
+- No JavaScript, no external resources`;
 
-DIAGRAM REQUIREMENT:
-Include a diagram. Type: ${diagramTypeMap[diagramType] || diagramTypeMap['agent']}
+  // Build diagram instruction based on count and placement
+  let diagramInstruction = '';
+  if (numDiagrams > 0) {
+    const placementDesc = diagramPlacement === 'beginning'
+      ? 'ALL diagrams appear BEFORE the questions. Place the placeholder(s) right after the learner header (Name/Date/Class line), before SECTION A.'
+      : diagramPlacement === 'end'
+      ? 'ALL diagrams appear AFTER all questions, before the MEMORANDUM. Place the placeholder(s) after the TOTAL line and before the memorandum separator.'
+      : `INLINE placement — each diagram appears at the most relevant question. Place [DIAGRAM_N] placeholder directly below the question it belongs to. The diagram should illustrate exactly what that question is testing.`;
 
-In your JSON response the "diagram" object must contain:
-- "title": e.g. "Figure 1: The Water Cycle"
-- "caption": 1-2 sentences explaining what the diagram shows and what learners must do with it
-- "svg": complete self-contained SVG (no external dependencies, no JavaScript)
+    const diagramObjects = Array.from({length: numDiagrams}, (_, i) => {
+      const n = i + 1;
+      return `"diagram${n}": {
+  "title": "Figure ${n}: [descriptive title]",
+  "caption": "[1-2 sentences: what diagram shows and what learner must do]",
+  "svg": "[complete self-contained SVG element]"
+}`;
+    }).join(',\n  ');
 
-SVG rules:
-- viewBox="0 0 520 320" width="520" height="320"
-- White background rectangle covering full area
-- font-family="Arial, sans-serif" on all text
-- Clear labels, clean lines, professional colours
-- Colours: #085041, #1D9E75, #E1F5EE, #185FA5, #BA7517, #888780
-- Grade-appropriate content for Grade ${gradeNum}
-- Relate directly to topic: ${topic}
-- Include at least 2-3 questions referring to this diagram in the resource` : '';
+    diagramInstruction = `
+
+DIAGRAMS REQUIRED: ${numDiagrams} diagram(s)
+Type: ${diagramTypeMap[diagramType] || diagramTypeMap['agent']}
+Placement: ${placementDesc}
+
+${diagramPlacement === 'inline' ? `In the "content" field, insert the placeholder [DIAGRAM_1]${numDiagrams > 1 ? ', [DIAGRAM_2]' : ''}${numDiagrams > 2 ? ', [DIAGRAM_3]' : ''} exactly where each diagram should appear inline with questions. Each diagram must have 2-3 questions immediately following it that refer directly to it (e.g. "Study Figure 1 and answer the questions below:").` : `In the "content" field, insert ${numDiagrams === 1 ? 'the placeholder [DIAGRAM_1]' : `the placeholders [DIAGRAM_1]${numDiagrams > 1 ? ' [DIAGRAM_2]' : ''}${numDiagrams > 2 ? ' [DIAGRAM_3]' : ''}`} at the correct position (${diagramPlacement === 'beginning' ? 'after learner details, before Section A' : 'after TOTAL line, before memorandum'}).`}
+
+${svgRules}
+
+Include ${numDiagrams > 1 ? `${numDiagrams} different` : 'a'} diagram${numDiagrams > 1 ? 's' : ''} — each must relate directly to the topic "${topic}" and be genuinely educational for Grade ${gradeNum}.`;
+  }
 
   const ageGuidance = gradeNum <= 3
-    ? `Foundation Phase (Grade ${gradeNum}): Use very simple language, short sentences, large clear text, pictures/diagrams where possible, fun and encouraging tone. Questions must be age-appropriate for ${5 + gradeNum}-${6 + gradeNum} year olds.`
+    ? `Foundation Phase: Very simple language, short sentences, fun and encouraging. Age-appropriate for ${5 + gradeNum}-${6 + gradeNum} year olds.`
     : gradeNum <= 6
-    ? `Intermediate Phase (Grade ${gradeNum}): Clear, engaging language appropriate for ${9 + gradeNum - 4}-${10 + gradeNum - 4} year olds. Mix of question types. Use South African context freely.`
-    : `Senior Phase (Grade ${gradeNum}): More formal academic language appropriate for teenagers. Higher complexity expected. Challenge learners to think critically.`;
+    ? `Intermediate Phase: Clear engaging language for ${9 + (gradeNum - 4)}-${10 + (gradeNum - 4)} year olds. Mix of question types. Use SA context.`
+    : `Senior Phase: More formal academic language for teenagers. Higher complexity. Challenge critical thinking.`;
 
-  const system = `You are an experienced South African ${phase} teacher and curriculum developer. You create CAPS-aligned teaching resources for The Resource Room — a professional educational publishing brand trusted by SA teachers.
+  // Build the JSON diagram fields for the response
+  const diagramFields = numDiagrams === 0
+    ? '"diagrams": null'
+    : `"diagrams": {\n  ${Array.from({length: numDiagrams}, (_, i) => {
+        const n = i + 1;
+        return `"diagram${n}": { "title": "...", "caption": "...", "svg": "..." }`;
+      }).join(',\n  ')}\n}`;
+
+  const system = `You are an experienced South African ${phase} teacher and curriculum developer creating CAPS-aligned resources for The Resource Room.
 
 WRITING STYLE:
-- Warm, professional, sounds like a real experienced teacher wrote this
-- Use South African context: rands, local names (Sipho, Ayanda, Lerato, Pieter, Zanele), tuck shops, load-shedding, wildlife, SA sport, familiar local scenarios
-- Vary question types naturally — never repeat the same pattern
-- Instructions are friendly and encouraging
-- Write as if you genuinely care about every learner
-${ageGuidance}
-
+- Warm, professional — sounds like a real experienced teacher
+- Use South African context: rands, local names (Sipho, Ayanda, Lerato, Pieter, Zanele), tuck shops, SA wildlife, local scenarios
+- Vary question types naturally. Never repeat the same pattern.
+- Friendly and encouraging instructions to learners
 Language: ${language} only. Never mix languages.
-Difficulty: ${difficultyNote}${bloomsNote}
-${diagramInstruction}
+Difficulty: ${difficultyNote}
+${ageGuidance}${bloomsNote}${diagramInstruction}
 
-RESPONSE: valid JSON only. No markdown, no preamble:
+CRITICAL: Respond with valid JSON ONLY. No markdown, no preamble, no explanation. Exactly this structure:
 {
-  "content": "full resource text using structure below",
-  "diagram": ${includeDiagram ? '{ "title": "...", "caption": "...", "svg": "..." }' : 'null'}
+  "content": "complete resource text using the structure below",
+  ${diagramFields}
 }
 
-Use this exact structure in the "content" field:
+The "content" field must use this exact structure:
 
 ═══════════════════════════════════
 TEACHER INSTRUCTIONS
@@ -116,9 +136,9 @@ TEACHER INSTRUCTIONS
 Time allocation: [X minutes]
 Grade: ${gradeNum} | Term: ${termNum} | Phase: ${phase}
 Difficulty: [level]
-${bloomsMode && bloomsLevels?.length ? 'Bloom\'s level(s): [levels]\n' : ''}Materials needed: [list]
+${bloomsMode && bloomsLevels?.length ? "Bloom's level(s): [levels]\n" : ''}${numDiagrams > 0 ? `Diagrams: ${numDiagrams} x ${diagramTypeMap[diagramType] || 'diagram'} (placement: ${diagramPlacement})\n` : ''}Materials needed: [list]
 CAPS reference: Grade ${gradeNum} | Term ${termNum} | [subject] | [topic]
-${includeDiagram ? 'Diagram included: [type and description]\n' : ''}Preparation notes: [2-3 genuinely useful practical sentences]
+Preparation notes: [2-3 genuinely useful practical sentences]
 
 ═══════════════════════════════════
 THE RESOURCE ROOM — [RESOURCE TYPE]
@@ -130,21 +150,22 @@ Learner Name: _________________________________
 
 Date: ____________________  Class: ____________
 
-[SECTION A, SECTION B etc. Brief friendly instruction per section. Minimum 10 questions/activities. Marks in brackets. Varied question types.${bloomsMode === 'mixed' ? ' Label each section with its Bloom\'s level.' : ''}]
+${diagramPlacement === 'beginning' && numDiagrams > 0 ? '[DIAGRAM_1 placeholder here — before Section A]\n' : ''}
+[SECTION A, SECTION B etc. Brief friendly instruction per section. Minimum 10 questions. Marks in brackets. Varied types.${diagramPlacement === 'inline' && numDiagrams > 0 ? ' Insert [DIAGRAM_N] placeholders inline at relevant questions.' : ''}]
 
 TOTAL: _________ / [X]
-
+${diagramPlacement === 'end' && numDiagrams > 0 ? '\n[DIAGRAM_1 placeholder here — after TOTAL, before memorandum]\n' : ''}
 ═══════════════════════════════════
 MEMORANDUM
 ═══════════════════════════════════
-[Numbered answers with marks. Model answers for open-ended questions. Notes on acceptable alternatives.]
+[Numbered answers with marks. Model answers for open-ended. Notes on acceptable alternatives.]
 
 Total: [X] marks${rubricSection}
 
 ═══════════════════════════════════
 EXTENSION / ENRICHMENT ACTIVITY
 ═══════════════════════════════════
-[One meaningful challenge activity with full answer — target the highest Bloom's level where appropriate]`;
+[One meaningful challenge with full answer]`;
 
   const user = `Create a complete teacher pack:
 Subject: ${subject}
@@ -154,11 +175,11 @@ Language: ${language}
 Grade: ${gradeNum} | Term: ${termNum} | ${phase}
 Duration: ${duration}
 Difficulty: ${difficulty || 'on'} grade level
-${bloomsMode ? `Bloom's mode: ${bloomsMode} | Levels: ${(bloomsLevels || []).join(', ')}` : ''}
+${bloomsMode ? `Bloom's: ${bloomsMode} | Levels: ${(bloomsLevels || []).join(', ')}` : ''}
+${numDiagrams > 0 ? `Diagrams: ${numDiagrams} | Type: ${diagramTypeMap[diagramType] || 'suitable'} | Placement: ${diagramPlacement}` : ''}
 ${includeRubric ? 'Include marking rubric.' : ''}
-${includeDiagram ? `Include a ${diagramTypeMap[diagramType] || 'suitable'} diagram.` : ''}
 
-Use real South African context. Sound like an experienced teacher. Minimum 10 questions. Return valid JSON only.`;
+Use real SA context. Sound like an experienced teacher. Minimum 10 questions. Return valid JSON ONLY.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -170,22 +191,40 @@ Use real South African context. Sound like an experienced teacher. Minimum 10 qu
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 5000,
+        max_tokens: 6000,
         system,
         messages: [{ role: 'user', content: user }]
       })
     });
+
     if (!response.ok) {
       const e = await response.json().catch(() => ({}));
       return res.status(response.status).json({ error: e.error?.message || 'API error' });
     }
+
     const data = await response.json();
     const raw = data.content?.map(c => c.text || '').join('') || '';
     const clean = raw.replace(/```json|```/g, '').trim();
+
     let parsed;
     try { parsed = JSON.parse(clean); }
-    catch (e) { parsed = { content: raw, diagram: null }; }
-    return res.status(200).json({ content: parsed.content || raw, diagram: parsed.diagram || null });
+    catch (e) { parsed = { content: raw, diagrams: null }; }
+
+    // Normalise diagrams into an array
+    let diagramsArray = [];
+    if (parsed.diagrams && typeof parsed.diagrams === 'object') {
+      for (let i = 1; i <= numDiagrams; i++) {
+        const d = parsed.diagrams[`diagram${i}`];
+        if (d) diagramsArray.push({ ...d, index: i });
+      }
+    }
+
+    return res.status(200).json({
+      content: parsed.content || raw,
+      diagrams: diagramsArray.length > 0 ? diagramsArray : null,
+      diagramPlacement: diagramPlacement || 'beginning'
+    });
+
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
