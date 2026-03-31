@@ -577,7 +577,30 @@ function copyCover(){
   navigator.clipboard.writeText(txt).then(()=>alert('Copied! Paste into your Teacha listing.')).catch(()=>alert('Please copy manually.'));
 }
 
-function downloadWord(){
+async function svgToPngDataUrl(svgString){
+  return new Promise((resolve)=>{
+    try{
+      const blob=new Blob([svgString],{type:'image/svg+xml;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const img=new Image();
+      img.onload=function(){
+        const canvas=document.createElement('canvas');
+        canvas.width=img.naturalWidth||520;
+        canvas.height=img.naturalHeight||320;
+        const ctx=canvas.getContext('2d');
+        ctx.fillStyle='#ffffff';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,0,0);
+        URL.revokeObjectURL(url);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
+      img.src=url;
+    }catch(e){resolve(null);}
+  });
+}
+
+async function downloadWord(){
   if(!window._cur)return;
   const raw=window._cur;
   const subj=document.getElementById('subj').value||'Resource';
@@ -671,18 +694,31 @@ function downloadWord(){
     bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;color:${color};margin:3pt 0;line-height:1.65;">${esc(trimmed)}</p>`;
   }
 
-  // Build diagram HTML for Word if present
+  // Convert SVG diagram to PNG for Word compatibility
   let diagramWordHtml='';
   if(window._diagram && window._diagram.svg){
     const d=window._diagram;
-    diagramWordHtml=`
-<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;border-radius:8pt;">
-  <tr><td style="background:#f8f7f3;padding:12pt 16pt;">
-    <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;">${d.title||''}</p>
-    <div style="text-align:center;margin:8pt 0;">${d.svg||''}</div>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;border-top:1px solid #e4e2da;padding-top:6pt;">${d.caption||''}</p>
+    const pngDataUrl=await svgToPngDataUrl(d.svg);
+    if(pngDataUrl){
+      diagramWordHtml=`
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;">
+  <tr><td style="background:#f8f7f3;padding:12pt 16pt;text-align:center;">
+    <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;text-align:left;">${d.title||''}</p>
+    <img src="${pngDataUrl}" width="480" style="max-width:100%;display:block;margin:0 auto;"/>
+    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;border-top:1px solid #e4e2da;padding-top:6pt;text-align:left;">${d.caption||''}</p>
   </td></tr>
 </table>`;
+    } else {
+      // Fallback: embed SVG directly if PNG conversion fails
+      diagramWordHtml=`
+<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;">
+  <tr><td style="background:#f8f7f3;padding:12pt 16pt;">
+    <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;">${d.title||''}</p>
+    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:4pt 0;">[Diagram: ${d.title||'see on-screen version'}]</p>
+    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;">${d.caption||''}</p>
+  </td></tr>
+</table>`;
+    }
   }
 
   const diffLabel = diff==='below'?'Below grade level':diff==='above'?'Above grade level':'On grade level';
