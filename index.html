@@ -881,8 +881,12 @@ async function doGenerate(){
     clearInterval(iv);
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||'Server error');
-    addHist(subj,topic,d.content,d.diagrams,grade,term,d.diagramPlacement);
-    renderOut(subj,topic,d.content,d.diagrams,grade,term,d.diagramPlacement);
+    // Clean up content: strip any JSON wrapper, unescape \n sequences
+    let cleanContent = d.content || '';
+    cleanContent = cleanContent.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    cleanContent = cleanContent.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+    addHist(subj,topic,cleanContent,d.diagrams,grade,term,d.diagramPlacement);
+    renderOut(subj,topic,cleanContent,d.diagrams,grade,term,d.diagramPlacement);
   }catch(e){
     clearInterval(iv);
     document.getElementById('os').innerHTML=`<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Check your API key in Vercel → Settings → Environment Variables.</div>`;
@@ -1032,7 +1036,10 @@ async function sendRefinement(){
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||'Server error');
     // Update displayed content
-    window._cur=d.content;
+    let refinedContent = d.content || '';
+    refinedContent = refinedContent.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    refinedContent = refinedContent.replace(/\\n/g,'\n');
+    window._cur=refinedContent;
     const packBody=document.getElementById('pack-body')||document.querySelector('.pack-body');
     if(packBody) packBody.textContent=d.content;
     // Show agent response
