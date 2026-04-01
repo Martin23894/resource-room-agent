@@ -44,7 +44,7 @@ Please apply this change and return the complete updated resource.`;
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 5000,
         system,
         messages: [{ role: 'user', content: user }]
