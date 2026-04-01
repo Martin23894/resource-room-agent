@@ -263,6 +263,7 @@ select:focus{outline:none;border-color:var(--t4);}
         <div class="flabel">Resource font</div>
         <div class="sw">
           <select id="fontChoice" onchange="updateFontPreview()">
+            <option value="'Teachers Pet', cursive" selected>Teachers Pet — SA classroom favourite</option>
             <option value="Arial, sans-serif">Arial — clean &amp; professional</option>
             <option value="Calibri, sans-serif">Calibri — Word standard</option>
             <option value="'Comic Neue', 'Comic Sans MS', cursive">Comic Sans — Foundation Phase</option>
@@ -305,7 +306,7 @@ select:focus{outline:none;border-color:var(--t4);}
       </div>
       <!-- Bloom's Taxonomy -->
       <div style="margin-bottom:10px;">
-        <div class="flabel">Bloom's Taxonomy</div>
+        <div class="flabel">Bloom's focus <span style="font-size:10px;color:var(--ink4);font-weight:400;">(optional — DoE ratios auto-applied)</span></div>
         <div class="blooms-mode">
           <button class="bmode-btn" data-m="single" onclick="setBloomsMode(this)">Single level</button>
           <button class="bmode-btn" data-m="mixed" onclick="setBloomsMode(this)">Mixed blend</button>
@@ -444,78 +445,341 @@ const SUBJECTS = {
 };
 
 const TOPICS = {
-  'Mathematics': {
-    1: { 1:['Number concept 1–10','Counting & ordering','Shapes and patterns'], 2:['Addition & subtraction to 20','Measurement basics','Data collection'], 3:['Numbers to 50','Time – days and months','Symmetry'], 4:['Numbers to 100','Money – coins and notes','Data – sorting objects'] },
-    2: { 1:['Number concept 1–100','Repeated addition','2D shapes'], 2:['Addition & subtraction to 99','Fractions – halves and quarters','Length and mass'], 3:['Multiplication – groups of','Time – hours and half hours','3D objects'], 4:['Numbers to 200','Money – calculating change','Data – pictographs'] },
-    3: { 1:['Whole numbers to 500','Number patterns','Addition & subtraction'], 2:['Multiplication & division','Fractions – thirds and fifths','Perimeter'], 3:['Numbers to 999','Time – minutes','Mass and capacity'], 4:['Data handling','Money problems','Symmetry and tessellation'] },
-    4: { 1:['Whole numbers to 10 000','Common fractions','Geometric patterns'], 2:['Decimal fractions','2D shapes – angles','Data – bar graphs'], 3:['Whole numbers – multiples & factors','Fractions – equivalent','Perimeter and area'], 4:['Measurement – capacity and mass','Transformations','Data – pie charts'] },
-    5: { 1:['Whole numbers to 100 000','Common fractions','Geometric patterns'], 2:['Decimal fractions','Properties of 2D shapes','Data – double bar graphs'], 3:['Whole numbers – prime & composite','Addition and subtraction of fractions','Volume and capacity'], 4:['Percentages','Transformations – reflection','Data – line graphs'] },
-    6: { 1:['Whole numbers to 999 999','Common fractions','Geometric patterns'], 2:['Decimal fractions','Properties of 3D objects','Data – pie charts'], 3:['Fractions and decimals','Area and perimeter','Patterns and algebra'], 4:['Ratio and rate','Transformations','Data handling – mean, mode, median'] },
-    7: { 1:['Whole numbers – exponents','Fractions, decimals, percentages','Number patterns'], 2:['Integers','Geometry – angles and triangles','Area and perimeter'], 3:['Ratio, rate and proportion','Algebra – expressions and equations','Data – scatter plots'], 4:['Geometry – circles','Probability','Financial mathematics'] }
-  },
-  'Home Language': {
-    1: { 1:['Listening & speaking – stories','Phonics – initial sounds','Letter formation'], 2:['Reading aloud','Phonics – blending','Shared writing'], 3:['Comprehension – pictures','Phonics – word families','Creative writing – sentences'], 4:['Storytelling','Sight words','Handwriting'] },
-    2: { 1:['Listening & speaking','Phonics – digraphs','Reading comprehension'], 2:['Oral storytelling','Word building','Sentence construction'], 3:['Poetry – rhyme','Comprehension – short texts','Paragraph writing'], 4:['Drama – role play','Vocabulary development','Punctuation basics'] },
-    3: { 1:['Oral communication','Reading strategies','Writing – recounts'], 2:['Comprehension – longer texts','Parts of speech – nouns and verbs','Transactional writing'], 3:['Poetry and figurative language','Writing – narratives','Language structures – sentences'], 4:['Literature – short stories','Spelling strategies','Report writing'] },
-    4: { 1:['Listening & speaking skills','Reading comprehension','Writing – personal narrative'], 2:['Poetry – themes and mood','Transactional texts – letters','Adjectives and adverbs'], 3:['Literature – short story analysis','Comprehension strategies','Writing – descriptive texts'], 4:['Drama','Tenses – past present future','Formal writing'] },
-    5: { 1:['Oral presentation skills','Reading – inference','Writing – essays'], 2:['Poetry – devices','Transactional texts – formal letters','Subject-verb agreement'], 3:['Comprehension – multiple texts','Creative writing','Language structures – clauses'], 4:['Novel study','Argumentative writing','Vocabulary enrichment'] },
-    6: { 1:['Oral – debate and discussion','Reading comprehension – inference','Writing – narrative'], 2:['Poetry and comprehension','Transactional texts','Language structures & conventions'], 3:['Reading and viewing','Writing – narratives','Listening and speaking'], 4:['Literature – short stories','Exam preparation writing','Language revision'] },
-    7: { 1:['Oral – formal speech','Reading – critical analysis','Writing – argumentative'], 2:['Poetry – extended analysis','Report writing','Grammar – complex sentences'], 3:['Novel/drama study','Comprehension – visual texts','Creative & critical writing'], 4:['Exam revision – all genres','Language structures consolidation','Formal writing'] }
-  },
-  'First Additional Language': {
-    1: { 1:['Greetings and basic vocabulary','Phonics and sounds','Listening comprehension'], 2:['Classroom language','Reading readiness','Simple sentences'], 3:['Action words – basic verbs','Short reading texts','Writing – own name and labels'], 4:['Vocabulary – family and home','Simple stories','Copying and tracing words'] },
-    2: { 1:['Vocabulary – colours and numbers','Listening to instructions','Simple sentences'], 2:['Reading short texts','Question words','Describing words'], 3:['Story comprehension','Basic punctuation','Short paragraph writing'], 4:['Retelling stories','Plurals and simple tenses','Vocabulary games'] },
-    3: { 1:['Oral fluency building','Reading short passages','Sentence types'], 2:['Comprehension – literal questions','Writing – short messages','Tense introduction'], 3:['Vocabulary in context','Reading with expression','Paragraph construction'], 4:['Storytelling','Spelling patterns','Simple letters'] },
-    4: { 1:['Reading comprehension','Vocabulary building','Writing – short paragraphs'], 2:['Listening skills','Language in use – prepositions','Transactional texts'], 3:['Reading comprehension','Writing – formal letters','Language in use'], 4:['Literature appreciation','Grammar revision','Exam writing skills'] },
-    5: { 1:['Comprehension strategies','Vocabulary in context','Essay writing basics'], 2:['Oral communication','Language structures – tenses','Letter writing'], 3:['Reading comprehension','Vocabulary building','Writing – formal letters'], 4:['Grammar consolidation','Exam reading skills','Creative writing'] },
-    6: { 1:['Reading comprehension','Vocabulary building','Writing – formal letters'], 2:['Listening skills','Language in use','Transactional writing'], 3:['Reading comprehension','Vocabulary and vocabulary building','Writing – formal letters'], 4:['Grammar revision','Reading for information','Exam preparation'] },
-    7: { 1:['Extended reading comprehension','Advanced vocabulary','Argumentative writing'], 2:['Oral – structured discussion','Grammar – complex structures','Report writing'], 3:['Critical reading','Language in use','Formal writing'], 4:['Exam preparation – all skills','Grammar revision','Summarising and note-taking'] }
-  },
-  'Natural Sciences & Technology': {
-    4: { 1:['Materials – properties and uses','Structures – building strong','The skeleton and muscles'], 2:['Energy – heat and light','Food and nutrition','Simple circuits'], 3:['Matter and Materials – states','Technology – design process','Life and Living – habitats'], 4:['Earth and Beyond – sky and seasons','Water – the water cycle','Revision and consolidation'] },
-    5: { 1:['Matter – mixtures and solutions','Structures – bridges and towers','Ecosystems – food webs'], 2:['Energy – electricity basics','Human body – digestion','Technology design challenge'], 3:['Matter and Materials','Energy and Change','Life and Living – adaptations'], 4:['Earth and Beyond – solar system','Conservation of resources','Revision'] },
-    6: { 1:['Matter and Materials','Electricity and circuits','Life and Living – reproduction'], 2:['Energy – force and movement','Food and nutrition','Technology – systems'], 3:['Matter and Materials','Energy and Change','Ecosystems'], 4:['Earth and Beyond','Water cycle and conservation','Revision'] }
-  },
-  'Natural Sciences': {
-    7: { 1:['Matter – atoms and molecules','Life and Living – cells','Energy – electricity'], 2:['Chemical reactions – everyday','Human body – nervous system','Forces and Newton\'s laws'], 3:['Matter and Materials – mixtures','Ecosystems and biodiversity','Solar system and beyond'], 4:['Photosynthesis and respiration','Acids and bases','Revision and consolidation'] }
-  },
-  'Social Sciences': {
-    4: { 1:['Geography – local area maps','History – heritage and identity','Geography – compass directions'], 2:['History – ancient SA civilisations','Geography – South African regions','Map skills – grid references'], 3:['Geography – map skills','History – SA indigenous knowledge','Trade and resources'], 4:['History – colonisation introduction','Geography – climate and biomes','Revision'] },
-    5: { 1:['Geography – SA biomes','History – early SA farming communities','Map skills – contours'], 2:['History – Khoikhoi and San','Geography – resources and sustainability','Scale on maps'], 3:['Geography – climate and weather','History – SA indigenous knowledge','Trade routes'], 4:['History – early European exploration','Geography – environmental issues','Revision'] },
-    6: { 1:['Geography – map skills','History – ancient civilisations','SA and world history connections'], 2:['History – Ancient Egypt and Greece','Geography – climate and vegetation zones','Water sources and dams'], 3:['Geography – map skills','History – Ancient civilisations','Trade and resources in SA'], 4:['History – SA in world context','Geography – environmental challenges','Revision'] },
-    7: { 1:['Geography – population and settlement','History – colonialism in SA','Map reading – topographic maps'], 2:['History – SA resistance movements','Geography – economic activities','Migration patterns'], 3:['Geography – map skills and GIS','History – apartheid overview','SA economy and trade'], 4:['History – SA democracy','Geography – global issues','Revision and consolidation'] }
-  },
-  'Life Skills': {
-    1: { 1:['My body and personal hygiene','Safety at school and home','Creative Arts – drawing'], 2:['Healthy eating','Emotions and feelings','Physical Education – movement'], 3:['My family and community','Making friends','Arts and Crafts – collage'], 4:['Caring for the environment','Goal setting','Drama – expression'] },
-    2: { 1:['Healthy habits','Bullying – saying no','Creative Arts – colour'], 2:['Road safety','Cooperation and teamwork','Physical movement – ball skills'], 3:['Community helpers','Responsibility','Arts – texture and design'], 4:['Environmental care','Managing feelings','Drama and music'] },
-    3: { 1:['Growing and changing','Relationships and respect','Creative Arts – patterns'], 2:['Nutrition and exercise','Peer pressure','Physical Education – games'], 3:['Community and belonging','Personal values','Arts – 3D construction'], 4:['Life skills revision','Goal setting for next year','Creative celebration'] },
-    4: { 1:['Personal development – identity','Health and hygiene','Physical Education – athletics'], 2:['Social skills – conflict resolution','Safety at home and school','Recreational activities'], 3:['Study skills and time management','Community involvement','Team sports'], 4:['Career awareness','Environmental responsibility','Revision'] },
-    5: { 1:['Self-awareness and goals','Healthy relationships','Physical Education – gymnastics'], 2:['Bullying and peer pressure','Democracy and rights','Team building activities'], 3:['Decision making skills','Community service','Fitness and wellness'], 4:['Future planning','Citizenship','Revision'] },
-    6: { 1:['Personal development','Healthy relationships and boundaries','Physical Education'], 2:['Social responsibility','Rights and responsibilities','Recreational sport'], 3:['Decision making and values','Environmental responsibility','Fitness'], 4:['Career exploration','Community involvement','Revision'] }
-  },
-  'Life Orientation': {
-    4: { 1:['Personal development – identity','Health and hygiene','Physical Education – athletics'], 2:['Social skills – conflict resolution','Safety and first aid','Recreational activities'], 3:['Study skills and time management','Community involvement','Team sports'], 4:['Career awareness','Environmental responsibility','Revision'] },
-    5: { 1:['Self-awareness and goals','Healthy relationships','Physical Education – gymnastics'], 2:['Bullying and peer pressure','Democracy and rights','Team building activities'], 3:['Decision making skills','Community service','Fitness and wellness'], 4:['Future planning','Citizenship','Revision'] },
-    6: { 1:['Personal development','Healthy relationships and boundaries','Physical Education'], 2:['Social responsibility','Rights and responsibilities','Recreational sport'], 3:['Decision making and values','Environmental responsibility','Fitness'], 4:['Career exploration','Community involvement','Revision'] },
-    7: { 1:['Identity and self-esteem','Health – puberty and changes','Physical Education – athletics'], 2:['Relationships – peer pressure','Human rights and the Constitution','Team sports and recreation'], 3:['Decision making – substance abuse','Environmental issues','Fitness testing'], 4:['Career guidance','Citizenship and democracy','Revision and consolidation'] }
-  },
-  'Economic and Management Sciences': {
-    4: { 1:['Needs and wants','Production – making goods','Basic financial literacy'], 2:['The economy – trade basics','Entrepreneurship introduction','Simple budgeting'], 3:['Business and the consumer','Financial literacy','Entrepreneurship'], 4:['SA economy basics','Saving and spending','Revision'] },
-    5: { 1:['Economic systems','Entrepreneurship – business idea','Income and expenditure'], 2:['Trade – local and national','Financial planning','Production and consumption'], 3:['The economy and trade','Business and the consumer','Financial literacy'], 4:['Economic growth','Budgeting project','Revision'] },
-    6: { 1:['Entrepreneurship – characteristics','Financial documents','Trade and markets'], 2:['Business plan basics','Income statement','Supply and demand'], 3:['Entrepreneurship','Financial literacy – budgeting','The economy and trade'], 4:['SA economy and trade','Business evaluation','Revision'] },
-    7: { 1:['Entrepreneurship – business plan','Financial literacy – profit and loss','Economic systems'], 2:['Business – marketing','Cash flow statements','Trade – imports and exports'], 3:['Formal vs informal economy','Financial planning','Consumer rights'], 4:['Economic growth and development','Business evaluation','Revision and exam prep'] }
-  },
-  'Technology': {
-    4: { 1:['Structures – making and testing','Design process introduction','Materials and tools'], 2:['Processing – food technology','Systems – input and output','Mechanisms – levers'], 3:['Structures and mechanisms','Processing – food technology','Systems and control'], 4:['Impact of technology','Design challenge','Revision'] },
-    5: { 1:['Structures – bridges','Mechanisms – pulleys and gears','Design brief'], 2:['Processing – textiles','Electrical systems','Design and make'], 3:['Structures and mechanisms','Systems and control','Food technology'], 4:['Impact of technology on society','Design project','Revision'] },
-    6: { 1:['Structures – frames and shells','Mechanical systems','Designing solutions'], 2:['Electrical systems – circuits','Processing – food and materials','Prototype building'], 3:['Structures and mechanisms','Processing – food technology','Systems and control'], 4:['Impact of technology','Design and evaluate','Revision'] },
-    7: { 1:['Civil structures','Mechanical advantage','Design process – research'], 2:['Electrical systems – control','Biotechnology introduction','Technical drawing'], 3:['Structures – strength and stability','Systems and control – automation','Processing'], 4:['Impact of technology on environment','Design project','Revision'] }
-  }
-};
 
-// Aliases
+  // ═══════════════════ MATHEMATICS ═══════════════════
+  'Mathematics': {
+    1: {
+      1:['Number concept 1–20: count, read, write','Number concept: order and compare','Addition and subtraction to 10','Grouping and sharing (division concept)','Geometry: 2D shapes','Measurement: length, mass, capacity (informal)'],
+      2:['Number concept to 50','Addition and subtraction to 20','Repeated addition (multiplication concept)','Fractions: halves and quarters','Time: days, weeks, months','Data: sort and represent objects'],
+      3:['Number concept to 99','Addition and subtraction to 50','Multiplication: equal groups','2D shapes and 3D objects','Measurement: length and mass','Patterns: number and geometric'],
+      4:['Number concept to 99','Addition and subtraction to 99','Multiplication and division: basic','Money: coins and notes','Data: pictographs and bar graphs','Symmetry']
+    },
+    2: {
+      1:['Whole numbers: count to 200','Number concept: order, compare, place value','Addition and subtraction to 99','Repeated addition / multiplication','2D shapes: properties','Measurement: length (cm, m)'],
+      2:['Whole numbers to 500','Addition and subtraction to 200','Multiplication: 2, 5, 10 tables','Fractions: halves, thirds, quarters','3D objects: faces, edges, vertices','Time: hours and half hours'],
+      3:['Whole numbers to 999','Addition and subtraction to 500','Division: sharing and grouping','Money: calculate change','Perimeter: informal','Data: bar graphs and pictographs'],
+      4:['Whole numbers to 999','Multiplication: 2–10 tables','Fractions: equivalent fractions','Measurement: mass and capacity','Patterns: number sequences','Data: collect and represent']
+    },
+    3: {
+      1:['Whole numbers to 1 000: place value','Addition and subtraction to 1 000','Multiplication: 2, 3, 4, 5, 10','Fractions: unit fractions','2D shapes: angles and sides','Measurement: length and perimeter'],
+      2:['Whole numbers to 1 000: operations','Multiplication: all tables to 10','Division: sharing equally','Fractions: compare and order','3D objects: build and describe','Mass and capacity: standard units'],
+      3:['Whole numbers to 1 000: problem solving','Number patterns: rules and sequences','Time: minutes, seconds, analogue/digital','Geometry: transformations (flip, slide, turn)','Data: bar graphs, mode, median','Money: financial problems'],
+      4:['Whole numbers: consolidation','Fractions: addition and subtraction','Measurement: area and perimeter','Data: pictographs, bar graphs','Patterns: geometric and number','Mental maths strategies']
+    },
+    4: {
+      1:['Whole numbers to 10 000: place value, order, compare','Whole numbers: addition and subtraction (4-digit)','Multiplication: 2-digit by 1-digit','Common fractions: concept and notation','Geometric patterns: identify and extend','Symmetry: lines of symmetry'],
+      2:['Whole numbers: multiplication (3-digit × 2-digit)','Whole numbers: division with remainders','Decimal fractions: tenths','2D shapes: angles (right, acute, obtuse)','Data: bar graphs, double bar graphs, mode','Measurement: length (km, m, cm, mm)'],
+      3:['Whole numbers to 100 000: multiples and factors','Common fractions: equivalent fractions, compare and order','Fractions: addition and subtraction (same denominator)','Perimeter and area of rectangles and squares','Geometric patterns: input/output tables','3D objects: describe, sort, compare'],
+      4:['Whole numbers: consolidation and problem solving','Measurement: mass (g, kg), capacity (ml, l)','Transformations: reflect, translate, rotate','Data: pie charts, mean (average)','Financial mathematics: profit, loss, discount','Number patterns: rules and relationships']
+    },
+    5: {
+      1:['Whole numbers to 1 000 000: place value, compare','Whole numbers: addition and subtraction (5-digit)','Multiplication: 3-digit by 2-digit','Common fractions: mixed numbers and improper fractions','Geometric patterns: tables and rules','Measurement: converting units of length'],
+      2:['Whole numbers: division (4-digit ÷ 2-digit)','Decimal fractions: tenths and hundredths','Properties of 2D shapes: quadrilaterals and triangles','Data: double bar graphs, pie charts, mean and mode','Measurement: area of irregular shapes','Number patterns: input/output rules'],
+      3:['Whole numbers: prime and composite numbers','Common fractions: addition and subtraction (unlike denominators)','Decimal fractions: operations with tenths and hundredths','Volume and capacity: cm³, ml, l','Geometric patterns: extending and describing','Measurement: converting between units'],
+      4:['Percentages: concept and calculating percentages','Transformations: enlargement and reduction','Data: probability (likely, unlikely, certain, impossible)','Whole numbers: order of operations','Financial mathematics: percentage discount, VAT','Patterns: consolidation']
+    },
+    6: {
+      1:['Whole numbers to 9 999 999: place value, operations','Common fractions: mixed numbers, improper fractions','Ratio and rate: concept and application','Geometric patterns: algebraic rules','Measurement: converting between units of length, mass, capacity','2D shapes: classifying triangles and quadrilaterals'],
+      2:['Decimal fractions: operations (add, subtract, multiply, divide)','Percentage: of an amount, percentage increase/decrease','Properties of 3D objects: prisms, pyramids, nets','Data: bar graphs, pie charts, mean, median, mode, range','Measurement: area of triangles and composite shapes','Transformations: enlargement, reduction, tessellation'],
+      3:['Fractions and decimals: equivalence and operations','Area and perimeter: complex shapes','Patterns and algebra: number sentences and equations','Geometry: angles — measuring and calculating','Data handling: stem-and-leaf plots, mean/median/mode','Financial mathematics: budgets, profit, loss, interest'],
+      4:['Ratio and rate: problem solving','Transformations: consolidation','Measurement: volume of prisms','Data: consolidation, interpret and report','Number patterns: general rule (nth term)','Whole numbers: consolidation']
+    },
+    7: {
+      1:['Whole numbers: exponents (squares and cubes)','Integers: concept, ordering, operations','Common fractions, decimals, percentages: equivalence and conversions','Number patterns: nth term and general rule','Geometry: angles — types, relationships, parallel lines','Measurement: converting between units'],
+      2:['Integers: operations on a number line','Algebraic expressions: identify, collect like terms, substitute','Geometry: triangles — angle sum, types, congruency','Algebra: equations — solving one-step and two-step','Area and perimeter: complex shapes including circles','Data: scatter plots and trends'],
+      3:['Ratio, rate and proportion: direct and indirect','Algebra: algebraic expressions and equations','Geometry: similar and congruent figures','Measurement: surface area of prisms','Data: measures of central tendency and spread','Financial mathematics: simple interest, hire purchase'],
+      4:['Probability: single events, list outcomes, calculate','Geometry of 3D objects: surface area and volume','Transformations: consolidation','Data: consolidation and interpretation','Algebra: consolidation and applications','Examination preparation']
+    }
+  },
+
+  // ═══════════════════ HOME LANGUAGE ═══════════════════
+  'Home Language': {
+    1: {
+      1:['Listening and speaking: stories and rhymes','Phonological awareness: alliteration, rhyme, syllables','Phonics: initial consonant sounds','Shared reading: picture books','Emergent writing: drawing and mark-making','Letter formation: uppercase A–M'],
+      2:['Phonics: short vowel sounds and CVC words','Sight words: high-frequency words','Shared and guided reading: simple texts','Independent writing: labels and captions','Letter formation: uppercase N–Z and lowercase','Oral: retell stories using pictures'],
+      3:['Reading: decode CVC and CCVC words','Comprehension: literal questions from picture books','Creative writing: sentences with illustrations','Grammar: capital letters and full stops','Vocabulary: word families and context clues','Oral: describe pictures, give instructions'],
+      4:['Reading: fluency with simple texts','Comprehension: answer literal and inferential questions','Handwriting: joined letters introduction','Creative writing: short paragraph','Grammar: statements and questions','Phonics consolidation and spelling patterns']
+    },
+    2: {
+      1:['Phonics: consonant blends and digraphs','Reading: guided reading — simple narratives','Comprehension: literal and inferential questions','Writing: recounts (personal narratives)','Grammar: nouns and verbs in sentences','Oral: listening for main idea'],
+      2:['Reading: independent reading — narrative and informational','Comprehension: sequence of events, cause and effect','Writing: descriptions (people, animals, places)','Grammar: adjectives and adverbs','Vocabulary: synonyms and antonyms','Oral: present short talk with support'],
+      3:['Reading: poetry — rhyme, rhythm, repetition','Comprehension: poetry and prose — inferential questions','Writing: instructions and explanations','Grammar: tenses (present, past, future)','Spelling: word building strategies','Oral: group discussion — sharing opinions'],
+      4:['Reading: consolidation — different text types','Comprehension: visual texts and cartoons','Writing: formal letter format','Grammar: punctuation — commas, speech marks','Vocabulary: figurative language — similes','Oral: narrative presentation']
+    },
+    3: {
+      1:['Reading strategies: previewing, predicting, questioning','Comprehension: longer narrative texts','Oral communication: structured conversations and debates','Writing: narrative paragraphs','Grammar: parts of speech — noun, verb, adjective, adverb','Spelling: prefixes and suffixes'],
+      2:['Comprehension: informational texts — main idea and supporting details','Transactional writing: formal letters and emails','Grammar: subject-verb agreement','Vocabulary: context clues and dictionary skills','Oral: formal presentation with notes','Reading: genre study — adventure stories'],
+      3:['Poetry: figurative language — metaphor, simile, personification','Writing: narrative essays with dialogue','Grammar: sentence types — simple, compound, complex','Comprehension: multiple texts and comparison','Language structures: clauses and phrases','Oral: prepared speech'],
+      4:['Literature: short story analysis — character, setting, plot','Examination writing: formal essays','Grammar: active and passive voice','Vocabulary: idiomatic expressions','Comprehension: critical reading strategies','Oral: debate and argumentation']
+    },
+    4: {
+      1:['Listening and speaking: formal presentations and note-taking','Reading comprehension: inference and deduction','Writing: personal narrative essays','Grammar: parts of speech revision, tenses','Vocabulary: dictionary skills, etymology','Oral: storytelling and book reports'],
+      2:['Poetry: themes, mood, tone, figures of speech','Transactional writing: formal and informal letters','Grammar: adjectives and adverbs, degrees of comparison','Comprehension: visual and multimodal texts','Vocabulary: word choice and register','Oral: prepared speech — personal topic'],
+      3:['Literature: short story — character analysis, themes, plot structure','Descriptive writing: settings and characters','Grammar: sentence construction, clauses and phrases','Comprehension strategies: inference, critical reading','Language: register, tone, audience, purpose','Oral: group discussion, debate'],
+      4:['Literature: poetry anthology — analysis and comparison','Formal writing: argumentative essay and report','Grammar: complex sentences, punctuation review','Reading: novel/drama excerpt study','Vocabulary: figurative language consolidation','Examination preparation: all genres']
+    },
+    5: {
+      1:['Oral: formal speech, listening for purpose and detail','Reading comprehension: inference, deduction, vocabulary in context','Writing: narrative and descriptive essays','Grammar: complex sentences, tenses — all forms','Vocabulary: register and style','Literature: short story analysis'],
+      2:['Poetry: extended analysis — form, structure, devices, effect','Transactional texts: formal letters, advertisements, reviews','Grammar: active/passive voice, direct/indirect speech','Comprehension: longer, more complex texts','Vocabulary: denotation and connotation','Oral: debate — motion and counter-argument'],
+      3:['Comprehension: multiple texts, synthesis across sources','Creative writing: dialogue and narrative perspective','Language structures: clauses, phrases, sentence variety','Literature: drama excerpt — reading and analysis','Grammar: revision of all structures','Oral: prepared formal speech'],
+      4:['Novel study or drama: theme, character, language','Argumentative writing: structure and development of argument','Grammar: consolidation — all structures','Reading: exam-style comprehension passages','Vocabulary enrichment: advanced figurative language','Examination preparation']
+    },
+    6: {
+      1:['Oral — debate and formal discussion: structure and strategies','Reading comprehension: inference, critical analysis, vocabulary','Writing: narrative essay — plot, character, theme','Grammar: parts of speech, tense review, sentence types','Vocabulary: connotation, figurative language','Literature: short story — narrative devices'],
+      2:['Poetry: devices (alliteration, assonance, enjambment, irony)','Transactional writing: formal letters, emails, reviews, memos','Grammar: active/passive voice, reported speech','Comprehension: visual texts, cartoons, advertisements','Vocabulary: word fields, register, tone','Oral: formal prepared speech — 3–5 minutes'],
+      3:['Reading and viewing: multimodal texts, film and media literacy','Writing: descriptive and narrative — advanced techniques','Listening and speaking: structured academic discussion','Language structures: complex sentences, subordinate clauses','Literature: short story — in-depth character and theme','Grammar: punctuation, style and register'],
+      4:['Literature: drama or novel excerpt — character, conflict, theme','Examination writing: essay, comprehension, summary','Grammar: consolidation and editing skills','Reading: unseen poetry and comprehension','Vocabulary: examination vocabulary strategies','Oral: examination preparation — prepared reading']
+    },
+    7: {
+      1:['Oral: formal speech, debate, argumentation','Reading: critical analysis — inference, evaluation, synthesis','Writing: argumentative and discursive essays','Grammar: complex grammar structures, advanced tenses','Vocabulary: etymology, advanced figurative language','Literature: short story — theme, style, narrative voice'],
+      2:['Poetry: extended comparative analysis','Report writing: formal and academic style','Grammar: complex sentences — subordination, co-ordination','Comprehension: extended passage — multiple genres','Vocabulary: academic word list, register','Oral: formal prepared speech — examination preparation'],
+      3:['Novel or drama study: theme, character, dramatic techniques','Comprehension: visual texts, cartoons, advertisements','Creative and critical writing: personal and formal','Language structures: examination-focused grammar','Oral: prepared reading and comprehension','Vocabulary: examination terminology and strategies'],
+      4:['Examination preparation: all genres','Extended writing: essay planning and execution','Grammar: final consolidation','Reading: unseen poetry and prose','Literature: final consolidation and comparison','Oral: final examinations and presentations']
+    }
+  },
+
+  // ═══════════════════ FIRST ADDITIONAL LANGUAGE ═══════════════════
+  'First Additional Language': {
+    1: {
+      1:['Listening: following simple instructions','Speaking: greetings, introductions, classroom language','Reading readiness: print awareness, tracking','Phonics: letter names and sounds A–M','Vocabulary: colours, numbers, family'],
+      2:['Phonics: letter sounds N–Z and short vowels','Listening: listening to simple stories','Speaking: describing pictures, naming objects','Reading: word recognition, sight words','Writing: copying words and simple sentences'],
+      3:['Reading: simple CVC word decoding','Comprehension: answer questions about pictures','Speaking: talk about self, family, environment','Writing: completing sentences with pictures','Vocabulary: classroom objects, animals, food'],
+      4:['Reading: short simple texts with familiar vocabulary','Comprehension: literal questions','Speaking: short sentences about daily activities','Writing: simple sentences and labels','Vocabulary consolidation and phonics revision']
+    },
+    2: {
+      1:['Listening: main idea and key words','Oral: simple conversation using learnt vocabulary','Reading: short passages — familiar topics','Vocabulary: action words, describing words','Writing: simple sentences and short messages'],
+      2:['Comprehension: factual questions from short texts','Grammar: simple sentence structure (SVO)','Speaking: describe pictures, people, animals','Writing: short paragraphs — recount','Vocabulary: time words, question words'],
+      3:['Reading: short narratives and informational texts','Comprehension: sequence and main idea','Grammar: plurals, simple present and past tense','Writing: short descriptive paragraphs','Oral: retell a story heard'],
+      4:['Vocabulary in context: unfamiliar words','Grammar: contractions, articles, prepositions','Reading: simple poems and stories','Writing: short letter — informal','Comprehension: revision and consolidation']
+    },
+    3: {
+      1:['Oral fluency: conversations about familiar topics','Phonics consolidation: blends, digraphs, word families','Reading: guided reading — narrative texts','Comprehension: literal and simple inferential questions','Writing: recounts and descriptions','Grammar: nouns, verbs, adjectives — basic'],
+      2:['Comprehension: informational texts — main idea','Grammar: present, past, future tense','Writing: short messages and notes','Vocabulary: context clues, synonyms','Oral: short presentation with visual support'],
+      3:['Reading: various text types — fiction and non-fiction','Comprehension: inference and prediction','Grammar: sentence types — statements, questions','Writing: paragraph with topic and supporting sentences','Vocabulary: word building — prefixes, suffixes'],
+      4:['Comprehension: revision — all question types','Grammar: consolidation — tenses, sentence types','Writing: informal letter format','Oral: prepared short talk — familiar topic','Vocabulary: revision and extension']
+    },
+    4: {
+      1:['Listening skills: identify purpose, main ideas, key details','Reading comprehension: literal questions, vocabulary in context','Vocabulary building: word families, context, dictionary skills','Writing: short paragraphs — personal narrative','Grammar: nouns, pronouns, verbs — review'],
+      2:['Listening and speaking: structured discussions','Language in use: prepositions, conjunctions, articles','Reading: informational texts — skimming and scanning','Writing: transactional texts — postcards, invitations','Grammar: subject-verb agreement, simple tenses'],
+      3:['Reading comprehension: inference and prediction','Writing: formal letters — layout and language','Language structures: questions, negatives, commands','Vocabulary: register and context','Oral: prepared talk — familiar topic'],
+      4:['Literature appreciation: simple poems and stories','Grammar revision: all structures covered','Comprehension: visual texts','Writing: recount and description consolidation','Oral: short prepared speech']
+    },
+    5: {
+      1:['Comprehension strategies: predicting, summarising, questioning','Vocabulary in context: connotation, denotation','Essay writing: narrative paragraph development','Grammar: tenses — simple, continuous, perfect','Oral: sharing and discussing personal experiences'],
+      2:['Oral communication: structured debates and discussions','Language structures: reported speech, passive voice (intro)','Letter writing: formal and informal','Comprehension: longer passages — multiple question types','Vocabulary: idioms and common expressions'],
+      3:['Reading comprehension: extended passages, inference and evaluation','Vocabulary building: word analysis','Writing: formal letters and short essays','Language in use: grammar in context','Oral: formal prepared speech'],
+      4:['Grammar consolidation: all tenses, sentence types','Reading: exam-style comprehension','Creative writing: personal essay','Vocabulary: revision and examination strategies','Oral: examination preparation']
+    },
+    6: {
+      1:['Listening and speaking: formal discussion, listening for detail','Reading comprehension: literal, inferential, evaluative questions','Vocabulary building: word families, context, prefixes/suffixes','Writing: narrative paragraphs and short essays','Grammar: tenses, sentence types, parts of speech revision'],
+      2:['Listening skills: note-taking and summarising from spoken text','Language in use: compound sentences, conjunctions','Transactional writing: formal letters, reports','Comprehension: visual texts and advertisements','Grammar: active/passive voice introduction'],
+      3:['Reading comprehension: multiple-choice, true/false, short answer, essay','Vocabulary and vocabulary building: context clues','Writing: formal letters — layout, register, purpose','Language in use: grammar and usage in context','Oral: prepared formal speech — 2–3 minutes'],
+      4:['Grammar revision: all structures covered in Grades 4–6','Reading: examination-style passages','Writing: essay and transactional text revision','Comprehension consolidation','Oral: examination preparation']
+    },
+    7: {
+      1:['Extended reading comprehension: formal academic texts','Advanced vocabulary: register, tone, word analysis','Argumentative writing: structure and coherence','Grammar: complex structures, advanced tenses','Oral: structured debate — preparation and participation'],
+      2:['Oral: formal prepared speech, listening comprehension','Grammar: complex sentences — reporting and arguing','Report writing: formal and academic','Comprehension: extended, multi-part questions','Vocabulary: academic word list'],
+      3:['Critical reading: visual, multimodal, literary texts','Language in use: grammar in examination context','Formal writing: essays and reports consolidation','Comprehension: unseen passages','Oral: examination preparation'],
+      4:['Examination preparation: all skills','Grammar: final consolidation','Writing: examination essays','Reading: revision strategies','Vocabulary: final extension']
+    }
+  },
+
+  // ═══════════════════ NATURAL SCIENCES & TECHNOLOGY (Gr 4–6) ═══════════════════
+  'Natural Sciences & Technology': {
+    4: {
+      1:['Materials and their properties: hardness, flexibility, transparency','Structures: designing and building strong structures','The skeleton: bones, function, protection','Muscles: movement and attachment to skeleton','Food and nutrition: food groups and healthy eating'],
+      2:['Energy: heat energy — sources and transfer','Energy: light energy — sources, shadows, reflection','Food and nutrition: food pyramids and balanced diet','Simple electrical circuits: components, open/closed circuits','Materials: conductors and insulators'],
+      3:['Matter and Materials: states of matter, changing states','Technology design process: identify need, design, make, evaluate','Life and Living: habitats — terrestrial and aquatic','Ecosystems: producers, consumers, decomposers','Technology: mechanisms — levers and linkages'],
+      4:['Earth and Beyond: sky, sun, moon, stars — day and night','Water: the water cycle, clean water, water conservation','Processing: food processing — preserving and preparation','Revision and consolidation of all topics','Technology: evaluate and improve designs']
+    },
+    5: {
+      1:['Matter and Materials: mixtures — solutions and suspensions','Structures: bridges — compression and tension','Ecosystems: food webs and energy flow','The human skeleton: joints and movement','Electrical circuits: series and parallel'],
+      2:['Energy: electricity — circuits, conductors, insulators','Human body: digestive system — organs and processes','Technology design challenge: mechanisms and structures','Processing: textiles — fibres, weaving, strength testing','Matter: separation of mixtures'],
+      3:['Matter and Materials: properties of materials in context','Energy and Change: sound energy — vibration and transmission','Life and Living: adaptation of animals and plants','Technology: systems — input, process, output','Earth and Beyond: solar system and planets'],
+      4:['Earth and conservation: natural resources, renewable/non-renewable','Matter: consolidation — states, mixtures, properties','Life and Living: food chains and food webs revision','Technology: evaluate systems and designs','Revision and examination preparation']
+    },
+    6: {
+      1:['Matter and Materials: atoms and molecules (introduction)','Electrical circuits: resistance, voltage, current (intro)','Life and Living: reproduction in animals (mammals, birds, insects)','Technology: structures — frames, shells, strength','Processing: food technology — fermentation'],
+      2:['Energy and Change: force and motion — friction, gravity, magnetism','Human body: nutrition — macro and micro nutrients, deficiency diseases','Technology: mechanisms — gears and pulleys','Matter: chemical changes — burning, rusting, cooking','Life and Living: reproduction in plants'],
+      3:['Matter and Materials: metals and non-metals, properties and uses','Energy and Change: electrical energy — circuits, series and parallel','Ecosystems: biomes of South Africa','Technology: systems and control — feedback systems','Earth and Beyond: atmosphere and climate'],
+      4:['Earth and Beyond: Earth in the solar system, seasons, moon phases','Water cycle and conservation: drought, water management','Matter: consolidation — chemical and physical changes','Technology: evaluate and improve — design process','Revision and examination preparation']
+    }
+  },
+
+  // ═══════════════════ NATURAL SCIENCES (Gr 7) ═══════════════════
+  'Natural Sciences': {
+    7: {
+      1:['Matter and Materials: atoms — structure, elements, compounds, mixtures','Life and Living: cells — plant and animal cells, cell functions, microscope skills','Energy and Change: electricity — current, voltage, resistance, Ohm\'s Law introduction','Matter: physical and chemical changes — properties and identification','Life processes: photosynthesis — chlorophyll, light, carbon dioxide, glucose'],
+      2:['Chemical reactions: everyday reactions — combustion, rusting, acid-base (introduction)','Human body: nervous system — brain, spinal cord, nerves, reflexes','Forces: Newton\'s Laws — balanced and unbalanced forces, momentum (introduction)','Matter: acids and bases — pH scale, indicators, reactions with metals','Life and Living: reproduction — plant and animal reproduction compared'],
+      3:['Matter and Materials: mixtures — separation techniques (filtration, distillation, chromatography)','Ecosystems and biodiversity: biomes, food webs, energy flow, impact of humans','Solar system and beyond: planets, moons, asteroids, seasons, moon phases','Matter: periodic table — groups, periods, metals, non-metals','Energy: sound and light — waves, speed, reflection, refraction'],
+      4:['Photosynthesis and respiration: equations, processes, importance','Acids and bases: consolidation — reactions, salts, everyday applications','Matter: consolidation — atoms, compounds, mixtures, changes','Forces and motion: consolidation — Newton\'s Laws applications','Revision and examination preparation']
+    }
+  },
+
+  // ═══════════════════ SOCIAL SCIENCES ═══════════════════
+  'Social Sciences': {
+    4: {
+      1:['Geography: maps — symbols, keys, compass directions (N, S, E, W, NE etc)','Geography: local area — features, land use, human and physical','History: heritage — meaning of heritage, SA national symbols, public holidays','Geography: scale on maps — understanding distance'],
+      2:['History: ancient SA rock art — San people, beliefs, way of life','Geography: South African regions — provinces, capitals, features','Geography: map skills — grid references, reading and drawing maps','History: early African kingdoms — Great Zimbabwe, Mapungubwe'],
+      3:['Geography: map skills — contour lines, cross sections, aerial photographs','History: SA indigenous knowledge — traditional farming, medicine, architecture','Social Sciences skills: sources — primary and secondary sources','Trade and resources: natural resources of SA, trading routes'],
+      4:['History: colonisation in SA — arrival of Jan van Riebeeck, impact on Khoikhoi','Geography: climate and biomes — SA vegetation zones, rainfall maps','Geography: natural disasters — droughts, floods, impact in SA','Revision: maps, history and resources']
+    },
+    5: {
+      1:['Geography: SA biomes — grassland, fynbos, savanna, desert, forest','History: early SA farming communities — Nguni and Sotho–Tswana peoples','Map skills: contour lines, cross-sections, calculating gradient','Geography: SA rivers — Orange, Vaal, Limpopo, importance for water'],
+      2:['History: Khoikhoi and San — way of life, land, conflict with settlers','Geography: resources and sustainability — mining, agriculture, water use','Scale on maps: calculating real distances, representative fraction','History: Difaqane/Mfecane — causes, events, impact on southern Africa'],
+      3:['Geography: climate and weather — factors affecting climate, SA climatic regions','History: SA indigenous knowledge — astronomy, architecture, agriculture','Trade routes: ancient trade routes — Silk Road, Indian Ocean trade, SA gold and ivory','Geography: population distribution — urban/rural, reasons for concentration'],
+      4:['History: early European exploration — Portuguese, Cape as refreshment station','Geography: environmental issues — pollution, deforestation, soil erosion','Geography: water scarcity — causes and solutions in SA','Revision: all topics covered']
+    },
+    6: {
+      1:['Geography: map skills — topographic maps, GIS introduction, grid references','History: ancient civilisations — Mesopotamia (Babylon), characteristics of civilisation','Geography: SA and world history connections — trade, colonialism','Map skills: latitude and longitude, time zones'],
+      2:['History: Ancient Egypt — Pharaohs, pyramids, society, religion, the Nile','Geography: climate and vegetation zones — world biomes, factors affecting climate','History: Ancient Greece — democracy, philosophy, Olympic Games, legacy','Water sources and dams: SA water management, dams, drought'],
+      3:['Geography: map skills consolidation — all types of maps and skills','History: Ancient civilisations comparison — Egypt, Greece, Rome, and SA kingdoms','History: Trade and resources in SA — gold, diamonds, minerals, routes','Geography: Natural hazards in SA — earthquakes, tsunamis, volcanoes (global context)'],
+      4:['History: SA history in world context — Cape Colony, slavery','Geography: Environmental challenges — climate change, global warming, SA impact','Geography: Urban issues — urbanisation, informal settlements, service delivery','Revision: all topics']
+    },
+    7: {
+      1:['Geography: population and settlement — world population distribution, factors, urbanisation','History: colonialism in SA — Dutch and British colonialism, impact on indigenous people','Map reading: topographic maps — contours, cross sections, gradients, spot heights','Geography: Economic activities — primary, secondary, tertiary sectors in SA'],
+      2:['History: SA resistance movements — Xhosa Wars, Sotho resistance, Zulu kingdom','Geography: migration patterns — push and pull factors, refugees, internal migration','History: Mineral revolution — discovery of diamonds and gold, impact on SA society','Geography: SA development — HDI, Gini coefficient, comparing development'],
+      3:['Geography: map skills and GIS — remote sensing, satellite images, GPS','History: apartheid overview — laws, resistance, key events, international pressure','SA economy and trade — exports, imports, trade partners, BRICS, SADC','Geography: Climate change — causes, effects, SA response, COP conferences'],
+      4:['History: SA democracy — 1994 elections, Constitution, rights and responsibilities','Geography: Global issues — poverty, inequality, sustainable development goals','History: consolidation — colonial era to democracy','Revision and examination preparation']
+    }
+  },
+
+  // ═══════════════════ TECHNOLOGY ═══════════════════
+  'Technology': {
+    4: {
+      1:['Design process: identify the need/problem, investigate, design brief','Structures: what makes structures strong — triangles, shapes, load-bearing','Materials and tools: properties of materials — wood, metal, plastic, fabric','Structures: building and testing bridges and towers'],
+      2:['Processing: food technology — preserving food methods, why we preserve','Systems: input, process, output — identifying in everyday systems','Mechanisms: levers — types (1st, 2nd, 3rd class), force, load, fulcrum','Processing: making and testing a preserved food product'],
+      3:['Structures: frames and shells — advantages and uses','Mechanisms: linkages — converting motion, parallelogram linkage','Impact of technology: how technology affects daily life','Technology: design and make a structure using the design process'],
+      4:['Processing: cooking — chemical and physical changes during cooking','Impact of technology: advantages and disadvantages of technology','Design process: evaluate and improve a product','Revision: all design process, structures, mechanisms']
+    },
+    5: {
+      1:['Structures: bridges — beam, arch, suspension — how they work','Mechanisms: pulleys — fixed, movable, block and tackle, mechanical advantage','Design brief: write a brief, investigate materials, sketch designs','Structures: testing and evaluating strength of structures'],
+      2:['Processing: textiles — natural and synthetic fibres, weaving, stitching','Electrical systems: simple circuits — batteries, bulbs, switches','Design and make: a product using mechanisms or structures','Systems: control systems — how machines are controlled'],
+      3:['Structures and mechanisms: design a working model','Systems and control: feedback — thermostats, sensors','Food technology: equipment, processes, quality control','Impact of technology: biotechnology and genetic modification (basic)'],
+      4:['Impact of technology on society: automation, jobs, environment','Design project: complete a full design process from brief to evaluation','Revision: structures, mechanisms, systems, processing','Evaluation: peer evaluation of designs']
+    },
+    6: {
+      1:['Structures: frames (skeletal) and shells (monocoque) — real-world examples','Mechanical systems: gear trains — gear ratio, speed, direction','Design process: research methods, patent and copyright introduction','Structures: design and build a load-bearing structure'],
+      2:['Electrical systems: series and parallel circuits — practical differences','Processing: food technology — industrial food production, quality control','Design and make: electrical system with switch and battery','Matter: properties of materials — choosing materials for purpose'],
+      3:['Structures and mechanisms: combined design challenge','Processing: textiles and food — comparing processing methods','Systems and control: electronics — light-dependent resistors, thermistors (introduction)','Impact: technology and the environment — sustainable design'],
+      4:['Impact of technology: historical development of technology in SA','Design project: complete design, make, evaluate — full process','Revision: all design process steps, materials, structures, systems','Evaluation and communication of design solutions']
+    },
+    7: {
+      1:['Civil structures: dams, bridges, skyscrapers — forces, materials, design','Mechanical advantage: gears, levers, pulleys — calculating MA','Design process: research phase — surveys, interviews, existing products','Technical drawing: 2D orthographic drawing, dimensions, views'],
+      2:['Electrical systems: control systems — logic gates introduction, circuits','Biotechnology: fermentation, genetic modification, cloning — applications and ethics','Design and make: design a solution to a real community need','Technical drawing: isometric drawing of 3D objects'],
+      3:['Structures: stability and strength — suspension, cantilever, tension','Systems and control: automation — sensors, feedback, computer control','Processing: materials technology — composites, alloys, smart materials','Impact: appropriate technology — simple solutions for community problems'],
+      4:['Impact of technology on environment: sustainable design, life cycle assessment','Design project: final — research, design, make, test, evaluate, present','Revision: all technology content, design process','Examination preparation']
+    }
+  },
+
+  // ═══════════════════ ECONOMIC AND MANAGEMENT SCIENCES ═══════════════════
+  'Economic and Management Sciences': {
+    4: {
+      1:['Needs and wants: difference between needs and wants, unlimited wants, scarce resources','Production: primary, secondary, tertiary sectors — what they produce','Basic financial literacy: income and expenditure, simple budget','Economic choices: opportunity cost — giving up one thing to get another'],
+      2:['The economy: buying and selling — markets, prices, supply and demand (simple)','Entrepreneurship: what is an entrepreneur, characteristics, examples in SA','Simple budgeting: income, expenditure, savings, surplus, deficit','Production: natural resources in SA — how they are used'],
+      3:['Business and the consumer: consumer rights and responsibilities','Financial literacy: banking — savings accounts, interest, why save','Entrepreneurship: small business — product, price, place, promotion (4 Ps intro)','Economic and Management Sciences: careers in EMS'],
+      4:['SA economy: formal and informal sector — differences and examples','Saving and spending: short-term and long-term financial goals','Revision: all EMS concepts covered in Grade 4','Financial literacy: responsible money management']
+    },
+    5: {
+      1:['Economic systems: traditional, command, market, mixed economies','Entrepreneurship: identifying a business opportunity, SWOT analysis introduction','Income and expenditure: personal and business budgets','Production factors: land, labour, capital, entrepreneurship'],
+      2:['Trade: local, national, international trade — imports, exports, balance of trade','Financial planning: personal financial plan, savings goals','Production and consumption: circular flow of income (simple)','The business environment: internal and external factors'],
+      3:['The economy and trade: SA trading partners, trade agreements (SADC, BRICS)','Business and the consumer: advertising, marketing mix (4 Ps)','Financial literacy: credit and debt — advantages and disadvantages','Entrepreneurship: business plan — product, market, finance'],
+      4:['Economic growth: GDP, economic growth, unemployment in SA','Budgeting project: plan a school event or small business','Revision: all EMS concepts Grade 5','Financial literacy: investment and return']
+    },
+    6: {
+      1:['Entrepreneurship: characteristics and role in economy, SA entrepreneurs','Financial documents: quotation, invoice, receipt, proof of payment','Trade and markets: stock exchange — shares, shareholders (introduction)','Economic concepts: price determination — demand and supply interaction'],
+      2:['Business plan: components — executive summary, market research, financials','Income statement: revenue, cost of sales, gross profit, net profit','Supply and demand: demand curve, supply curve, equilibrium price','Business environment: PESTLE analysis (introduction)'],
+      3:['Entrepreneurship: starting a business — legal forms, registration','Financial literacy: budgeting — personal and business, cash flow statement','The economy and trade: exchange rate — impact on imports and exports','Consumer protection: CPA, rights, CCSA, how to lodge a complaint'],
+      4:['SA economy and trade: economic sectors, SA economic challenges','Business evaluation: SWOT analysis, evaluating performance','Financial literacy: tax — VAT, income tax (basic)','Revision: all EMS concepts Grade 6']
+    },
+    7: {
+      1:['Entrepreneurship: business plan — complete business plan for a real/simulated business','Financial literacy: profit and loss, break-even analysis','Economic systems: comparing SA economy to other countries','Production factors: rewards — rent, wages, interest, profit'],
+      2:['Business: marketing — market segmentation, target market, marketing strategy','Cash flow statements: prepare and interpret a cash flow statement','Trade: imports and exports — SA balance of payments','Business environment: globalisation and its impact on SA businesses'],
+      3:['Formal vs informal economy: size, contribution, challenges','Financial planning: personal financial plan — short, medium, long-term goals','Consumer rights: extended study — contracts, consumer protection act in SA','Economic growth: factors affecting economic growth in SA'],
+      4:['Economic growth and development: SA development challenges, HDI, inequality','Business evaluation: financial ratios, evaluate business performance','Revision: all EMS Grades 4–7','Examination preparation: all topics']
+    }
+  },
+
+  // ═══════════════════ LIFE SKILLS (Foundation Phase Gr 1–3) ═══════════════════
+  'Life Skills': {
+    1: {
+      1:['Beginning Knowledge: my body — body parts, senses, personal hygiene','Personal and Social Well-being: feelings and emotions — identify and express','Safety: safety at school and home — strangers, fire, road safety','Creative Arts: drawing — observational drawing, materials'],
+      2:['Beginning Knowledge: families — types of families, roles, values','Personal and Social Well-being: friendships — making and keeping friends','Beginning Knowledge: nutrition — healthy and unhealthy foods','Physical Education: fundamental movement — running, jumping, throwing'],
+      3:['Beginning Knowledge: my community — community helpers, services','Personal and Social Well-being: responsible behaviour — rights and responsibilities','Creative Arts: collage and texture — materials, techniques','Beginning Knowledge: plants — parts of a plant, growth conditions'],
+      4:['Beginning Knowledge: seasons and weather — effect on daily life','Personal and Social Well-being: managing conflict — solve problems peacefully','Creative Arts: drama — role play, storytelling through drama','Physical Education: ball skills — catching, kicking, striking']
+    },
+    2: {
+      1:['Beginning Knowledge: healthy habits — exercise, sleep, hygiene','Personal and Social Well-being: bullying — recognise, respond, report','Creative Arts: colour mixing — primary and secondary colours','Physical Education: locomotor skills — skipping, galloping, hopping'],
+      2:['Beginning Knowledge: road safety — pedestrian rules, traffic signs','Personal and Social Well-being: cooperation and teamwork — group activities','Physical Education: ball games — modified games, rules, fair play','Creative Arts: music — rhythm, clapping patterns, simple instruments'],
+      3:['Beginning Knowledge: community helpers — services in the community','Personal and Social Well-being: responsibility — taking care of self and environment','Creative Arts: 3D art — clay modelling, construction','Beginning Knowledge: water — uses, conservation, clean water'],
+      4:['Personal and Social Well-being: managing feelings — anger, sadness, happiness','Beginning Knowledge: environmental care — reduce, reuse, recycle','Creative Arts: drama and music — performance','Physical Education: gymnastics — balance, rotation, weight-bearing']
+    },
+    3: {
+      1:['Beginning Knowledge: growing and changing — physical development, puberty (intro)','Personal and Social Well-being: healthy relationships — family, friends, community','Creative Arts: patterns — geometric and organic patterns, printing','Physical Education: athletics — sprinting, long jump, throwing events'],
+      2:['Beginning Knowledge: nutrition and exercise — food labels, energy balance','Personal and Social Well-being: peer pressure — recognising and resisting','Physical Education: games — team games, rules, sportsmanship','Creative Arts: visual arts — perspective and proportion'],
+      3:['Beginning Knowledge: community and belonging — cultural diversity, SA identity','Personal and Social Well-being: personal values — honesty, respect, kindness','Creative Arts: 3D construction — building models','Beginning Knowledge: environmental science — ecosystems, endangered animals'],
+      4:['Personal and Social Well-being: goal setting for Grade 4 — aspirations','Beginning Knowledge: life skills revision — consolidation of all topics','Creative Arts: celebration and performance — end of year','Physical Education: consolidation — all movement skills']
+    },
+    4: {
+      1:['Personal development: identity — who am I, values, strengths, self-esteem','Health and hygiene: puberty — physical and emotional changes','Physical Education: athletics — sprinting technique, relay, shot put','Social skills: communication — verbal and non-verbal, assertiveness'],
+      2:['Social skills: conflict resolution — negotiation, mediation, problem-solving','Safety: first aid basics — cuts, burns, choking, calling for help','Recreational activities: games and sport — rules, fair play, teamwork','Health: substance abuse awareness — alcohol, tobacco, effects on body'],
+      3:['Study skills: time management — study timetable, prioritising tasks','Community involvement: service learning — needs in the community','Team sports: modified games — cricket, soccer, netball, rules','Health: mental health — stress, anxiety, coping strategies'],
+      4:['Career awareness: types of jobs, interests and careers, world of work','Environmental responsibility: conservation, climate change, personal action','Physical Education: gymnastics and dance','Revision: all Life Skills Grade 4']
+    },
+    5: {
+      1:['Self-awareness: goals and dreams — short and long-term goals, vision board','Healthy relationships: family dynamics, peer relationships, boundaries','Physical Education: gymnastics — sequences, balance, coordination','Health: nutrition — macronutrients, micronutrients, food labels, eating disorders (awareness)'],
+      2:['Bullying and peer pressure: types of bullying, cyberbullying, how to respond','Democracy and rights: SA Constitution, Bill of Rights, children\'s rights (UNCRC)','Team building: leadership, cooperation, problem-solving activities','Health: puberty — emotional changes, relationships, responsible choices'],
+      3:['Decision making skills: IDEAL model, values-based decisions','Community service: identifying needs, planning a service project','Fitness and wellness: components of fitness, exercise principles, warm-up/cool-down','Health: HIV and AIDS — facts, transmission, prevention, stigma'],
+      4:['Future planning: career exploration, subjects and career links','Citizenship: SA citizenship, patriotism, responsibilities','Physical Education: athletics — track and field events','Revision: all Life Skills Grade 5']
+    },
+    6: {
+      1:['Personal development: self-concept — self-esteem, identity, cultural identity','Healthy relationships: boundaries in friendships and romantic relationships (intro)','Physical Education: team sport — soccer, netball, cricket skills','Health: reproductive health — puberty consolidation, menstruation, nocturnal emission'],
+      2:['Social responsibility: community issues — poverty, inequality, what learners can do','Rights and responsibilities: SA Constitution, rights in school, student councils','Recreational sport: individual sports — tennis, athletics, swimming (where available)','Health: substance abuse — drugs, alcohol, effects, refusal skills'],
+      3:['Decision making: consequences and choices — case studies, role play','Environmental responsibility: global warming, carbon footprint, personal action','Fitness: cardiovascular fitness, strength, flexibility — training principles','Health: STIs and HIV and AIDS — transmission, prevention, treatment, living with HIV'],
+      4:['Career exploration: career research, interviews, job shadowing','Community involvement: evaluate service project, reflection','Physical Education: dance — choreography, styles','Revision: all Life Skills Grade 6'],
+    4: {
+      1:['Personal development: identity — who am I, values, strengths, self-esteem','Health and hygiene: puberty — physical and emotional changes','Physical Education: athletics — sprinting technique, relay, shot put','Social skills: communication — verbal and non-verbal, assertiveness'],
+      2:['Social skills: conflict resolution — negotiation, mediation, problem-solving','Safety: first aid basics — cuts, burns, choking, calling for help','Recreational activities: games and sport — rules, fair play, teamwork','Health: substance abuse awareness — alcohol, tobacco, effects on body'],
+      3:['Study skills: time management — study timetable, prioritising tasks','Community involvement: service learning — needs in the community','Team sports: modified games — cricket, soccer, netball, rules','Health: mental health — stress, anxiety, coping strategies'],
+      4:['Career awareness: types of jobs, interests and careers, world of work','Environmental responsibility: conservation, climate change, personal action','Physical Education: gymnastics and dance','Revision: all Life Skills Grade 4']
+    },
+    5: {
+      1:['Self-awareness: goals and dreams — short and long-term goals, vision board','Healthy relationships: family dynamics, peer relationships, boundaries','Physical Education: gymnastics — sequences, balance, coordination','Health: nutrition — macronutrients, micronutrients, food labels'],
+      2:['Bullying and peer pressure: types of bullying, cyberbullying, how to respond','Democracy and rights: SA Constitution, Bill of Rights, children rights (UNCRC)','Team building: leadership, cooperation, problem-solving activities','Health: puberty — emotional changes, relationships, responsible choices'],
+      3:['Decision making skills: IDEAL model, values-based decisions','Community service: identifying needs, planning a service project','Fitness and wellness: components of fitness, exercise principles','Health: HIV and AIDS — facts, transmission, prevention, stigma'],
+      4:['Future planning: career exploration, subjects and career links','Citizenship: SA citizenship, patriotism, responsibilities','Physical Education: athletics — track and field events','Revision: all Life Skills Grade 5']
+    },
+    6: {
+      1:['Personal development: self-concept — self-esteem, identity, cultural identity','Healthy relationships: boundaries in friendships and relationships','Physical Education: team sport — soccer, netball, cricket skills','Health: reproductive health — puberty consolidation, menstruation'],
+      2:['Social responsibility: community issues — poverty, inequality','Rights and responsibilities: SA Constitution, rights in school, student councils','Recreational sport: individual sports — tennis, athletics, swimming','Health: substance abuse — drugs, alcohol, effects, refusal skills'],
+      3:['Decision making: consequences and choices — case studies, role play','Environmental responsibility: global warming, carbon footprint, personal action','Fitness: cardiovascular fitness, strength, flexibility — training principles','Health: STIs and HIV and AIDS — transmission, prevention, treatment'],
+      4:['Career exploration: career research, interviews, job shadowing','Community involvement: evaluate service project, reflection','Physical Education: dance — choreography, styles','Revision: all Life Skills Grade 6']
+    }
+    }
+  },
+
+  // ═══════════════════ LIFE ORIENTATION (Gr 7) ═══════════════════
+  'Life Orientation': {
+    7: {
+      1:['Identity and self-esteem: factors influencing identity, media and self-image, building self-esteem','Health: puberty consolidation — physical, emotional, social changes, self-care','Physical Education: athletics — sprint, hurdles, relay, long jump, high jump, shot put','Social skills: assertiveness — rights, boundaries, saying no'],
+      2:['Relationships: peer pressure, romantic relationships, healthy vs unhealthy relationships','Human rights and the Constitution: Bill of Rights, responsibilities, case studies','Team sports and recreation: soccer, netball, cricket, rugby — skills, rules, values','Health: HIV and AIDS and STIs — consolidation, treatment options, living positively'],
+      3:['Decision making: substance abuse — types, effects, refusal skills, getting help','Environmental issues: global warming, climate change, conservation, personal responsibility','Fitness testing: Cooper test, sit-ups, push-ups, flexibility — record and analyse results','Health: reproductive health — responsible choices, contraception awareness'],
+      4:['Career guidance: career research, subject choices and careers, CV writing basics','Citizenship and democracy: elections, voting, political literacy, active citizenship','Physical Education: aerobics and dance — group choreography','Revision and examination preparation: all LO content']
+    }
+  }
+
+};
+// Aliases — Afrikaans subject names map to English TOPICS keys
 TOPICS['Afrikaans Huistaal'] = TOPICS['Home Language'];
 TOPICS['Afrikaans Eerste Addisionele Taal'] = TOPICS['First Additional Language'];
+TOPICS['Lewensvaardighede'] = TOPICS['Life Skills'];
+TOPICS['Lewensoriëntering'] = TOPICS['Life Orientation'];
+TOPICS['Natuurwetenskappe en Tegnologie'] = TOPICS['Natural Sciences & Technology'];
+TOPICS['Natuurwetenskappe'] = TOPICS['Natural Sciences'];
+TOPICS['Sosiale Wetenskappe'] = TOPICS['Social Sciences'];
+TOPICS['Tegnologie'] = TOPICS['Technology'];
+TOPICS['Ekonomiese en Bestuurswetenskappe'] = TOPICS['Economic and Management Sciences'];
+TOPICS['Wiskunde'] = TOPICS['Mathematics'];
 
 let rtype='Assessment & Test', lang='English', diff='on', bloomsMode='none', hist=[], activeTab='generator';
 
