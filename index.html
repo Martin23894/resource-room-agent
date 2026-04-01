@@ -879,8 +879,11 @@ async function doGenerate(){
       body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,diagramPlacement,grade,term,bloomsMode,bloomsLevels})
     });
     clearInterval(iv);
-    const d=await r.json();
-    if(!r.ok||d.error)throw new Error(d.error||'Server error');
+    const rawText=await r.text();
+    let d;
+    try{d=JSON.parse(rawText);}
+    catch(e){throw new Error('Server error: '+(rawText.substring(0,120)||'No response from server'));}
+    if(!r.ok||d.error)throw new Error(d.error||'Server error '+r.status);
     // Clean up content: strip any JSON wrapper, unescape \n sequences
     let cleanContent = d.content || '';
     cleanContent = cleanContent.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
