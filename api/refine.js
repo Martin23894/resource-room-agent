@@ -45,21 +45,29 @@ Please apply this change and return the complete updated resource.`;
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 5000,
+        max_tokens: 4000,
         system,
         messages: [{ role: 'user', content: user }]
       })
     });
+    const responseText = await response.text();
     if (!response.ok) {
-      const e = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: e.error?.message || 'API error' });
+      let errMsg = 'API error ' + response.status;
+      try { const errData = JSON.parse(responseText); errMsg = errData.error?.message || errMsg; }
+      catch(e) { errMsg = responseText.substring(0, 200) || errMsg; }
+      return res.status(response.status).json({ error: errMsg });
     }
-    const data = await response.json();
-    const raw = data.content?.map(c => c.text || '').join('') || '';
+    let raw = '';
+    try { const data = JSON.parse(responseText); raw = data.content?.map(c => c.text || '').join('') || ''; }
+    catch(e) { return res.status(500).json({ error: 'Failed to parse API response: ' + responseText.substring(0, 200) }); }
     const clean = raw.replace(/```json|```/g, '').trim();
     let parsed;
     try { parsed = JSON.parse(clean); }
     catch (e) { parsed = { content: raw, changesSummary: 'Resource updated.' }; }
+    // Clean up content
+    if (parsed.content) {
+      parsed.content = parsed.content.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+    }
     return res.status(200).json(parsed);
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
