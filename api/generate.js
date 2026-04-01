@@ -118,7 +118,7 @@ export default async function handler(req, res) {
 
   try {
     // Call 1: Resource text — fast, no SVG
-    const raw1 = await callAPI(systemText, userText, 3500);
+    const raw1 = await callAPI(systemText, userText, 2500);
 
     let resourceContent = '';
     try {
@@ -145,7 +145,7 @@ export default async function handler(req, res) {
       ).join(',\n') + '\n\nWrap all in: {"diagrams":{...}}';
 
       try {
-        const raw2 = await callAPI(diagSystemText, diagUserText, 4000);
+        const raw2 = await callAPI(diagSystemText, diagUserText, 3000);
         let diagParsed;
         try { diagParsed = JSON.parse(raw2); } catch(e) { diagParsed = {}; }
         const diagData = diagParsed.diagrams || diagParsed;
