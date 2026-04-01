@@ -20,39 +20,194 @@ export default async function handler(req, res) {
   const phase = gradeNum <= 3 ? 'Foundation Phase' : gradeNum <= 6 ? 'Intermediate Phase' : 'Senior Phase';
   const numDiagrams = parseInt(diagramCount) || 0;
 
-  const difficultyNote = difficulty === 'below'
-    ? 'BELOW grade level — simplified language, more scaffolding, confidence-building tasks.'
-    : difficulty === 'above'
-    ? 'ABOVE grade level — multi-step problems, higher-order thinking, genuine stretch tasks.'
-    : `ON grade level — standard CAPS expectations for Grade ${gradeNum} Term ${termNum}.`;
+  // ═══════════════════════════════════════════════════════════
+  // DoE SUBJECT-SPECIFIC COGNITIVE LEVEL RATIOS
+  // ═══════════════════════════════════════════════════════════
+  function getDoERatios(subj, gradeN) {
+    const s = subj.toLowerCase();
 
-  const bloomsDescriptions = {
-    remember: 'REMEMBER — recall, define, list, identify, name facts',
-    understand: 'UNDERSTAND — explain, describe, summarise, classify',
-    apply: 'APPLY — use in new situations, solve, demonstrate, calculate',
-    analyse: 'ANALYSE — break down, differentiate, compare and contrast',
-    evaluate: 'EVALUATE — judge, justify, critique, defend a position',
-    create: 'CREATE — design, construct, plan, produce, compose'
-  };
+    // Mathematics — CAPS/DoE assessment taxonomy
+    if (s.includes('mathematics') || s.includes('maths')) {
+      if (gradeN <= 3) {
+        return {
+          name: 'Foundation Phase Mathematics',
+          levels: [
+            { level: 'Knowledge (K)', percent: 25, desc: 'Recall of facts, definitions, basic number concepts' },
+            { level: 'Routine Procedures (RP)', percent: 45, desc: 'Standard calculations, basic algorithms, direct application' },
+            { level: 'Complex Procedures (CP)', percent: 20, desc: 'Multi-step problems, choosing methods' },
+            { level: 'Problem Solving (PS)', percent: 10, desc: 'Non-routine problems, reasoning and justification' }
+          ]
+        };
+      }
+      return {
+        name: 'Mathematics (Intermediate/Senior Phase)',
+        levels: [
+          { level: 'Knowledge (K)', percent: 20, desc: 'Straight recall, definitions, terminology, basic facts' },
+          { level: 'Routine Procedures (RP)', percent: 35, desc: 'Perform standard procedures, direct algorithms, simple one-step calculations' },
+          { level: 'Complex Procedures (CP)', percent: 30, desc: 'Multi-step procedures, decision-making, non-routine within familiar context' },
+          { level: 'Problem Solving (PS)', percent: 15, desc: 'Unfamiliar situations, higher-order reasoning, mathematical justification' }
+        ]
+      };
+    }
 
-  let bloomsNote = '';
-  if (bloomsMode === 'single' && bloomsLevels?.length > 0) {
-    bloomsNote = `\nBLOOM'S — Single level: ${bloomsDescriptions[bloomsLevels[0]] || bloomsLevels[0]}`;
-  } else if (bloomsMode === 'mixed' && bloomsLevels?.length > 0) {
-    const descs = bloomsLevels.map(l => bloomsDescriptions[l] || l).join('; ');
-    bloomsNote = `\nBLOOM'S — Mixed levels: ${descs}. Label each section with its Bloom's level. Progress lower → higher order.`;
+    // Languages — Home Language
+    if (s.includes('home language') || s.includes('huistaal')) {
+      return {
+        name: 'Home Language',
+        levels: [
+          { level: 'Lower Order (LO) — Literal', percent: 30, desc: 'Direct recall from text, literal comprehension, surface features' },
+          { level: 'Middle Order (MO) — Inferential', percent: 40, desc: 'Inference, deduction, interpretation of meaning, language use' },
+          { level: 'Higher Order (HO) — Critical/Creative', percent: 30, desc: 'Evaluation, synthesis, critical response, own opinion with justification' }
+        ]
+      };
+    }
+
+    // Languages — First Additional Language
+    if (s.includes('additional language') || s.includes('addisionele')) {
+      return {
+        name: 'First Additional Language',
+        levels: [
+          { level: 'Lower Order (LO) — Literal', percent: 40, desc: 'Direct comprehension, vocabulary in context, factual recall' },
+          { level: 'Middle Order (MO) — Inferential', percent: 35, desc: 'Inference, language structures, understanding tone and purpose' },
+          { level: 'Higher Order (HO) — Critical', percent: 25, desc: 'Evaluation, personal response, critical reading' }
+        ]
+      };
+    }
+
+    // Natural Sciences & Technology / Natural Sciences
+    if (s.includes('natural sciences') || s.includes('natuur')) {
+      return {
+        name: 'Natural Sciences',
+        levels: [
+          { level: 'Recall (R)', percent: 25, desc: 'Remember facts, terminology, definitions, basic concepts' },
+          { level: 'Comprehension (C)', percent: 30, desc: 'Explain, describe, identify patterns, understand scientific concepts' },
+          { level: 'Application/Analysis (AA)', percent: 30, desc: 'Apply knowledge to new situations, analyse data, interpret results' },
+          { level: 'Synthesis/Evaluation (SE)', percent: 15, desc: 'Draw conclusions, evaluate evidence, design investigations' }
+        ]
+      };
+    }
+
+    // Social Sciences
+    if (s.includes('social sciences') || s.includes('sosiale')) {
+      return {
+        name: 'Social Sciences',
+        levels: [
+          { level: 'Knowledge/Recall (K)', percent: 30, desc: 'Facts, dates, places, events — direct recall' },
+          { level: 'Comprehension (C)', percent: 30, desc: 'Explain, describe causes and effects, understanding of concepts' },
+          { level: 'Application/Analysis (AA)', percent: 25, desc: 'Source analysis, map skills, compare and contrast, cause and effect' },
+          { level: 'Synthesis/Evaluation (SE)', percent: 15, desc: 'Evaluate sources, justify arguments, draw own conclusions' }
+        ]
+      };
+    }
+
+    // Technology
+    if (s.includes('technology') || s.includes('tegnologie')) {
+      return {
+        name: 'Technology',
+        levels: [
+          { level: 'Knowledge (K)', percent: 20, desc: 'Terminology, processes, materials — factual recall' },
+          { level: 'Comprehension (C)', percent: 30, desc: 'Explain how systems work, describe design processes' },
+          { level: 'Application (A)', percent: 35, desc: 'Apply design process, practical problem solving, evaluation of designs' },
+          { level: 'Analysis/Evaluation (AE)', percent: 15, desc: 'Critically evaluate designs, suggest improvements, justify choices' }
+        ]
+      };
+    }
+
+    // Economic and Management Sciences
+    if (s.includes('economic') || s.includes('ems') || s.includes('ekonomie')) {
+      return {
+        name: 'Economic and Management Sciences',
+        levels: [
+          { level: 'Knowledge (K)', percent: 25, desc: 'Economic concepts, definitions, business terminology' },
+          { level: 'Application (A)', percent: 45, desc: 'Apply financial skills, complete documents, calculate, demonstrate understanding' },
+          { level: 'Analysis/Synthesis (AS)', percent: 30, desc: 'Interpret financial statements, evaluate business decisions, draw conclusions' }
+        ]
+      };
+    }
+
+    // Life Skills / Life Orientation
+    if (s.includes('life skills') || s.includes('life orientation') || s.includes('lewensoriëntering') || s.includes('lewensvaardighede')) {
+      return {
+        name: 'Life Skills / Life Orientation',
+        levels: [
+          { level: 'Knowledge (K)', percent: 30, desc: 'Facts about health, safety, society, values — recall' },
+          { level: 'Understanding (U)', percent: 40, desc: 'Explain concepts, describe scenarios, demonstrate understanding' },
+          { level: 'Application (A)', percent: 30, desc: 'Apply to own life, make decisions, reflect and evaluate choices' }
+        ]
+      };
+    }
+
+    // Default fallback
+    return {
+      name: 'General',
+      levels: [
+        { level: 'Lower Order', percent: 30, desc: 'Knowledge and recall' },
+        { level: 'Middle Order', percent: 40, desc: 'Understanding and application' },
+        { level: 'Higher Order', percent: 30, desc: 'Analysis, evaluation and creation' }
+      ]
+    };
   }
 
-  const rubricSection = includeRubric
-    ? `\n\n═══════════════════════════════════\nMARKING RUBRIC\n═══════════════════════════════════\n[4-level rubric with practical descriptors aligned to Bloom's levels used.]`
-    : '';
+  const doeRatios = getDoERatios(subject, gradeNum);
+  const ratioText = doeRatios.levels
+    .map(l => `  • ${l.level} (${l.percent}%): ${l.desc}`)
+    .join('\n');
 
+  // ═══════════════════════════════════════════════════════════
+  // BLOOM'S OVERRIDE (if teacher selected specific focus)
+  // ═══════════════════════════════════════════════════════════
+  const bloomsDescriptions = {
+    remember: 'REMEMBER — define, list, recall, identify, name',
+    understand: 'UNDERSTAND — explain, summarise, classify, describe',
+    apply: 'APPLY — use, solve, demonstrate, calculate',
+    analyse: 'ANALYSE — compare, differentiate, examine, break down',
+    evaluate: 'EVALUATE — judge, justify, critique, argue',
+    create: 'CREATE — design, construct, plan, compose, produce'
+  };
+
+  let bloomsOverride = '';
+  if (bloomsMode === 'single' && bloomsLevels?.length > 0) {
+    bloomsOverride = `\nBLOOM'S TEACHER OVERRIDE — Single focus: ${bloomsDescriptions[bloomsLevels[0]] || bloomsLevels[0]}\nApply the DoE ratios above but weight questions toward this Bloom's level.`;
+  } else if (bloomsMode === 'mixed' && bloomsLevels?.length > 0) {
+    bloomsOverride = `\nBLOOM'S TEACHER OVERRIDE — Mixed focus: ${bloomsLevels.map(l => bloomsDescriptions[l] || l).join(', ')}\nApply DoE ratios but emphasise these Bloom's levels.`;
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // DIFFICULTY
+  // ═══════════════════════════════════════════════════════════
+  const difficultyNote = difficulty === 'below'
+    ? `BELOW grade level — Use simplified language, smaller numbers, more scaffolding. Align with Platinum textbook activities that appear at the START of each topic section (introductory exercises).`
+    : difficulty === 'above'
+    ? `ABOVE grade level — Multi-step problems, higher-order thinking, extended challenges. Align with Platinum textbook EXTENSION activities and the most challenging exercises at the end of each section.`
+    : `ON grade level — Standard CAPS expectations. Align with Platinum textbook CORE exercises — the main practice activities in the middle of each lesson section.`;
+
+  // ═══════════════════════════════════════════════════════════
+  // PLATINUM TEXTBOOK ALIGNMENT GUIDANCE
+  // ═══════════════════════════════════════════════════════════
+  const platinumGuidance = gradeNum <= 3
+    ? `FOUNDATION PHASE TEXTBOOK STYLE (Grades 1–3):
+- Align with Thelma Res / Spot On / Starbright style resources used in SA Foundation Phase classrooms
+- Short, clear instructions with visual support where possible
+- Simple sentence structures appropriate for early readers
+- Practical, hands-on activities grounded in the learner's immediate environment`
+    : `PLATINUM TEXTBOOK ALIGNMENT (Grades 4–7, Maskew Miller Longman):
+- Match the vocabulary, terminology and language register used in Platinum ${subject} Grade ${gradeNum}
+- Use the same worked example format: clearly labelled steps, margin notes, boxed definitions
+- Follow Platinum's progression within the topic: concrete → semi-abstract → abstract
+- Use similar context and scenario types as Platinum (SA settings, realistic situations, relatable names)
+- Questions should feel like they could appear in a Platinum exercise set — same style, same cognitive demand
+- For Mathematics: use the same number ranges, operation styles and presentation as Platinum Maths Grade ${gradeNum}
+- Include at least one "Did you know?" or contextual note the way Platinum does, embedded in teacher instructions`;
+
+  // ═══════════════════════════════════════════════════════════
+  // DIAGRAM INSTRUCTIONS
+  // ═══════════════════════════════════════════════════════════
   const diagramTypeMap = {
-    agent: 'Choose the most educationally appropriate diagram type for the topic and grade.',
+    agent: 'Choose the most educationally appropriate diagram type for this topic.',
     bar: 'Bar graph or pie chart (data handling)',
     line: 'Line graph (trends over time)',
     science: 'Scientific diagram (food chain, plant parts, water cycle, life cycle)',
-    flow: 'Flow diagram (process, cause-and-effect, steps)',
+    flow: 'Flow diagram (process, cause-and-effect, sequence)',
     map: 'Map, grid or compass rose (Geography)',
     maths: 'Number line, geometric shapes, or mathematical diagram'
   };
@@ -61,84 +216,87 @@ export default async function handler(req, res) {
 - viewBox="0 0 520 300" width="520" height="300"
 - First element: <rect width="520" height="300" fill="white"/>
 - font-family="Arial, sans-serif" on ALL text elements
-- Professional colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780 #E6F1FB
-- Clear labels, clean lines, grade-appropriate for Grade ${gradeNum}
-- Title text at top of SVG
-- No JavaScript, no external resources`;
+- Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780
+- Grade-appropriate for Grade ${gradeNum}, clear labels, no JavaScript`;
 
-  // Build diagram instruction based on count and placement
+  const placementDesc = diagramPlacement === 'beginning'
+    ? 'ALL diagrams appear BEFORE questions — insert [DIAGRAM_N] placeholder(s) after the learner header, before SECTION A.'
+    : diagramPlacement === 'end'
+    ? 'ALL diagrams appear AFTER questions — insert [DIAGRAM_N] placeholder(s) after the TOTAL line, before the memorandum.'
+    : 'INLINE — insert [DIAGRAM_N] placeholder directly below the question it illustrates. Include 2–3 questions referring to each diagram.';
+
   let diagramInstruction = '';
   if (numDiagrams > 0) {
-    const placementDesc = diagramPlacement === 'beginning'
-      ? 'ALL diagrams appear BEFORE the questions. Place the placeholder(s) right after the learner header (Name/Date/Class line), before SECTION A.'
-      : diagramPlacement === 'end'
-      ? 'ALL diagrams appear AFTER all questions, before the MEMORANDUM. Place the placeholder(s) after the TOTAL line and before the memorandum separator.'
-      : `INLINE placement — each diagram appears at the most relevant question. Place [DIAGRAM_N] placeholder directly below the question it belongs to. The diagram should illustrate exactly what that question is testing.`;
-
-    const diagramObjects = Array.from({length: numDiagrams}, (_, i) => {
-      const n = i + 1;
-      return `"diagram${n}": {
-  "title": "Figure ${n}: [descriptive title]",
-  "caption": "[1-2 sentences: what diagram shows and what learner must do]",
-  "svg": "[complete self-contained SVG element]"
-}`;
-    }).join(',\n  ');
-
-    diagramInstruction = `
-
-DIAGRAMS REQUIRED: ${numDiagrams} diagram(s)
-Type: ${diagramTypeMap[diagramType] || diagramTypeMap['agent']}
-Placement: ${placementDesc}
-
-${diagramPlacement === 'inline' ? `In the "content" field, insert the placeholder [DIAGRAM_1]${numDiagrams > 1 ? ', [DIAGRAM_2]' : ''}${numDiagrams > 2 ? ', [DIAGRAM_3]' : ''} exactly where each diagram should appear inline with questions. Each diagram must have 2-3 questions immediately following it that refer directly to it (e.g. "Study Figure 1 and answer the questions below:").` : `In the "content" field, insert ${numDiagrams === 1 ? 'the placeholder [DIAGRAM_1]' : `the placeholders [DIAGRAM_1]${numDiagrams > 1 ? ' [DIAGRAM_2]' : ''}${numDiagrams > 2 ? ' [DIAGRAM_3]' : ''}`} at the correct position (${diagramPlacement === 'beginning' ? 'after learner details, before Section A' : 'after TOTAL line, before memorandum'}).`}
-
-${svgRules}
-
-Include ${numDiagrams > 1 ? `${numDiagrams} different` : 'a'} diagram${numDiagrams > 1 ? 's' : ''} — each must relate directly to the topic "${topic}" and be genuinely educational for Grade ${gradeNum}.`;
+    const diagNums = Array.from({length: numDiagrams}, (_, i) => `[DIAGRAM_${i+1}]`).join(', ');
+    diagramInstruction = `\nDIAGRAMS: ${numDiagrams} required. Type: ${diagramTypeMap[diagramType] || diagramTypeMap['agent']}. Placement: ${placementDesc}\nInsert placeholders ${diagNums} at correct positions in "content".\n${svgRules}\n\nIn diagrams JSON:\n${Array.from({length: numDiagrams}, (_, i) => `"diagram${i+1}": {"title":"Figure ${i+1}: [title]","caption":"[explanation]","svg":"[complete SVG]"}`).join('\n')}`;
   }
 
+  const rubricSection = includeRubric
+    ? `\n\n═══════════════════════════════════\nMARKING RUBRIC\n═══════════════════════════════════\n[4-level rubric aligned to the DoE cognitive levels used in this resource. Level 1 = not achieved, Level 4 = outstanding.]`
+    : '';
+
   const ageGuidance = gradeNum <= 3
-    ? `Foundation Phase: Very simple language, short sentences, fun and encouraging. Age-appropriate for ${5 + gradeNum}-${6 + gradeNum} year olds.`
+    ? `Foundation Phase: Very simple language, short sentences, fun and encouraging. Age-appropriate for ${5 + gradeNum}-${6 + gradeNum} year olds. Large clear text in mind when formatting.`
     : gradeNum <= 6
-    ? `Intermediate Phase: Clear engaging language for ${9 + (gradeNum - 4)}-${10 + (gradeNum - 4)} year olds. Mix of question types. Use SA context.`
-    : `Senior Phase: More formal academic language for teenagers. Higher complexity. Challenge critical thinking.`;
+    ? `Intermediate Phase: Clear and engaging for ${9 + (gradeNum - 4)}-${10 + (gradeNum - 4)} year olds. Mix of question types. Strong SA context.`
+    : `Senior Phase: Formal academic language appropriate for teenagers. Higher complexity, critical thinking expected.`;
 
-  // Build the JSON diagram fields for the response
-  const diagramFields = numDiagrams === 0
-    ? '"diagrams": null'
-    : `"diagrams": {\n  ${Array.from({length: numDiagrams}, (_, i) => {
-        const n = i + 1;
-        return `"diagram${n}": { "title": "...", "caption": "...", "svg": "..." }`;
-      }).join(',\n  ')}\n}`;
-
-  const system = `You are an experienced South African ${phase} teacher and curriculum developer creating CAPS-aligned resources for The Resource Room.
+  // ═══════════════════════════════════════════════════════════
+  // SYSTEM PROMPT
+  // ═══════════════════════════════════════════════════════════
+  const system = `You are an expert South African CAPS curriculum specialist and experienced ${phase} teacher creating teaching resources for The Resource Room.
 
 WRITING STYLE:
-- Warm, professional — sounds like a real experienced teacher
-- Use South African context: rands, local names (Sipho, Ayanda, Lerato, Pieter, Zanele), tuck shops, SA wildlife, local scenarios
-- Vary question types naturally. Never repeat the same pattern.
-- Friendly and encouraging instructions to learners
+- Warm, professional — sounds like an experienced SA teacher, not a computer
+- Use South African context: rands, local names (Sipho, Ayanda, Lerato, Pieter, Zanele, Thabo), tuck shops, load-shedding, SA wildlife, sport
+- Vary question types naturally — never repeat the same pattern
+- Friendly, encouraging tone toward learners
 Language: ${language} only. Never mix languages.
-Difficulty: ${difficultyNote}
-${ageGuidance}${bloomsNote}${diagramInstruction}
+${ageGuidance}
 
-CRITICAL: Respond with valid JSON ONLY. No markdown, no preamble, no explanation. Exactly this structure:
+═══════════════════════════════════════════════════════════
+DoE COGNITIVE LEVEL REQUIREMENTS — ${doeRatios.name}
+═══════════════════════════════════════════════════════════
+MANDATORY: Distribute marks EXACTLY according to these DoE ratios:
+${ratioText}
+
+Label EACH SECTION of the resource with its cognitive level in brackets, e.g.:
+  SECTION A — Knowledge (${doeRatios.levels[0]?.percent || 25}%)
+  SECTION B — ${doeRatios.levels[1]?.level || 'Application'} (${doeRatios.levels[1]?.percent || 35}%)
+  etc.
+
+Calculate mark allocations per section based on total marks and these percentages. Show the working in teacher instructions.${bloomsOverride}
+
+Difficulty: ${difficultyNote}
+
+═══════════════════════════════════════════════════════════
+${platinumGuidance}
+═══════════════════════════════════════════════════════════
+
+ATP ALIGNMENT:
+This resource covers: Grade ${gradeNum} | Term ${termNum} | ${subject} | ${topic}
+Ensure ALL content is strictly aligned to the DoE Annual Teaching Plan for this grade and term. Only include content that falls within this term's ATP scope — do not teach ahead or behind.
+${diagramInstruction}
+
+RESPONSE FORMAT — valid JSON ONLY, no markdown, no preamble:
 {
-  "content": "complete resource text using the structure below",
-  ${diagramFields}
+  "content": "full resource using exact structure below",
+  "diagrams": ${numDiagrams > 0 ? `{"diagram1": {"title":"...","caption":"...","svg":"..."}}` : 'null'}
 }
 
-The "content" field must use this exact structure:
+EXACT CONTENT STRUCTURE:
 
 ═══════════════════════════════════
 TEACHER INSTRUCTIONS
 ═══════════════════════════════════
 Time allocation: [X minutes]
 Grade: ${gradeNum} | Term: ${termNum} | Phase: ${phase}
-Difficulty: [level]
-${bloomsMode && bloomsLevels?.length ? "Bloom's level(s): [levels]\n" : ''}${numDiagrams > 0 ? `Diagrams: ${numDiagrams} x ${diagramTypeMap[diagramType] || 'diagram'} (placement: ${diagramPlacement})\n` : ''}Materials needed: [list]
-CAPS reference: Grade ${gradeNum} | Term ${termNum} | [subject] | [topic]
-Preparation notes: [2-3 genuinely useful practical sentences]
+Difficulty: [level] | Textbook alignment: ${gradeNum <= 3 ? 'Foundation Phase resources' : `Platinum ${subject} Grade ${gradeNum}`}
+DoE cognitive level split: ${doeRatios.levels.map(l => `${l.level} ${l.percent}%`).join(' | ')}
+${numDiagrams > 0 ? `Diagrams: ${numDiagrams} included (${diagramPlacement})\n` : ''}Materials needed: [specific list]
+CAPS/ATP reference: Grade ${gradeNum} | Term ${termNum} | [subject] | [topic]
+${gradeNum >= 4 ? `Platinum reference: [chapter/unit in Platinum ${subject} Grade ${gradeNum} that covers this topic]\n` : ''}Preparation notes: [2–3 practical sentences a real teacher would find useful]
+Mark allocation by cognitive level: [show how total marks are split — e.g. K: 10 marks, RP: 18 marks, CP: 15 marks, PS: 7 marks]
 
 ═══════════════════════════════════
 THE RESOURCE ROOM — [RESOURCE TYPE]
@@ -150,22 +308,22 @@ Learner Name: _________________________________
 
 Date: ____________________  Class: ____________
 
-${diagramPlacement === 'beginning' && numDiagrams > 0 ? '[DIAGRAM_1 placeholder here — before Section A]\n' : ''}
-[SECTION A, SECTION B etc. Brief friendly instruction per section. Minimum 10 questions. Marks in brackets. Varied types.${diagramPlacement === 'inline' && numDiagrams > 0 ? ' Insert [DIAGRAM_N] placeholders inline at relevant questions.' : ''}]
+[Organise into clearly labelled sections matching DoE cognitive levels. Each section must show the cognitive level and mark allocation. Minimum 10 questions. Marks in brackets per question. Question types must be varied and appropriate to the cognitive level of each section.]
+
 
 TOTAL: _________ / [X]
-${diagramPlacement === 'end' && numDiagrams > 0 ? '\n[DIAGRAM_1 placeholder here — after TOTAL, before memorandum]\n' : ''}
+
 ═══════════════════════════════════
 MEMORANDUM
 ═══════════════════════════════════
-[Numbered answers with marks. Model answers for open-ended. Notes on acceptable alternatives.]
+[Numbered answers with marks. Model answers for open-ended questions. Brief notes on acceptable alternatives. Mark per question clearly shown.]
 
 Total: [X] marks${rubricSection}
 
 ═══════════════════════════════════
 EXTENSION / ENRICHMENT ACTIVITY
 ═══════════════════════════════════
-[One meaningful challenge with full answer]`;
+[One meaningful challenge activity at Problem Solving / Higher Order level with full answer]`;
 
   const user = `Create a complete teacher pack:
 Subject: ${subject}
@@ -175,11 +333,11 @@ Language: ${language}
 Grade: ${gradeNum} | Term: ${termNum} | ${phase}
 Duration: ${duration}
 Difficulty: ${difficulty || 'on'} grade level
-${bloomsMode ? `Bloom's: ${bloomsMode} | Levels: ${(bloomsLevels || []).join(', ')}` : ''}
+${bloomsMode && bloomsMode !== 'none' ? `Bloom's teacher focus: ${bloomsMode} — ${(bloomsLevels || []).join(', ')}` : 'Bloom's: Auto (use DoE ratios)'}
 ${numDiagrams > 0 ? `Diagrams: ${numDiagrams} | Type: ${diagramTypeMap[diagramType] || 'suitable'} | Placement: ${diagramPlacement}` : ''}
-${includeRubric ? 'Include marking rubric.' : ''}
+${includeRubric ? 'Include DoE-aligned marking rubric.' : ''}
 
-Use real SA context. Sound like an experienced teacher. Minimum 10 questions. Return valid JSON ONLY.`;
+Apply DoE cognitive level ratios strictly. Align with ${gradeNum <= 3 ? 'Foundation Phase SA resources' : `Platinum ${subject} Grade ${gradeNum}`}. Use SA context throughout. Minimum 10 questions. Return valid JSON ONLY.`;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -210,7 +368,6 @@ Use real SA context. Sound like an experienced teacher. Minimum 10 questions. Re
     try { parsed = JSON.parse(clean); }
     catch (e) { parsed = { content: raw, diagrams: null }; }
 
-    // Normalise diagrams into an array
     let diagramsArray = [];
     if (parsed.diagrams && typeof parsed.diagrams === 'object') {
       for (let i = 1; i <= numDiagrams; i++) {
