@@ -348,20 +348,34 @@ Apply DoE cognitive level ratios strictly. Align with ${gradeNum <= 3 ? 'Foundat
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 6000,
         system,
         messages: [{ role: 'user', content: user }]
       })
     });
 
+    const responseText = await response.text();
+
     if (!response.ok) {
-      const e = await response.json().catch(() => ({}));
-      return res.status(response.status).json({ error: e.error?.message || 'API error' });
+      let errMsg = 'API error ' + response.status;
+      try {
+        const errData = JSON.parse(responseText);
+        errMsg = errData.error?.message || errMsg;
+      } catch(e) {
+        errMsg = responseText.substring(0, 200) || errMsg;
+      }
+      return res.status(response.status).json({ error: errMsg });
     }
 
-    const data = await response.json();
-    const raw = data.content?.map(c => c.text || '').join('') || '';
+    let raw = '';
+    try {
+      const data = JSON.parse(responseText);
+      raw = data.content?.map(c => c.text || '').join('') || '';
+    } catch(e) {
+      return res.status(500).json({ error: 'Failed to parse API response: ' + responseText.substring(0, 200) });
+    }
+
     const clean = raw.replace(/```json|```/g, '').trim();
 
     let parsed;
