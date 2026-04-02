@@ -1,3 +1,17 @@
 {
-  "type": "module"
+  "name": "the-resource-room",
+  "version": "1.0.0",
+  "description": "AI-powered CAPS-aligned teaching resources for SA teachers",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
