@@ -62,7 +62,7 @@ export default async function handler(req, res) {
   // Diagram placement description
   const diagPlacementDesc = diagramPlacement === 'beginning' ? 'before Section A'
     : diagramPlacement === 'end' ? 'after TOTAL line'
-    : 'inline at the relevant question';
+    : 'inline next to the question that uses the diagram';
 
   const diagTypeMap = {
     agent: 'most suitable for this topic',
@@ -77,22 +77,32 @@ export default async function handler(req, res) {
   // ═══════════════════════════════════════════════════════════
   // STEP 1: Generate resource text only (no SVG = fast)
   // ═══════════════════════════════════════════════════════════
-  const diagPlaceholders = numDiag > 0
-    ? '\nInsert placeholder(s) ' + Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join(' ') + ' at position: ' + diagPlacementDesc + '. Place each placeholder EXACTLY ONCE — do not duplicate placeholders in multiple locations.'
-    : '';
 
-  // Build placement-specific instructions (only mention the selected placement)
+  // Build clear, placement-specific diagram instructions
+  let diagInstruction = '';
+  if (numDiag > 0) {
+    const placeholders = Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join(' ');
+    if (diagramPlacement === 'beginning') {
+      diagInstruction = '\n\nDIAGRAM PLACEMENT — BEGINNING: Insert ' + placeholders + ' AFTER the Learner/Date/Class line and BEFORE the first Section or question. Place each placeholder EXACTLY ONCE. Do NOT put any diagram placeholders inside the teacher instructions or inside the question sections.';
+    } else if (diagramPlacement === 'end') {
+      diagInstruction = '\n\nDIAGRAM PLACEMENT — END: Insert ' + placeholders + ' AFTER the TOTAL line and BEFORE the MEMORANDUM section. Place each placeholder EXACTLY ONCE. Do NOT put any diagram placeholders inside the teacher instructions or inside the question sections.';
+    } else {
+      diagInstruction = '\n\nDIAGRAM PLACEMENT — INLINE: Insert ' + placeholders + ' inside the QUESTION sections of the resource, IMMEDIATELY BEFORE the numbered question that references or uses that diagram. Each placeholder must appear EXACTLY ONCE. The placeholder must be INSIDE the learner question area (between the Learner/Date/Class line and the TOTAL line). NEVER place diagram placeholders in the TEACHER INSTRUCTIONS section. Write the question so the learner must study or use the diagram to answer it (e.g. "Study the diagram below and answer the questions that follow.").';
+    }
+  }
+
+  // Build placement-specific template hints
   let placementInstruction = '';
   if (numDiag > 0 && diagramPlacement === 'beginning') {
-    placementInstruction = '\n[Place all diagram placeholders here, before Section A]\n';
+    placementInstruction = '\n' + Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join('\n') + '\n';
   }
 
   let endPlacementInstruction = '';
   if (numDiag > 0 && diagramPlacement === 'end') {
-    endPlacementInstruction = '\n[Place all diagram placeholders here, after TOTAL]\n';
+    endPlacementInstruction = '\n' + Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join('\n') + '\n';
   }
 
-  const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty. Reference chapter in teacher instructions.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + diagPlaceholders + '\n\nIMPORTANT: Each [DIAGRAM_N] placeholder must appear EXACTLY ONCE in the resource. Never place the same placeholder in more than one location.\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + ' | ' + textbookNote + ' Ch.[X]\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n' + placementInstruction + '\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n' + endPlacementInstruction + '\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
+  const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty. Reference chapter in teacher instructions.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + diagInstruction + '\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + ' | ' + textbookNote + ' Ch.[X]\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n' + placementInstruction + '\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n' + endPlacementInstruction + '\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
 
   const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | ' + numDiag + ' diagram placeholder(s) — ' + diagPlacementDesc : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. ' + textbookNote + ' style. SA context. Min 10 questions. JSON only.';
 
