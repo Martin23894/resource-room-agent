@@ -332,27 +332,15 @@ select:focus{outline:none;border-color:var(--t4);}
       </div>
       <div>
         <div class="flabel">Diagrams / Graphs</div>
-        <div class="two-col" style="margin-bottom:6px;">
-          <div>
-            <div class="flabel" style="font-size:10px;margin-bottom:3px;">How many?</div>
-            <div class="sw">
-              <select id="diagramCount" onchange="toggleDiagOptions()">
-                <option value="0">None</option>
-                <option value="1">1 diagram</option>
-                <option value="2">2 diagrams</option>
-                <option value="3">3 diagrams</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <div class="flabel" style="font-size:10px;margin-bottom:3px;">Placement</div>
-            <div class="sw">
-              <select id="diagramPlacement">
-                <option value="beginning">At the start</option>
-                <option value="inline">Inline at questions</option>
-                <option value="end">At the end</option>
-              </select>
-            </div>
+        <div style="margin-bottom:6px;">
+          <div class="flabel" style="font-size:10px;margin-bottom:3px;">How many? (appears in Addendum A)</div>
+          <div class="sw">
+            <select id="diagramCount" onchange="toggleDiagOptions()">
+              <option value="0">None</option>
+              <option value="1">1 diagram</option>
+              <option value="2">2 diagrams</option>
+              <option value="3">3 diagrams</option>
+            </select>
           </div>
         </div>
         <div id="diag-options" style="display:none;">
@@ -856,7 +844,6 @@ async function doGenerate(){
   const includeRubric=document.getElementById('rubric').checked;
   const diagramCount=document.getElementById('diagramCount').value||'0';
   const diagramType=document.getElementById('diagramType').value;
-  const diagramPlacement=document.getElementById('diagramPlacement').value;
   const bloomsLevels=getBloomsLevels();
   if(!subj){alert('Please select a subject.');return;}
   if(!topic||topic==='— Select subject first —'){alert('Please select a topic.');return;}
@@ -868,7 +855,7 @@ async function doGenerate(){
     `Generating your Grade ${grade} ${lang} ${rtype}...`,
     `Aligning to CAPS Grade ${grade} Term ${term}...`,
     bloomsMode!=='none'?`Applying Bloom\'s taxonomy — ${bloomsLevels.join(', ')}...`:'Writing questions and memorandum...',
-    parseInt(diagramCount)>0?`Creating ${diagramCount} diagram(s) — ${diagramPlacement}...`:includeRubric?'Adding marking rubric...':'Finalising teacher pack...'
+    parseInt(diagramCount)>0?`Creating ${diagramCount} diagram(s) for Addendum A...`:includeRubric?'Adding marking rubric...':'Finalising teacher pack...'
   ];
   let mi=0;
   const iv=setInterval(()=>{mi=(mi+1)%msgs.length;const el=document.getElementById('ltxt');if(el)el.textContent=msgs[mi];},2200);
@@ -876,7 +863,7 @@ async function doGenerate(){
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,diagramPlacement,grade,term,bloomsMode,bloomsLevels})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,grade,term,bloomsMode,bloomsLevels})
     });
     clearInterval(iv);
     const rawText=await r.text();
@@ -888,22 +875,19 @@ async function doGenerate(){
     let cleanContent = d.content || '';
     cleanContent = cleanContent.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
     cleanContent = cleanContent.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
-    addHist(subj,topic,cleanContent,d.diagrams,grade,term,d.diagramPlacement);
-    renderOut(subj,topic,cleanContent,d.diagrams,grade,term,d.diagramPlacement);
+    addHist(subj,topic,cleanContent,d.diagrams,grade,term);
+    renderOut(subj,topic,cleanContent,d.diagrams,grade,term);
   }catch(e){
     clearInterval(iv);
-    document.getElementById('os').innerHTML=`<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Check your API key in Vercel → Settings → Environment Variables.</div>`;
+    document.getElementById('os').innerHTML=`<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Check your API key in Railway → Variables.</div>`;
     showGen('o');
   }
   document.getElementById('gbtn').disabled=false;
 }
 
-function buildDiagHtml(diagram, inline=false){
+function buildDiagHtml(diagram){
   if(!diagram||!diagram.svg) return '';
-  const style = inline
-    ? 'background:#f8f7f3;border:1.5px solid #e4e2da;border-radius:9px;padding:14px 18px;margin:14px 0;'
-    : 'background:#f8f7f3;border:1.5px solid #e4e2da;border-radius:9px;padding:14px 18px;margin:16px 0;';
-  return `<div style="${style}">
+  return `<div style="background:#f8f7f3;border:1.5px solid #e4e2da;border-radius:9px;padding:14px 18px;margin:16px 0;">
     <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:#9c9a92;text-transform:uppercase;margin-bottom:5px;">Diagram / Graph</div>
     <div style="font-size:13px;font-weight:600;color:#085041;margin-bottom:8px;">${esc(diagram.title||'')}</div>
     <div style="overflow-x:auto;text-align:center;margin:8px 0;">${diagram.svg}</div>
@@ -911,63 +895,30 @@ function buildDiagHtml(diagram, inline=false){
   </div>`;
 }
 
-function injectDiagrams(text, diagrams){
-  if(!diagrams||!diagrams.length) return esc(text);
-  let result = esc(text);
-  diagrams.forEach(d=>{
-    const placeholder = esc(`[DIAGRAM_${d.index}]`);
-    const svgHtml = buildDiagHtml(d, true);
-    const replacement = `</pre>${svgHtml}<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:13px;line-height:1.85;color:#3d3d3a;background:#fafaf8;">`;
-    // Only replace the FIRST occurrence to prevent duplication
-    const idx = result.indexOf(placeholder);
-    if(idx !== -1){
-      result = result.substring(0, idx) + replacement + result.substring(idx + placeholder.length);
-    }
-  });
-  return result;
-}
-
-function renderOut(subj,topic,content,diagrams,grade,term,placement){
-  // Remove duplicate [DIAGRAM_N] placeholders — keep only the first occurrence of each
-  let cleanedContent=content;
-  if(diagrams&&diagrams.length){
-    diagrams.forEach(d=>{
-      const tag='[DIAGRAM_'+d.index+']';
-      const first=cleanedContent.indexOf(tag);
-      if(first!==-1){
-        const before=cleanedContent.substring(0,first+tag.length);
-        const after=cleanedContent.substring(first+tag.length).split(tag).join('');
-        cleanedContent=before+after;
-      }
-    });
-  }
-  window._cur=cleanedContent;
+function renderOut(subj,topic,content,diagrams,grade,term){
+  window._cur=content;
   window._diagrams=diagrams||null;
   window._subj=subj;
   window._topic=topic;
   window._grade=grade||document.getElementById('grade').value;
   window._term=term||document.getElementById('term').value;
-  window._placement=placement||'beginning';
 
   const diffBadge=diff==='below'?'<span class="pt-badge amber">Below grade</span>':diff==='above'?'<span class="pt-badge blue">Above grade</span>':'<span class="pt-badge green">On grade</span>';
   const bloomsBadge=bloomsMode!=='none'&&getBloomsLevels().length?`<span class="pt-badge purple">Bloom's: ${getBloomsLevels().join(', ')}</span>`:'';
   const diagCount=diagrams?diagrams.length:0;
-  const diagBadge=diagCount>0?`<span class="pt-badge blue">${diagCount} diagram${diagCount>1?'s':''} · ${placement}</span>`:'';
+  const diagBadge=diagCount>0?`<span class="pt-badge blue">${diagCount} diagram${diagCount>1?'s':''} · Addendum A</span>`:'';
 
-  // Build diagram blocks for beginning/end placement
-  let beginDiags='', endDiags='';
+  // Build Addendum A section
+  let addendumHtml='';
   if(diagrams&&diagrams.length){
-    if(placement==='beginning'){
-      beginDiags=diagrams.map(d=>buildDiagHtml(d)).join('');
-    } else if(placement==='end'){
-      endDiags=diagrams.map(d=>buildDiagHtml(d)).join('');
-    }
+    addendumHtml=`<div style="border-top:2.5px solid #085041;margin-top:24px;padding-top:16px;">
+      <div style="font-size:16px;font-weight:700;color:#085041;margin-bottom:4px;letter-spacing:.5px;">ADDENDUM A — Diagrams and Figures</div>
+      <div style="font-size:11px;color:#73726c;margin-bottom:14px;">Teacher note: You may rearrange these diagrams in the Word document after downloading if needed.</div>
+      ${diagrams.map(d=>buildDiagHtml(d)).join('')}
+    </div>`;
   }
 
-  // Build content — inline diagrams injected via placeholder replacement
-  const contentHtml = placement==='inline' && diagrams && diagrams.length
-    ? `<div class="pack-body">${injectDiagrams(cleanedContent, diagrams)}</div>`
-    : `<div class="pack-body" id="pack-body">${esc(cleanedContent)}</div>`;
+  const contentHtml = `<div class="pack-body" id="pack-body">${esc(content)}</div>`;
 
   document.getElementById('os').innerHTML=`
 <div class="out-hdr">
@@ -994,9 +945,8 @@ function renderOut(subj,topic,content,diagrams,grade,term,placement){
       ${document.getElementById('rubric').checked?'<span class="pt-badge blue">Rubric</span>':''}
     </div>
   </div>
-  ${beginDiags}
   ${contentHtml}
-  ${endDiags}
+  ${addendumHtml}
   <div class="pack-foot">
     <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
     <button class="cbtn" onclick="window.print()">Print / Save PDF</button>
@@ -1143,7 +1093,6 @@ async function downloadODT(){
   const fontChoice=document.getElementById('fontChoice')?document.getElementById('fontChoice').value:'Liberation Sans, Arial, sans-serif';
   const wordFont=fontChoice.split(',')[0].replace(/['"]/g,'').trim()||'Liberation Sans';
   const diagrams=window._diagrams||[];
-  const placement=window._placement||'beginning';
   const now=new Date().toLocaleDateString('en-ZA');
 
   // Convert diagrams to PNG data URLs for embedding
@@ -1241,22 +1190,17 @@ ${captionLine}`;
     contentLines=contentLines.split(`[[DIAG_FRAME_${idx}]]`).join(frame);
   });
 
-  // Beginning / end diagram injection
-  let beginDiagXml='',endDiagXml='';
-  if(placement==='beginning'){
+  // Addendum A diagrams
+  let addendumDiagXml='';
+  if(diagrams.length>0){
+    addendumDiagXml+=`<text:p text:style-name="P_gap"/>
+<text:p text:style-name="P_rule"><text:span text:style-name="S_rule">──────────────────────────────────────</text:span></text:p>
+<text:p text:style-name="P_heading"><text:span text:style-name="S_heading">ADDENDUM A — Diagrams and Figures</text:span></text:p>
+<text:p text:style-name="P_caption">Teacher note: You may rearrange these diagrams within this document if needed.</text:p>`;
     diagrams.forEach(d=>{
       if(!diagPngMap[d.index])return;
-      beginDiagXml+=`<text:p text:style-name="P_diag_title">${escXml(d.title||'')}</text:p>
-<text:p text:style-name="P_diag_img"><draw:frame draw:name="diag_b${d.index}" text:anchor-type="as-char" svg:width="15cm" svg:height="9.2cm">
-  <draw:image xlink:href="Pictures/diagram${d.index}.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-</draw:frame></text:p>
-<text:p text:style-name="P_caption">${escXml(d.caption||'')}</text:p>`;
-    });
-  } else if(placement==='end'){
-    diagrams.forEach(d=>{
-      if(!diagPngMap[d.index])return;
-      endDiagXml+=`<text:p text:style-name="P_diag_title">${escXml(d.title||'')}</text:p>
-<text:p text:style-name="P_diag_img"><draw:frame draw:name="diag_e${d.index}" text:anchor-type="as-char" svg:width="15cm" svg:height="9.2cm">
+      addendumDiagXml+=`<text:p text:style-name="P_diag_title">${escXml(d.title||'')}</text:p>
+<text:p text:style-name="P_diag_img"><draw:frame draw:name="diag_a${d.index}" text:anchor-type="as-char" svg:width="15cm" svg:height="9.2cm">
   <draw:image xlink:href="Pictures/diagram${d.index}.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
 </draw:frame></text:p>
 <text:p text:style-name="P_caption">${escXml(d.caption||'')}</text:p>`;
@@ -1281,9 +1225,8 @@ ${captionLine}`;
 <text:p text:style-name="P_cover_sub">CAPS-Aligned Teaching Resources · Grade ${grade} Term ${term} · ${escXml(lang)}</text:p>
 <text:p text:style-name="P_cover_sub">${escXml(rtype)} · ${escXml(subj)} · ${escXml(now)}</text:p>
 <text:p text:style-name="P_gap"/>
-${beginDiagXml}
 ${contentLines}
-${endDiagXml}
+${addendumDiagXml}
 <text:p text:style-name="P_footer">© The Resource Room · CAPS Grade ${grade} Term ${term} · ${escXml(subj)} — ${escXml(topic)}</text:p>
 </office:text></office:body>
 </office:document-content>`;
@@ -1356,13 +1299,13 @@ function doCopy(btn){
   navigator.clipboard.writeText(window._cur).then(()=>{const o=btn.textContent;btn.textContent='Copied!';setTimeout(()=>btn.textContent=o,1800);}).catch(()=>alert('Please select and copy manually.'));
 }
 
-function addHist(subj,topic,content,diagrams,grade,term,placement){
-  hist.unshift({subj,topic,rtype,lang,diff,content,diagrams:diagrams||null,grade,term,placement:placement||'beginning'});
+function addHist(subj,topic,content,diagrams,grade,term){
+  hist.unshift({subj,topic,rtype,lang,diff,content,diagrams:diagrams||null,grade,term});
   if(hist.length>6)hist.pop();
   document.getElementById('hist-sec').style.display='block';
   document.getElementById('hist-list').innerHTML=hist.map((h,i)=>`<div class="hist-item" onclick="loadH(${i})"><div class="hdot"></div><div class="htxt">Gr${h.grade} ${esc(h.subj)} — ${esc(h.rtype)}</div></div>`).join('');
 }
-function loadH(i){const h=hist[i];rtype=h.rtype;lang=h.lang;diff=h.diff;renderOut(h.subj,h.topic,h.content,h.diagrams,h.grade,h.term,h.placement);}
+function loadH(i){const h=hist[i];rtype=h.rtype;lang=h.lang;diff=h.diff;renderOut(h.subj,h.topic,h.content,h.diagrams,h.grade,h.term);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function updateFontPreview(){
@@ -1556,35 +1499,23 @@ async function downloadWord(){
   }
 
   const diagrams=window._diagrams||[];
-  const placement=window._placement||'beginning';
-  let diagramWordHtml='';
-  let diagramWordHtmlEnd='';
-  let diagramWordMap={};
+  let addendumWordHtml='';
 
   if(diagrams.length>0){
+    let diagramsHtml='';
     for(const d of diagrams){
       const html=await buildWordDiagram(d);
-      if(placement==='beginning') diagramWordHtml+=html;
-      else if(placement==='end') diagramWordHtmlEnd+=html;
-      else diagramWordMap[d.index]=html;
+      diagramsHtml+=html;
     }
-  }
-
-  // For inline — replace [DIAGRAM_N] placeholders inside bodyHtml
-  // For inline — replace FIRST occurrence of [DIAGRAM_N] placeholders inside bodyHtml
-  function injectWordDiagrams(html){
-    if(placement!=='inline') return html;
-    let result=html;
-    Object.keys(diagramWordMap).forEach(i=>{
-      const wrapped=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;color:#1a1a18;margin:3pt 0;line-height:1.65;">[DIAGRAM_${i}]</p>`;
-      // Only replace the first occurrence to prevent duplication
-      const target=result.includes(wrapped)?wrapped:`[DIAGRAM_${i}]`;
-      const idx=result.indexOf(target);
-      if(idx!==-1){
-        result=result.substring(0,idx)+diagramWordMap[i]+result.substring(idx+target.length);
-      }
-    });
-    return result;
+    addendumWordHtml=`
+<br clear="all" style="page-break-before:always;"/>
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#085041;margin-bottom:14pt;">
+  <tr><td style="padding:10pt 20pt;">
+    <p style="font-family:Calibri,sans-serif;font-size:16pt;font-weight:bold;color:#ffffff;margin:0;letter-spacing:.5pt;">ADDENDUM A — Diagrams and Figures</p>
+  </td></tr>
+</table>
+<p style="font-family:Calibri,sans-serif;font-size:9.5pt;color:#73726c;font-style:italic;margin:0 0 12pt;">Teacher note: You may rearrange these diagrams within this document if needed. Cut and paste them next to the relevant questions.</p>
+${diagramsHtml}`;
   }
 
   const diffLabel = diff==='below'?'Below grade level':diff==='above'?'Above grade level':'On grade level';
@@ -1625,14 +1556,11 @@ async function downloadWord(){
   </tr>
 </table>
 
-<!-- DIAGRAMS (beginning placement) -->
-${diagramWordHtml}
+<!-- CONTENT -->
+${bodyHtml}
 
-<!-- CONTENT (inline diagrams injected) -->
-${injectWordDiagrams(bodyHtml)}
-
-<!-- DIAGRAMS (end placement) -->
-${diagramWordHtmlEnd}
+<!-- ADDENDUM A (diagrams on separate page) -->
+${addendumWordHtml}
 
 <!-- FOOTER -->
 <br/><br/>
