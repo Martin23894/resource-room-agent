@@ -69,17 +69,22 @@ export default async function handler(req, res) {
   };
 
   // ═══════════════════════════════════════════════════════════
-  // Addendum A instruction for resource text
+  // Diagram instruction — AI must output BOTH content + specs
   // ═══════════════════════════════════════════════════════════
-  let addendumInstruction = '';
+  let diagramInstruction = '';
+  let jsonFormat = '{"content":"resource text"}';
+
   if (numDiag > 0) {
-    const figureList = Array.from({length: numDiag}, (_, i) => 'Figure ' + (i+1)).join(', ');
-    addendumInstruction = '\n\nDIAGRAMS: This resource includes ' + numDiag + ' diagram(s) in Addendum A (' + figureList + '). For EACH figure, write a question that says "Refer to Figure X in Addendum A" or "Study Figure X in Addendum A and answer the following." Then describe SPECIFICALLY what the diagram shows so the diagram can be created to match. For example: "Refer to Figure 1 in Addendum A which shows a bar graph of rainfall in Cape Town from January to June." Be specific about what data, shapes, processes, or concepts each figure should contain.';
+    diagramInstruction = '\n\nDIAGRAMS: This resource includes ' + numDiag + ' diagram(s) in Addendum A. For each figure:\n1. Write questions that say "Refer to Figure X in Addendum A" and describe what it shows.\n2. In the JSON response, include a "diagramSpecs" array with DETAILED specifications for each diagram.\nEach spec must include: figure number, title, type (e.g. bar graph, line graph, pie chart, science diagram, flow diagram), and a DETAILED description with ALL specific data values, labels, axis names, and measurements needed to draw it. Be extremely specific — include actual numbers, names, and values.\n\nPreferred diagram type: ' + (diagTypeMap[diagramType] || 'most suitable') + '.';
+
+    const specsExample = Array.from({length: numDiag}, (_, i) => '{"figure":' + (i+1) + ',"title":"Figure ' + (i+1) + ': [title]","type":"[bar graph/line graph/pie chart/science diagram/flow diagram/map]","description":"[VERY DETAILED description with ALL data values, labels, axis names, measurements. Example: A bar graph with X-axis showing months Jan-Jun, Y-axis showing rainfall in mm. Values: Jan=50, Feb=30, Mar=40, Apr=80, May=100, Jun=120. Title: Monthly Rainfall in Cape Town.]"}').join(',');
+
+    jsonFormat = '{"content":"resource text","diagramSpecs":[' + specsExample + ']}';
   }
 
-  const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty. Reference chapter in teacher instructions.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + addendumInstruction + '\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + ' | ' + textbookNote + ' Ch.[X]\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]' + (numDiag > 0 ? '\nNote to teacher: Diagrams are provided in Addendum A at the end of this resource. You may rearrange them in the Word document after downloading.' : '') + '\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
+  const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + diagramInstruction + '\n\nReturn JSON only: ' + jsonFormat + '\n\nResource structure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + '\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]' + (numDiag > 0 ? '\nNote to teacher: Diagrams are provided in Addendum A. You may rearrange them after downloading.' : '') + '\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
 
-  const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | ' + numDiag + ' diagram(s) in Addendum A — describe each figure specifically in the questions' : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. ' + textbookNote + ' style. SA context. Min 10 questions. JSON only.';
+  const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | Include ' + numDiag + ' diagram(s) in Addendum A with DETAILED diagramSpecs in JSON' : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. SA context. Min 10 questions. JSON only.';
 
   async function callAPI(system, user, maxTok) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -108,57 +113,36 @@ export default async function handler(req, res) {
     return raw.replace(/```json|```/g, '').trim();
   }
 
-  // Helper: extract diagram data from various JSON formats
   function extractDiagram(raw, figureNum) {
     let parsed;
     try { parsed = JSON.parse(raw); } catch(e) { return null; }
     if (parsed && parsed.svg) return parsed;
     if (parsed && parsed.diagram && parsed.diagram.svg) return parsed.diagram;
-    const key = 'diagram' + figureNum;
-    if (parsed && parsed[key] && parsed[key].svg) return parsed[key];
-    if (parsed && parsed.diagrams) {
-      const inner = parsed.diagrams[key];
-      if (inner && inner.svg) return inner;
-    }
     for (const k of Object.keys(parsed)) {
       if (parsed[k] && typeof parsed[k] === 'object' && parsed[k].svg) return parsed[k];
     }
     return null;
   }
 
-  // Helper: extract context around "Figure N" references in the resource
-  function extractFigureContext(content, figureNum) {
-    const lines = content.split('\n');
-    const pattern = new RegExp('Figure\\s+' + figureNum, 'i');
-    let contextLines = [];
-    for (let i = 0; i < lines.length; i++) {
-      if (pattern.test(lines[i])) {
-        // Grab the line before, the matching line, and 2 lines after for context
-        const start = Math.max(0, i - 1);
-        const end = Math.min(lines.length - 1, i + 2);
-        for (let j = start; j <= end; j++) {
-          contextLines.push(lines[j].trim());
-        }
-        break;
-      }
-    }
-    return contextLines.length > 0
-      ? contextLines.join(' ')
-      : subject + ' — ' + topic + ' (Figure ' + figureNum + ')';
-  }
-
   function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
 
   try {
     // ═══════════════════════════════════════════════════════════
-    // STEP 1: Generate resource text (4096 tokens)
+    // STEP 1: Generate resource text + diagram specifications
+    // (same AI writes questions AND describes diagrams = perfect match)
     // ═══════════════════════════════════════════════════════════
-    const raw1 = await callAPI(systemText, userText, 4096);
+    const raw1 = await callAPI(systemText, userText, numDiag > 0 ? 5000 : 4096);
 
     let resourceContent = '';
+    let diagramSpecs = [];
+
     try {
       const parsed1 = JSON.parse(raw1);
       resourceContent = parsed1.content || raw1;
+      if (parsed1.diagramSpecs && Array.isArray(parsed1.diagramSpecs)) {
+        diagramSpecs = parsed1.diagramSpecs;
+        console.log('Got ' + diagramSpecs.length + ' diagram specs from resource call');
+      }
     } catch(e) {
       let cleaned = raw1;
       cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
@@ -168,50 +152,65 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // STEP 2: Generate diagrams that MATCH the questions
+    // STEP 2: Generate SVG for each diagram FROM the specs
+    // (specs came from same AI that wrote the questions)
     // ═══════════════════════════════════════════════════════════
     let diagramsArray = [];
 
-    if (numDiag > 0) {
-      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY a single flat JSON object — no markdown, no code fences, no explanation.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, topic-specific, clear labels. No JavaScript.';
+    if (numDiag > 0 && diagramSpecs.length > 0) {
+      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY a single flat JSON object — no markdown, no code fences, no explanation.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, clear labels, accurate data. No JavaScript.';
 
-      for (let i = 1; i <= numDiag; i++) {
-        if (i > 1) await delay(1500);
+      for (let i = 0; i < diagramSpecs.length && i < numDiag; i++) {
+        if (i > 0) await delay(1500);
 
-        // Extract what the question says about this figure
-        const figureContext = extractFigureContext(resourceContent, i);
+        const spec = diagramSpecs[i];
+        const specTitle = spec.title || ('Figure ' + (i+1));
+        const specDesc = spec.description || (subject + ' — ' + topic);
+        const specType = spec.type || (diagTypeMap[diagramType] || 'suitable');
 
-        const singleDiagUserText = 'Create 1 educational diagram for Addendum A of a Grade ' + g + ' ' + subject + ' assessment.\n\nThe assessment question says: "' + figureContext + '"\n\nCreate the EXACT diagram described in that question. The diagram must match what the learner is asked to study or interpret.\n\nDiagram type preference: ' + (diagTypeMap[diagramType] || 'most suitable') + '\n\nReturn a single JSON object:\n{"title":"Figure ' + i + ': [short descriptive title]","caption":"[1-2 sentences explaining what the diagram shows]","svg":"[complete SVG code]"}';
+        const diagUserText = 'Create this EXACT educational diagram for Addendum A:\n\nTitle: ' + specTitle + '\nType: ' + specType + '\nDetailed description: ' + specDesc + '\n\nCREATE THE DIAGRAM EXACTLY AS DESCRIBED. Include all the specific data values, labels, and measurements mentioned above.\n\nReturn a single JSON object:\n{"title":"' + specTitle + '","caption":"[1-2 sentences explaining what the diagram shows]","svg":"[complete SVG code matching the description above]"}';
 
         let diagramData = null;
 
         try {
-          const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
-          diagramData = extractDiagram(rawDiag, i);
-          if (diagramData) {
-            console.log('Diagram ' + i + ' OK on attempt 1');
-          } else {
-            console.error('Diagram ' + i + ' attempt 1: no SVG in response');
-          }
+          const rawDiag = await callAPI(diagSystemText, diagUserText, 2500);
+          diagramData = extractDiagram(rawDiag, i+1);
+          if (diagramData) console.log('Diagram ' + (i+1) + ' OK');
+          else console.error('Diagram ' + (i+1) + ': no SVG in response');
         } catch(diagErr) {
-          console.error('Diagram ' + i + ' attempt 1 error:', diagErr.message);
+          console.error('Diagram ' + (i+1) + ' attempt 1:', diagErr.message);
         }
 
         if (!diagramData) {
           await delay(2000);
           try {
-            const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
-            diagramData = extractDiagram(rawDiag, i);
-            if (diagramData) {
-              console.log('Diagram ' + i + ' OK on retry');
-            }
+            const rawDiag = await callAPI(diagSystemText, diagUserText, 2500);
+            diagramData = extractDiagram(rawDiag, i+1);
+            if (diagramData) console.log('Diagram ' + (i+1) + ' OK on retry');
           } catch(retryErr) {
-            console.error('Diagram ' + i + ' retry error:', retryErr.message);
+            console.error('Diagram ' + (i+1) + ' retry:', retryErr.message);
           }
         }
 
         if (diagramData) {
-          diagramsArray.push({ ...diagramData, index: i });
+          diagramsArray.push({ ...diagramData, index: i+1 });
+        }
+      }
+    } else if (numDiag > 0 && diagramSpecs.length === 0) {
+      // Fallback: specs weren't in the JSON, generate from topic
+      console.error('No diagramSpecs returned, falling back to topic-based generation');
+      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY a single flat JSON object — no markdown, no code fences.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. No JavaScript.';
+
+      for (let i = 1; i <= numDiag; i++) {
+        if (i > 1) await delay(1500);
+        const diagUserText = 'Create 1 educational ' + (diagTypeMap[diagramType] || 'suitable') + ' diagram for Grade ' + g + ' ' + subject + ' — ' + topic + '.\nThis is Figure ' + i + ' for Addendum A.\n' + (i > 1 ? 'Make it different from previous diagrams — show a different aspect.' : '') + '\n\nReturn JSON:\n{"title":"Figure ' + i + ': [title]","caption":"[description]","svg":"[SVG code]"}';
+
+        try {
+          const rawDiag = await callAPI(diagSystemText, diagUserText, 2500);
+          const diagramData = extractDiagram(rawDiag, i);
+          if (diagramData) diagramsArray.push({ ...diagramData, index: i });
+        } catch(err) {
+          console.error('Fallback diagram ' + i + ' failed:', err.message);
         }
       }
     }
