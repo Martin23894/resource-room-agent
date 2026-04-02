@@ -133,32 +133,74 @@ export default async function handler(req, res) {
     let diagramsArray = [];
 
     if (numDiag > 0) {
-      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY valid JSON — no markdown.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, topic-specific, clear labels. No JavaScript.';
+      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY valid JSON — no markdown, no explanation, no code fences.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, topic-specific, clear labels. No JavaScript.';
 
-      // Generate each diagram as a separate API call
+      // Helper: extract diagram data from various JSON shapes the AI might return
+      function extractDiagram(raw, figureNum) {
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch(e) { return null; }
+        // Direct: {"title":"...", "svg":"<svg..."}
+        if (parsed && parsed.svg) return parsed;
+        // Wrapped: {"diagram": {"title":"...", "svg":"..."}}
+        if (parsed && parsed.diagram && parsed.diagram.svg) return parsed.diagram;
+        // Wrapped with number: {"diagram1": {"title":"...", "svg":"..."}}
+        const key = 'diagram' + figureNum;
+        if (parsed && parsed[key] && parsed[key].svg) return parsed[key];
+        // Nested in diagrams: {"diagrams": {"diagram1": {...}}}
+        if (parsed && parsed.diagrams) {
+          const inner = parsed.diagrams[key] || parsed.diagrams['diagram' + figureNum];
+          if (inner && inner.svg) return inner;
+        }
+        // Try first key that has an svg property
+        for (const k of Object.keys(parsed)) {
+          if (parsed[k] && typeof parsed[k] === 'object' && parsed[k].svg) return parsed[k];
+        }
+        return null;
+      }
+
+      // Helper: wait between API calls to avoid rate limiting
+      function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
+      // Generate each diagram as a separate API call with delay between them
       for (let i = 1; i <= numDiag; i++) {
-        const singleDiagUserText = 'Create 1 educational diagram for:\nGrade ' + g + ' ' + subject + ' — ' + topic + '\nThis is Figure ' + i + ' of ' + numDiag + ' for the Addendum A of an assessment.\nType: ' + (diagTypeMap[diagramType] || 'suitable') + '\n' + (i > 1 ? 'Make this diagram different from the previous — show a different aspect of the topic.' : '') + '\n\nReturn JSON only:\n{"title":"Figure ' + i + ': [descriptive title]","caption":"[1-2 sentences: what it shows and what learner must do]","svg":"[complete SVG code]"}';
+        // Add 1.5 second delay between diagram calls to avoid rate limiting
+        if (i > 1) await delay(1500);
 
+        const singleDiagUserText = 'Create 1 educational diagram for:\nGrade ' + g + ' ' + subject + ' — ' + topic + '\nThis is Figure ' + i + ' of ' + numDiag + ' for the Addendum A of an assessment.\nType: ' + (diagTypeMap[diagramType] || 'suitable') + '\n' + (i > 1 ? 'Make this diagram different from the previous — show a different aspect of the topic.' : '') + '\n\nReturn a single flat JSON object only:\n{"title":"Figure ' + i + ': [descriptive title]","caption":"[1-2 sentences: what it shows and what learner must do]","svg":"[complete SVG code]"}';
+
+        let diagramData = null;
+
+        // Attempt 1
         try {
           const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
-          let diagParsed;
-          try { diagParsed = JSON.parse(rawDiag); } catch(e) { diagParsed = {}; }
-          if (diagParsed && diagParsed.svg) {
-            diagramsArray.push({ ...diagParsed, index: i });
+          diagramData = extractDiagram(rawDiag, i);
+          if (diagramData) {
+            console.log('Diagram ' + i + ' generated successfully on attempt 1');
+          } else {
+            console.error('Diagram ' + i + ' attempt 1: JSON parsed but no SVG found. Raw start:', rawDiag.substring(0, 150));
           }
         } catch(diagErr) {
-          console.error('Diagram ' + i + ' attempt 1 failed:', diagErr.message);
-          // Retry once
+          console.error('Diagram ' + i + ' attempt 1 error:', diagErr.message);
+        }
+
+        // Attempt 2 (retry) if first attempt failed
+        if (!diagramData) {
+          await delay(2000); // Wait longer before retry
           try {
             const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
-            let diagParsed;
-            try { diagParsed = JSON.parse(rawDiag); } catch(e) { diagParsed = {}; }
-            if (diagParsed && diagParsed.svg) {
-              diagramsArray.push({ ...diagParsed, index: i });
+            diagramData = extractDiagram(rawDiag, i);
+            if (diagramData) {
+              console.log('Diagram ' + i + ' generated successfully on retry');
+            } else {
+              console.error('Diagram ' + i + ' retry: JSON parsed but no SVG found');
             }
           } catch(retryErr) {
-            console.error('Diagram ' + i + ' retry failed:', retryErr.message);
+            console.error('Diagram ' + i + ' retry error:', retryErr.message);
           }
+        }
+
+        if (diagramData) {
+          diagramsArray.push({ ...diagramData, index: i });
         }
       }
     }
