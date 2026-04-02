@@ -113,15 +113,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Call 1: Resource text — fast, no SVG
-    const raw1 = await callAPI(systemText, userText, 1800);
+    // Call 1: Resource text — 4096 tokens to prevent truncation
+    const raw1 = await callAPI(systemText, userText, 4096);
 
     let resourceContent = '';
     try {
       const parsed1 = JSON.parse(raw1);
       resourceContent = parsed1.content || raw1;
     } catch(e) {
-      resourceContent = raw1;
+      // JSON parse failed — strip the wrapper manually if present
+      let cleaned = raw1;
+      // Remove leading {"content":" or {"content": " wrapper
+      cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
+      // Remove trailing "} if present
+      cleaned = cleaned.replace(/"\s*\}\s*$/, '');
+      // Unescape JSON string escapes
+      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      resourceContent = cleaned;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -141,7 +149,8 @@ export default async function handler(req, res) {
       ).join(',\n') + '\n\nWrap all in: {"diagrams":{...}}';
 
       try {
-        const raw2 = await callAPI(diagSystemText, diagUserText, 2000);
+        // 3000 tokens for complete SVG diagrams
+        const raw2 = await callAPI(diagSystemText, diagUserText, 3000);
         let diagParsed;
         try { diagParsed = JSON.parse(raw2); } catch(e) { diagParsed = {}; }
         const diagData = diagParsed.diagrams || diagParsed;
