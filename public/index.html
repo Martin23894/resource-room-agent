@@ -1132,9 +1132,9 @@ async function downloadODT(){
   async function diagToPng(d){
     if(!d||!d.svg)return null;
     let svgStr=d.svg;
-    svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
-    if(!svgStr.includes('width="'))svgStr=svgStr.replace('<svg','<svg width="520"');
-    if(!svgStr.includes('height="'))svgStr=svgStr.replace('<svg','<svg height="320"');
+    if(!svgStr.includes('xmlns='))svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
+    if(!svgStr.includes('width="'))svgStr=svgStr.replace(/<svg/,'<svg width="520"');
+    if(!svgStr.includes('height="'))svgStr=svgStr.replace(/<svg/,'<svg height="320"');
     return new Promise(resolve=>{
       try{
         const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
@@ -1481,9 +1481,9 @@ async function downloadWord(){
     const caption=d.caption||'';
     // Ensure SVG has explicit dimensions
     let svgStr=d.svg;
-    svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
-    if(!svgStr.includes('width="')) svgStr=svgStr.replace('<svg','<svg width="520"');
-    if(!svgStr.includes('height="')) svgStr=svgStr.replace('<svg','<svg height="320"');
+    if(!svgStr.includes('xmlns=')) svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
+    if(!svgStr.includes('width="')) svgStr=svgStr.replace(/<svg/,'<svg width="520"');
+    if(!svgStr.includes('height="')) svgStr=svgStr.replace(/<svg/,'<svg height="320"');
     // Convert to PNG via canvas
     const png=await new Promise(resolve=>{
       try{
@@ -1583,7 +1583,7 @@ async function downloadWord(){
     </td>
     <td align="right" style="padding:16pt 20pt;vertical-align:top;">
       <p style="font-family:Calibri,sans-serif;font-size:9pt;font-weight:bold;color:#9FE1CB;margin:0 0 4pt;letter-spacing:.5pt;">CAPS-ALIGNED TEACHING RESOURCES</p>
-      <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#E1F5EE;margin:0 0 2pt;">Grade 6 &nbsp;|&nbsp; Term 3 &nbsp;|&nbsp; ${esc(lang)}</p>
+       <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#E1F5EE;margin:0 0 2pt;">Grade 6 &nbsp;|&nbsp; Term 3 &nbsp;|&nbsp; ${esc(lang)}</p>
       <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#9FE1CB;margin:0 0 2pt;">${esc(rtype)} &nbsp;|&nbsp; ${esc(subj)}</p>
       <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#5DCAA5;margin:4pt 0 0;">${esc(diffLabel)} &nbsp;|&nbsp; ${now}</p>
     </td>
@@ -1604,7 +1604,7 @@ ${diagramWordHtmlEnd}
 <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1.5px solid #085041;margin-top:20pt;">
   <tr>
     <td style="padding:8pt 0 0;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade 6 Term 3 &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p>
+      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade 6 Term 3 &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p><p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade ${esc(gradeVal)} Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p>
     </td>
     <td align="right" style="padding:8pt 0 0;">
       <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">theresourceroom.co.za</p>
@@ -1618,7 +1618,7 @@ ${diagramWordHtmlEnd}
   const blob=new Blob([wordHtml],{type:'application/msword'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
-  const filename=(subj+'-'+rtype+'-Grade6-Term3').replace(/[^a-zA-Z0-9-]/g,'-')+'.doc';
+ const filename=(subj+'-'+rtype+'-Grade'+gradeVal+'-Term'+termVal).replace(/[^a-zA-Z0-9-]/g,'-')+'.doc';
   a.href=url; a.download=filename; a.click();
   URL.revokeObjectURL(url);
 }
