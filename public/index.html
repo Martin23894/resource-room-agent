@@ -928,7 +928,20 @@ function injectDiagrams(text, diagrams){
 }
 
 function renderOut(subj,topic,content,diagrams,grade,term,placement){
-  window._cur=content;
+  // Remove duplicate [DIAGRAM_N] placeholders — keep only the first occurrence of each
+  let cleanedContent=content;
+  if(diagrams&&diagrams.length){
+    diagrams.forEach(d=>{
+      const tag='[DIAGRAM_'+d.index+']';
+      const first=cleanedContent.indexOf(tag);
+      if(first!==-1){
+        const before=cleanedContent.substring(0,first+tag.length);
+        const after=cleanedContent.substring(first+tag.length).split(tag).join('');
+        cleanedContent=before+after;
+      }
+    });
+  }
+  window._cur=cleanedContent;
   window._diagrams=diagrams||null;
   window._subj=subj;
   window._topic=topic;
@@ -953,8 +966,8 @@ function renderOut(subj,topic,content,diagrams,grade,term,placement){
 
   // Build content — inline diagrams injected via placeholder replacement
   const contentHtml = placement==='inline' && diagrams && diagrams.length
-    ? `<div class="pack-body">${injectDiagrams(content, diagrams)}</div>`
-    : `<div class="pack-body" id="pack-body">${esc(content)}</div>`;
+    ? `<div class="pack-body">${injectDiagrams(cleanedContent, diagrams)}</div>`
+    : `<div class="pack-body" id="pack-body">${esc(cleanedContent)}</div>`;
 
   document.getElementById('os').innerHTML=`
 <div class="out-hdr">
@@ -1140,23 +1153,29 @@ async function downloadODT(){
     if(!svgStr.includes('xmlns='))svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
     if(!svgStr.includes('width="'))svgStr=svgStr.replace(/<svg/,'<svg width="520"');
     if(!svgStr.includes('height="'))svgStr=svgStr.replace(/<svg/,'<svg height="320"');
+    svgStr=svgStr.replace(/<script[\s\S]*?<\/script>/gi,'');
+    svgStr=svgStr.replace(/\son\w+="[^"]*"/gi,'');
     return new Promise(resolve=>{
       try{
-        const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
-        const blobUrl=URL.createObjectURL(blob);
-        const img=new Image();
-        img.onload=()=>{
-          const canvas=document.createElement('canvas');
-          canvas.width=520;canvas.height=320;
-          const ctx=canvas.getContext('2d');
-          ctx.fillStyle='#ffffff';ctx.fillRect(0,0,520,320);
-          ctx.drawImage(img,0,0,520,320);
-          URL.revokeObjectURL(blobUrl);
-          // Return base64 without data: prefix
-          resolve(canvas.toDataURL('image/png').split(',')[1]);
+        const svgBlob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+        const reader=new FileReader();
+        reader.onload=()=>{
+          const img=new Image();
+          img.onload=()=>{
+            try{
+              const canvas=document.createElement('canvas');
+              canvas.width=520;canvas.height=320;
+              const ctx=canvas.getContext('2d');
+              ctx.fillStyle='#ffffff';ctx.fillRect(0,0,520,320);
+              ctx.drawImage(img,0,0,520,320);
+              resolve(canvas.toDataURL('image/png').split(',')[1]);
+            }catch(e){console.error('ODT canvas draw failed:',e);resolve(null);}
+          };
+          img.onerror=(e)=>{console.error('ODT SVG load failed:',e);resolve(null);};
+          img.src=reader.result;
         };
-        img.onerror=()=>{URL.revokeObjectURL(blobUrl);resolve(null);};
-        img.src=blobUrl;
+        reader.onerror=()=>{resolve(null);};
+        reader.readAsDataURL(svgBlob);
       }catch(e){resolve(null);}
     });
   }
@@ -1484,16 +1503,15 @@ async function downloadWord(){
     if(!d||!d.svg) return '';
     const title=d.title||'';
     const caption=d.caption||'';
-    // Ensure SVG has explicit dimensions
-    let svgStr=d.svg;
     // Clean up SVG for reliable image conversion
+    let svgStr=d.svg;
     if(!svgStr.includes('xmlns=')) svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
     if(!svgStr.includes('width="')) svgStr=svgStr.replace(/<svg/,'<svg width="520"');
     if(!svgStr.includes('height="')) svgStr=svgStr.replace(/<svg/,'<svg height="320"');
     // Remove any script tags or event handlers for safety
     svgStr=svgStr.replace(/<script[\s\S]*?<\/script>/gi,'');
     svgStr=svgStr.replace(/\son\w+="[^"]*"/gi,'');
-    // Convert to PNG via canvas
+    // Convert to PNG via canvas using FileReader (more reliable than blob URL)
     const png=await new Promise(resolve=>{
       try{
         const svgBlob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
@@ -1509,7 +1527,7 @@ async function downloadWord(){
               ctx.fillRect(0,0,520,320);
               ctx.drawImage(img,0,0,520,320);
               resolve(canvas.toDataURL('image/png'));
-            }catch(e){console.error('Canvas draw failed:',e);resolve(null);}
+            }catch(e){console.error('Canvas draw failed for diagram',d.index,e);resolve(null);}
           };
           img.onerror=(e)=>{console.error('SVG image load failed for diagram',d.index,e);resolve(null);};
           img.src=reader.result;
@@ -1551,7 +1569,9 @@ async function downloadWord(){
       else diagramWordMap[d.index]=html;
     }
   }
-    // For inline — replace FIRST occurrence of [DIAGRAM_N] placeholders inside bodyHtml
+
+  // For inline — replace [DIAGRAM_N] placeholders inside bodyHtml
+  // For inline — replace FIRST occurrence of [DIAGRAM_N] placeholders inside bodyHtml
   function injectWordDiagrams(html){
     if(placement!=='inline') return html;
     let result=html;
@@ -1598,7 +1618,7 @@ async function downloadWord(){
     </td>
     <td align="right" style="padding:16pt 20pt;vertical-align:top;">
       <p style="font-family:Calibri,sans-serif;font-size:9pt;font-weight:bold;color:#9FE1CB;margin:0 0 4pt;letter-spacing:.5pt;">CAPS-ALIGNED TEACHING RESOURCES</p>
-       <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#E1F5EE;margin:0 0 2pt;">Grade 6 &nbsp;|&nbsp; Term 3 &nbsp;|&nbsp; ${esc(lang)}</p>
+      <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#E1F5EE;margin:0 0 2pt;">Grade ${esc(gradeVal)} &nbsp;|&nbsp; Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(lang)}</p>
       <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#9FE1CB;margin:0 0 2pt;">${esc(rtype)} &nbsp;|&nbsp; ${esc(subj)}</p>
       <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#5DCAA5;margin:4pt 0 0;">${esc(diffLabel)} &nbsp;|&nbsp; ${now}</p>
     </td>
@@ -1619,7 +1639,7 @@ ${diagramWordHtmlEnd}
 <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1.5px solid #085041;margin-top:20pt;">
   <tr>
     <td style="padding:8pt 0 0;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade 6 Term 3 &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p><p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade ${esc(gradeVal)} Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p>
+      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade ${esc(gradeVal)} Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p>
     </td>
     <td align="right" style="padding:8pt 0 0;">
       <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">theresourceroom.co.za</p>
@@ -1633,7 +1653,7 @@ ${diagramWordHtmlEnd}
   const blob=new Blob([wordHtml],{type:'application/msword'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');
- const filename=(subj+'-'+rtype+'-Grade'+gradeVal+'-Term'+termVal).replace(/[^a-zA-Z0-9-]/g,'-')+'.doc';
+  const filename=(subj+'-'+rtype+'-Grade'+gradeVal+'-Term'+termVal).replace(/[^a-zA-Z0-9-]/g,'-')+'.doc';
   a.href=url; a.download=filename; a.click();
   URL.revokeObjectURL(url);
 }
