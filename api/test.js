@@ -1,13 +1,11 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-
   // Check 1: Is API key set?
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     return res.status(200).json({
       status: 'ERROR',
-      problem: 'ANTHROPIC_API_KEY environment variable is NOT set in Vercel',
-      fix: 'Go to Vercel → Settings → Environment Variables → Add ANTHROPIC_API_KEY'
+      problem: 'ANTHROPIC_API_KEY environment variable is NOT set',
+      fix: 'Go to Railway → your project → Variables → Add ANTHROPIC_API_KEY'
     });
   }
 
@@ -41,9 +39,10 @@ export default async function handler(req, res) {
     if (response.ok) {
       return res.status(200).json({
         status: 'SUCCESS',
-        message: 'API key is valid and working correctly',
+        message: 'API key is valid and working correctly on Railway',
         httpStatus: response.status,
-        keyPreview: apiKey.substring(0, 12) + '...'
+        keyPreview: apiKey.substring(0, 12) + '...',
+        server: 'Railway Express'
       });
     } else {
       return res.status(200).json({
