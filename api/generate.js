@@ -3,7 +3,7 @@ export default async function handler(req, res) {
 
   const {
     subject, topic, resourceType, language, duration, difficulty,
-    includeRubric, diagramCount, diagramType, diagramPlacement,
+    includeRubric, diagramCount, diagramType,
     grade, term, bloomsMode, bloomsLevels
   } = req.body;
 
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
 
   const g = parseInt(grade) || 6;
   const t = parseInt(term) || 3;
-  const numDiag = parseInt(diagramCount) || 0;
+  const numDiag = Math.min(parseInt(diagramCount) || 0, 3); // Cap at 3
   const phase = g <= 3 ? 'Foundation Phase' : g <= 6 ? 'Intermediate Phase' : 'Senior Phase';
 
   // DoE cognitive level ratios per subject
@@ -59,11 +59,6 @@ export default async function handler(req, res) {
     ? '\n\n---MARKING RUBRIC---\n[4-level rubric Level 1-4 aligned to DoE cognitive levels above]'
     : '';
 
-  // Diagram placement description
-  const diagPlacementDesc = diagramPlacement === 'beginning' ? 'before Section A'
-    : diagramPlacement === 'end' ? 'after TOTAL line'
-    : 'inline next to the question that uses the diagram';
-
   const diagTypeMap = {
     agent: 'most suitable for this topic',
     bar: 'bar graph or pie chart',
@@ -75,36 +70,19 @@ export default async function handler(req, res) {
   };
 
   // ═══════════════════════════════════════════════════════════
-  // STEP 1: Generate resource text only (no SVG = fast)
+  // STEP 1: Generate resource text
   // ═══════════════════════════════════════════════════════════
 
-  // Build clear, placement-specific diagram instructions
-  let diagInstruction = '';
+  // Addendum A instruction — tell AI to reference figures in questions
+  let addendumInstruction = '';
   if (numDiag > 0) {
-    const placeholders = Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join(' ');
-    if (diagramPlacement === 'beginning') {
-      diagInstruction = '\n\nDIAGRAM PLACEMENT — BEGINNING: Insert ' + placeholders + ' AFTER the Learner/Date/Class line and BEFORE the first Section or question. Place each placeholder EXACTLY ONCE. Do NOT put any diagram placeholders inside the teacher instructions or inside the question sections.';
-    } else if (diagramPlacement === 'end') {
-      diagInstruction = '\n\nDIAGRAM PLACEMENT — END: Insert ' + placeholders + ' AFTER the TOTAL line and BEFORE the MEMORANDUM section. Place each placeholder EXACTLY ONCE. Do NOT put any diagram placeholders inside the teacher instructions or inside the question sections.';
-    } else {
-      diagInstruction = '\n\nDIAGRAM PLACEMENT — INLINE: Insert ' + placeholders + ' inside the QUESTION sections of the resource, IMMEDIATELY BEFORE the numbered question that references or uses that diagram. Each placeholder must appear EXACTLY ONCE. The placeholder must be INSIDE the learner question area (between the Learner/Date/Class line and the TOTAL line). NEVER place diagram placeholders in the TEACHER INSTRUCTIONS section. Write the question so the learner must study or use the diagram to answer it (e.g. "Study the diagram below and answer the questions that follow.").';
-    }
+    const figureList = Array.from({length: numDiag}, (_, i) => 'Figure ' + (i+1)).join(', ');
+    addendumInstruction = '\n\nDIAGRAMS: This resource will include ' + numDiag + ' diagram(s) in Addendum A (' + figureList + '). In your questions, reference the diagrams by writing: "Refer to Figure X in Addendum A" or "Study Figure X in Addendum A and answer the following." Do NOT include any [DIAGRAM] placeholders in the resource text. The diagrams are generated separately and attached as an addendum.';
   }
 
-  // Build placement-specific template hints
-  let placementInstruction = '';
-  if (numDiag > 0 && diagramPlacement === 'beginning') {
-    placementInstruction = '\n' + Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join('\n') + '\n';
-  }
+  const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty. Reference chapter in teacher instructions.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + addendumInstruction + '\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + ' | ' + textbookNote + ' Ch.[X]\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]' + (numDiag > 0 ? '\nNote to teacher: Diagrams are provided in Addendum A at the end of this resource. You may rearrange them in the Word document after downloading.' : '') + '\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
 
-  let endPlacementInstruction = '';
-  if (numDiag > 0 && diagramPlacement === 'end') {
-    endPlacementInstruction = '\n' + Array.from({length: numDiag}, (_, i) => '[DIAGRAM_' + (i+1) + ']').join('\n') + '\n';
-  }
-
-  const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty. Reference chapter in teacher instructions.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + diagInstruction + '\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + ' | ' + textbookNote + ' Ch.[X]\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n' + placementInstruction + '\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n' + endPlacementInstruction + '\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
-
-  const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | ' + numDiag + ' diagram placeholder(s) — ' + diagPlacementDesc : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. ' + textbookNote + ' style. SA context. Min 10 questions. JSON only.';
+  const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | ' + numDiag + ' diagram(s) in Addendum A — reference them in questions' : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. ' + textbookNote + ' style. SA context. Min 10 questions. JSON only.';
 
   async function callAPI(system, user, maxTok) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -134,7 +112,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Call 1: Resource text — 4096 tokens to prevent truncation
+    // Call 1: Resource text — 4096 tokens
     const raw1 = await callAPI(systemText, userText, 4096);
 
     let resourceContent = '';
@@ -142,7 +120,6 @@ export default async function handler(req, res) {
       const parsed1 = JSON.parse(raw1);
       resourceContent = parsed1.content || raw1;
     } catch(e) {
-      // JSON parse failed — strip the wrapper manually if present
       let cleaned = raw1;
       cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
       cleaned = cleaned.replace(/"\s*\}\s*$/, '');
@@ -151,55 +128,44 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // STEP 2: Generate diagrams separately (only if requested)
+    // STEP 2: Generate each diagram INDIVIDUALLY for reliability
     // ═══════════════════════════════════════════════════════════
     let diagramsArray = [];
 
     if (numDiag > 0) {
       const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY valid JSON — no markdown.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, topic-specific, clear labels. No JavaScript.';
 
-      const diagRequests = Array.from({length: numDiag}, (_, i) =>
-        'Diagram ' + (i+1) + ': ' + (diagTypeMap[diagramType] || 'suitable') + ' for ' + topic
-      ).join('\n');
+      // Generate each diagram as a separate API call
+      for (let i = 1; i <= numDiag; i++) {
+        const singleDiagUserText = 'Create 1 educational diagram for:\nGrade ' + g + ' ' + subject + ' — ' + topic + '\nThis is Figure ' + i + ' of ' + numDiag + ' for the Addendum A of an assessment.\nType: ' + (diagTypeMap[diagramType] || 'suitable') + '\n' + (i > 1 ? 'Make this diagram different from the previous — show a different aspect of the topic.' : '') + '\n\nReturn JSON only:\n{"title":"Figure ' + i + ': [descriptive title]","caption":"[1-2 sentences: what it shows and what learner must do]","svg":"[complete SVG code]"}';
 
-      const diagUserText = 'Create ' + numDiag + ' educational diagram(s) for:\nGrade ' + g + ' ' + subject + ' — ' + topic + '\nType: ' + (diagTypeMap[diagramType] || 'suitable') + '\n' + diagRequests + '\n\nReturn JSON:\n' + Array.from({length: numDiag}, (_, i) =>
-        '"diagram' + (i+1) + '":{"title":"Figure ' + (i+1) + ': [title]","caption":"[1-2 sentences: what it shows and what learner must do]","svg":"[complete SVG]"}'
-      ).join(',\n') + '\n\nWrap all in: {"diagrams":{...}}';
-
-      // Scale token limit: base 2000 + 1500 per diagram
-      const diagTokenLimit = 2000 + (numDiag * 1500);
-
-      try {
-        const raw2 = await callAPI(diagSystemText, diagUserText, diagTokenLimit);
-        let diagParsed;
-        try { diagParsed = JSON.parse(raw2); } catch(e) { diagParsed = {}; }
-        const diagData = diagParsed.diagrams || diagParsed;
-        for (let i = 1; i <= numDiag; i++) {
-          const d = diagData['diagram' + i];
-          if (d && d.svg) diagramsArray.push({ ...d, index: i });
-        }
-      } catch(diagErr) {
-        console.error('Diagram attempt 1 failed:', diagErr.message);
-        // Retry once
         try {
-          const raw2 = await callAPI(diagSystemText, diagUserText, diagTokenLimit);
+          const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
           let diagParsed;
-          try { diagParsed = JSON.parse(raw2); } catch(e) { diagParsed = {}; }
-          const diagData = diagParsed.diagrams || diagParsed;
-          for (let i = 1; i <= numDiag; i++) {
-            const d = diagData['diagram' + i];
-            if (d && d.svg) diagramsArray.push({ ...d, index: i });
+          try { diagParsed = JSON.parse(rawDiag); } catch(e) { diagParsed = {}; }
+          if (diagParsed && diagParsed.svg) {
+            diagramsArray.push({ ...diagParsed, index: i });
           }
-        } catch(retryErr) {
-          console.error('Diagram retry also failed:', retryErr.message);
+        } catch(diagErr) {
+          console.error('Diagram ' + i + ' attempt 1 failed:', diagErr.message);
+          // Retry once
+          try {
+            const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
+            let diagParsed;
+            try { diagParsed = JSON.parse(rawDiag); } catch(e) { diagParsed = {}; }
+            if (diagParsed && diagParsed.svg) {
+              diagramsArray.push({ ...diagParsed, index: i });
+            }
+          } catch(retryErr) {
+            console.error('Diagram ' + i + ' retry failed:', retryErr.message);
+          }
         }
       }
     }
 
     return res.status(200).json({
       content: resourceContent,
-      diagrams: diagramsArray.length > 0 ? diagramsArray : null,
-      diagramPlacement: diagramPlacement || 'beginning'
+      diagrams: diagramsArray.length > 0 ? diagramsArray : null
     });
 
   } catch (err) {
