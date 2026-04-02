@@ -917,7 +917,12 @@ function injectDiagrams(text, diagrams){
   diagrams.forEach(d=>{
     const placeholder = esc(`[DIAGRAM_${d.index}]`);
     const svgHtml = buildDiagHtml(d, true);
-    result = result.split(placeholder).join(`</pre>${svgHtml}<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:13px;line-height:1.85;color:#3d3d3a;background:#fafaf8;">`);
+    const replacement = `</pre>${svgHtml}<pre style="white-space:pre-wrap;font-family:'Courier New',monospace;font-size:13px;line-height:1.85;color:#3d3d3a;background:#fafaf8;">`;
+    // Only replace the FIRST occurrence to prevent duplication
+    const idx = result.indexOf(placeholder);
+    if(idx !== -1){
+      result = result.substring(0, idx) + replacement + result.substring(idx + placeholder.length);
+    }
   });
   return result;
 }
@@ -1481,29 +1486,37 @@ async function downloadWord(){
     const caption=d.caption||'';
     // Ensure SVG has explicit dimensions
     let svgStr=d.svg;
+    // Clean up SVG for reliable image conversion
     if(!svgStr.includes('xmlns=')) svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
     if(!svgStr.includes('width="')) svgStr=svgStr.replace(/<svg/,'<svg width="520"');
     if(!svgStr.includes('height="')) svgStr=svgStr.replace(/<svg/,'<svg height="320"');
+    // Remove any script tags or event handlers for safety
+    svgStr=svgStr.replace(/<script[\s\S]*?<\/script>/gi,'');
+    svgStr=svgStr.replace(/\son\w+="[^"]*"/gi,'');
     // Convert to PNG via canvas
     const png=await new Promise(resolve=>{
       try{
-        const blob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
-        const blobUrl=URL.createObjectURL(blob);
-        const img=new Image();
-        img.crossOrigin='anonymous';
-        img.onload=()=>{
-          const canvas=document.createElement('canvas');
-          canvas.width=520; canvas.height=320;
-          const ctx=canvas.getContext('2d');
-          ctx.fillStyle='#ffffff';
-          ctx.fillRect(0,0,520,320);
-          ctx.drawImage(img,0,0,520,320);
-          URL.revokeObjectURL(blobUrl);
-          resolve(canvas.toDataURL('image/png'));
+        const svgBlob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
+        const reader=new FileReader();
+        reader.onload=()=>{
+          const img=new Image();
+          img.onload=()=>{
+            try{
+              const canvas=document.createElement('canvas');
+              canvas.width=520; canvas.height=320;
+              const ctx=canvas.getContext('2d');
+              ctx.fillStyle='#ffffff';
+              ctx.fillRect(0,0,520,320);
+              ctx.drawImage(img,0,0,520,320);
+              resolve(canvas.toDataURL('image/png'));
+            }catch(e){console.error('Canvas draw failed:',e);resolve(null);}
+          };
+          img.onerror=(e)=>{console.error('SVG image load failed for diagram',d.index,e);resolve(null);};
+          img.src=reader.result;
         };
-        img.onerror=()=>{URL.revokeObjectURL(blobUrl);resolve(null);};
-        img.src=blobUrl;
-      }catch(e){resolve(null);}
+        reader.onerror=()=>{resolve(null);};
+        reader.readAsDataURL(svgBlob);
+      }catch(e){console.error('SVG conversion error:',e);resolve(null);}
     });
     if(png){
       return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;border-collapse:collapse;page-break-inside:avoid;">
@@ -1538,16 +1551,18 @@ async function downloadWord(){
       else diagramWordMap[d.index]=html;
     }
   }
-
-  // For inline — replace [DIAGRAM_N] placeholders inside bodyHtml
+    // For inline — replace FIRST occurrence of [DIAGRAM_N] placeholders inside bodyHtml
   function injectWordDiagrams(html){
     if(placement!=='inline') return html;
     let result=html;
     Object.keys(diagramWordMap).forEach(i=>{
       const wrapped=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;color:#1a1a18;margin:3pt 0;line-height:1.65;">[DIAGRAM_${i}]</p>`;
-      result=result.includes(wrapped)
-        ? result.split(wrapped).join(diagramWordMap[i])
-        : result.split(`[DIAGRAM_${i}]`).join(diagramWordMap[i]);
+      // Only replace the first occurrence to prevent duplication
+      const target=result.includes(wrapped)?wrapped:`[DIAGRAM_${i}]`;
+      const idx=result.indexOf(target);
+      if(idx!==-1){
+        result=result.substring(0,idx)+diagramWordMap[i]+result.substring(idx+target.length);
+      }
     });
     return result;
   }
