@@ -13,10 +13,9 @@ export default async function handler(req, res) {
 
   const g = parseInt(grade) || 6;
   const t = parseInt(term) || 3;
-  const numDiag = Math.min(parseInt(diagramCount) || 0, 3); // Cap at 3
+  const numDiag = Math.min(parseInt(diagramCount) || 0, 3);
   const phase = g <= 3 ? 'Foundation Phase' : g <= 6 ? 'Intermediate Phase' : 'Senior Phase';
 
-  // DoE cognitive level ratios per subject
   function getDoERatios(subj, gradeNum) {
     const s = (subj || '').toLowerCase();
     if (s.includes('math') || s.includes('wiskunde'))
@@ -70,19 +69,17 @@ export default async function handler(req, res) {
   };
 
   // ═══════════════════════════════════════════════════════════
-  // STEP 1: Generate resource text
+  // Addendum A instruction for resource text
   // ═══════════════════════════════════════════════════════════
-
-  // Addendum A instruction — tell AI to reference figures in questions
   let addendumInstruction = '';
   if (numDiag > 0) {
     const figureList = Array.from({length: numDiag}, (_, i) => 'Figure ' + (i+1)).join(', ');
-    addendumInstruction = '\n\nDIAGRAMS: This resource will include ' + numDiag + ' diagram(s) in Addendum A (' + figureList + '). In your questions, reference the diagrams by writing: "Refer to Figure X in Addendum A" or "Study Figure X in Addendum A and answer the following." Do NOT include any [DIAGRAM] placeholders in the resource text. The diagrams are generated separately and attached as an addendum.';
+    addendumInstruction = '\n\nDIAGRAMS: This resource includes ' + numDiag + ' diagram(s) in Addendum A (' + figureList + '). For EACH figure, write a question that says "Refer to Figure X in Addendum A" or "Study Figure X in Addendum A and answer the following." Then describe SPECIFICALLY what the diagram shows so the diagram can be created to match. For example: "Refer to Figure 1 in Addendum A which shows a bar graph of rainfall in Cape Town from January to June." Be specific about what data, shapes, processes, or concepts each figure should contain.';
   }
 
   const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty. Reference chapter in teacher instructions.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + addendumInstruction + '\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + ' | ' + textbookNote + ' Ch.[X]\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]' + (numDiag > 0 ? '\nNote to teacher: Diagrams are provided in Addendum A at the end of this resource. You may rearrange them in the Word document after downloading.' : '') + '\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
 
-  const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | ' + numDiag + ' diagram(s) in Addendum A — reference them in questions' : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. ' + textbookNote + ' style. SA context. Min 10 questions. JSON only.';
+  const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (numDiag > 0 ? ' | ' + numDiag + ' diagram(s) in Addendum A — describe each figure specifically in the questions' : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. ' + textbookNote + ' style. SA context. Min 10 questions. JSON only.';
 
   async function callAPI(system, user, maxTok) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -111,8 +108,51 @@ export default async function handler(req, res) {
     return raw.replace(/```json|```/g, '').trim();
   }
 
+  // Helper: extract diagram data from various JSON formats
+  function extractDiagram(raw, figureNum) {
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch(e) { return null; }
+    if (parsed && parsed.svg) return parsed;
+    if (parsed && parsed.diagram && parsed.diagram.svg) return parsed.diagram;
+    const key = 'diagram' + figureNum;
+    if (parsed && parsed[key] && parsed[key].svg) return parsed[key];
+    if (parsed && parsed.diagrams) {
+      const inner = parsed.diagrams[key];
+      if (inner && inner.svg) return inner;
+    }
+    for (const k of Object.keys(parsed)) {
+      if (parsed[k] && typeof parsed[k] === 'object' && parsed[k].svg) return parsed[k];
+    }
+    return null;
+  }
+
+  // Helper: extract context around "Figure N" references in the resource
+  function extractFigureContext(content, figureNum) {
+    const lines = content.split('\n');
+    const pattern = new RegExp('Figure\\s+' + figureNum, 'i');
+    let contextLines = [];
+    for (let i = 0; i < lines.length; i++) {
+      if (pattern.test(lines[i])) {
+        // Grab the line before, the matching line, and 2 lines after for context
+        const start = Math.max(0, i - 1);
+        const end = Math.min(lines.length - 1, i + 2);
+        for (let j = start; j <= end; j++) {
+          contextLines.push(lines[j].trim());
+        }
+        break;
+      }
+    }
+    return contextLines.length > 0
+      ? contextLines.join(' ')
+      : subject + ' — ' + topic + ' (Figure ' + figureNum + ')';
+  }
+
+  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+
   try {
-    // Call 1: Resource text — 4096 tokens
+    // ═══════════════════════════════════════════════════════════
+    // STEP 1: Generate resource text (4096 tokens)
+    // ═══════════════════════════════════════════════════════════
     const raw1 = await callAPI(systemText, userText, 4096);
 
     let resourceContent = '';
@@ -128,71 +168,42 @@ export default async function handler(req, res) {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // STEP 2: Generate each diagram INDIVIDUALLY for reliability
+    // STEP 2: Generate diagrams that MATCH the questions
     // ═══════════════════════════════════════════════════════════
     let diagramsArray = [];
 
     if (numDiag > 0) {
-      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY valid JSON — no markdown, no explanation, no code fences.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, topic-specific, clear labels. No JavaScript.';
+      const diagSystemText = 'You create educational SVG diagrams for South African CAPS Grade ' + g + ' ' + subject + '. Return ONLY a single flat JSON object — no markdown, no code fences, no explanation.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Grade-appropriate, topic-specific, clear labels. No JavaScript.';
 
-      // Helper: extract diagram data from various JSON shapes the AI might return
-      function extractDiagram(raw, figureNum) {
-        let parsed;
-        try { parsed = JSON.parse(raw); } catch(e) { return null; }
-        // Direct: {"title":"...", "svg":"<svg..."}
-        if (parsed && parsed.svg) return parsed;
-        // Wrapped: {"diagram": {"title":"...", "svg":"..."}}
-        if (parsed && parsed.diagram && parsed.diagram.svg) return parsed.diagram;
-        // Wrapped with number: {"diagram1": {"title":"...", "svg":"..."}}
-        const key = 'diagram' + figureNum;
-        if (parsed && parsed[key] && parsed[key].svg) return parsed[key];
-        // Nested in diagrams: {"diagrams": {"diagram1": {...}}}
-        if (parsed && parsed.diagrams) {
-          const inner = parsed.diagrams[key] || parsed.diagrams['diagram' + figureNum];
-          if (inner && inner.svg) return inner;
-        }
-        // Try first key that has an svg property
-        for (const k of Object.keys(parsed)) {
-          if (parsed[k] && typeof parsed[k] === 'object' && parsed[k].svg) return parsed[k];
-        }
-        return null;
-      }
-
-      // Helper: wait between API calls to avoid rate limiting
-      function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
-      // Generate each diagram as a separate API call with delay between them
       for (let i = 1; i <= numDiag; i++) {
-        // Add 1.5 second delay between diagram calls to avoid rate limiting
         if (i > 1) await delay(1500);
 
-        const singleDiagUserText = 'Create 1 educational diagram for:\nGrade ' + g + ' ' + subject + ' — ' + topic + '\nThis is Figure ' + i + ' of ' + numDiag + ' for the Addendum A of an assessment.\nType: ' + (diagTypeMap[diagramType] || 'suitable') + '\n' + (i > 1 ? 'Make this diagram different from the previous — show a different aspect of the topic.' : '') + '\n\nReturn a single flat JSON object only:\n{"title":"Figure ' + i + ': [descriptive title]","caption":"[1-2 sentences: what it shows and what learner must do]","svg":"[complete SVG code]"}';
+        // Extract what the question says about this figure
+        const figureContext = extractFigureContext(resourceContent, i);
+
+        const singleDiagUserText = 'Create 1 educational diagram for Addendum A of a Grade ' + g + ' ' + subject + ' assessment.\n\nThe assessment question says: "' + figureContext + '"\n\nCreate the EXACT diagram described in that question. The diagram must match what the learner is asked to study or interpret.\n\nDiagram type preference: ' + (diagTypeMap[diagramType] || 'most suitable') + '\n\nReturn a single JSON object:\n{"title":"Figure ' + i + ': [short descriptive title]","caption":"[1-2 sentences explaining what the diagram shows]","svg":"[complete SVG code]"}';
 
         let diagramData = null;
 
-        // Attempt 1
         try {
           const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
           diagramData = extractDiagram(rawDiag, i);
           if (diagramData) {
-            console.log('Diagram ' + i + ' generated successfully on attempt 1');
+            console.log('Diagram ' + i + ' OK on attempt 1');
           } else {
-            console.error('Diagram ' + i + ' attempt 1: JSON parsed but no SVG found. Raw start:', rawDiag.substring(0, 150));
+            console.error('Diagram ' + i + ' attempt 1: no SVG in response');
           }
         } catch(diagErr) {
           console.error('Diagram ' + i + ' attempt 1 error:', diagErr.message);
         }
 
-        // Attempt 2 (retry) if first attempt failed
         if (!diagramData) {
-          await delay(2000); // Wait longer before retry
+          await delay(2000);
           try {
             const rawDiag = await callAPI(diagSystemText, singleDiagUserText, 2500);
             diagramData = extractDiagram(rawDiag, i);
             if (diagramData) {
-              console.log('Diagram ' + i + ' generated successfully on retry');
-            } else {
-              console.error('Diagram ' + i + ' retry: JSON parsed but no SVG found');
+              console.log('Diagram ' + i + ' OK on retry');
             }
           } catch(retryErr) {
             console.error('Diagram ' + i + ' retry error:', retryErr.message);
