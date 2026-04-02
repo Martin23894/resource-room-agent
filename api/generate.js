@@ -159,16 +159,26 @@ export default async function handler(req, res) {
           if (d && d.svg) diagramsArray.push({ ...d, index: i });
         }
      } catch(diagErr) {
-        console.error('Diagram generation failed:', diagErr.message);
-        // Temporarily expose the error so we can debug
-        diagramsArray = [{ error: diagErr.message }];
+        console.error('Diagram attempt 1 failed:', diagErr.message);
+        // Retry once
+        try {
+          const raw2 = await callAPI(diagSystemText, diagUserText, 3000);
+          let diagParsed;
+          try { diagParsed = JSON.parse(raw2); } catch(e) { diagParsed = {}; }
+          const diagData = diagParsed.diagrams || diagParsed;
+          for (let i = 1; i <= numDiag; i++) {
+            const d = diagData['diagram' + i];
+            if (d && d.svg) diagramsArray.push({ ...d, index: i });
+          }
+        } catch(retryErr) {
+          console.error('Diagram retry also failed:', retryErr.message);
+        }
       }
     }
 
     return res.status(200).json({
       content: resourceContent,
-      diagrams: diagramsArray.length > 0 ? diagramsArray : null,
-      diagDebug: diagramsArray.length === 0 ? 'No diagrams returned — call may have failed or returned empty' : 'OK',
+   diagrams: diagramsArray.length > 0 ? diagramsArray : null,
       diagramPlacement: diagramPlacement || 'beginning'
     });
 
