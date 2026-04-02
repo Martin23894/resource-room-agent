@@ -158,15 +158,17 @@ export default async function handler(req, res) {
           const d = diagData['diagram' + i];
           if (d && d.svg) diagramsArray.push({ ...d, index: i });
         }
-      } catch(diagErr) {
-        // Diagrams failed silently — resource still returns without them
+     } catch(diagErr) {
         console.error('Diagram generation failed:', diagErr.message);
+        // Temporarily expose the error so we can debug
+        diagramsArray = [{ error: diagErr.message }];
       }
     }
 
     return res.status(200).json({
       content: resourceContent,
       diagrams: diagramsArray.length > 0 ? diagramsArray : null,
+      diagDebug: diagramsArray.length === 0 ? 'No diagrams returned — call may have failed or returned empty' : 'OK',
       diagramPlacement: diagramPlacement || 'beginning'
     });
 
