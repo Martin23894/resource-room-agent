@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     if (s.includes('math') || s.includes('wiskunde'))
       return gradeNum <= 3
         ? 'Knowledge 25% | Routine Procedures 45% | Complex Procedures 20% | Problem Solving 10%'
-        : 'Knowledge 20% | Routine Procedures 35% | Complex Procedures 30% | Problem Solving 15%';
+        : 'Knowledge 25% | Routine Procedures 45% | Complex Procedures 25% | Problem Solving 10%';
     if (s.includes('home language') || s.includes('huistaal'))
       return 'Lower Order/Literal 30% | Middle Order/Inferential 40% | Higher Order/Critical 30%';
     if (s.includes('additional') || s.includes('addisionele'))
@@ -40,33 +40,126 @@ export default async function handler(req, res) {
   }
 
   const doeRatios = getDoERatios(subject, g);
-  const textbookNote = g <= 3
-    ? 'SA Foundation Phase resources (Thelma Res/Spot On style)'
-    : 'Platinum ' + subject + ' Grade ' + g + ' (Maskew Miller Longman)';
 
   let bloomsNote = '';
   if (bloomsMode === 'single' && bloomsLevels && bloomsLevels.length > 0)
-    bloomsNote = 'Teacher Bloom\'s focus: ' + bloomsLevels[0] + ' — weight questions toward this level.';
+    bloomsNote = '\nBloom\'s focus: ' + bloomsLevels[0] + ' — weight questions toward this level.';
   else if (bloomsMode === 'mixed' && bloomsLevels && bloomsLevels.length > 0)
-    bloomsNote = 'Teacher Bloom\'s focus: blend of ' + bloomsLevels.join(', ') + '.';
+    bloomsNote = '\nBloom\'s focus: blend of ' + bloomsLevels.join(', ') + '.';
 
-  const diffNote = difficulty === 'below' ? 'BELOW grade — simplified, more scaffolding'
-    : difficulty === 'above' ? 'ABOVE grade — extension, higher-order focus'
-    : 'ON grade — standard CAPS level';
+  const diffNote = difficulty === 'below' ? 'BELOW grade level — use simpler vocabulary, more scaffolding, shorter questions'
+    : difficulty === 'above' ? 'ABOVE grade level — extension-level, higher-order thinking, less scaffolding'
+    : 'ON grade level — standard CAPS difficulty';
 
   const rubricNote = includeRubric
-    ? '\n\n---MARKING RUBRIC---\n[4-level rubric Level 1-4 aligned to DoE cognitive levels above]'
+    ? '\n\n═══════════════════════════════════════\nMARKING RUBRIC\n═══════════════════════════════════════\n[Create a 4-level rubric (Level 1-4) with criteria aligned to the DoE cognitive levels. Format as a clear table with Level | Description | Marks columns.]'
     : '';
 
-  const diagTypeMap = {
-    agent: 'most suitable for this topic',
-    bar: 'bar graph or pie chart with specific data values',
-    line: 'line graph with specific plotted data points',
-    science: 'labelled scientific diagram with specific parts to identify',
-    flow: 'flow diagram with specific steps or stages',
-    map: 'map, grid, or coordinate diagram with specific points or areas',
-    maths: 'mathematical diagram with specific measurements, angles, or values'
-  };
+  // ═══════════════════════════════════════════════════════════
+  // SYSTEM PROMPT — modelled on real SA teacher resource format
+  // ═══════════════════════════════════════════════════════════
+  const systemText = `You are an expert South African CAPS ${phase} teacher creating professional assessment resources. Write entirely in ${language}. Use SA context throughout (rands, SA names like Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, local places and scenarios).
+
+DIFFICULTY: ${diffNote}
+DoE COGNITIVE LEVELS — MANDATORY: ${doeRatios}${bloomsNote}
+CAPS: Grade ${g} Term ${t} ${subject} — ${topic}
+
+Return JSON only: {"content":"the complete resource text"}
+
+═══════════════════════════════════════════════════════
+FORMAT YOUR RESOURCE EXACTLY LIKE THIS:
+═══════════════════════════════════════════════════════
+
+THE RESOURCE ROOM
+
+${resourceType}
+${subject}
+Grade ${g}                                                          Term ${t}
+Name: ___________________________    Date: ___________________
+Surname: ________________________
+Time: ${duration || '1 hour'}                                      Total: [X] marks
+
+Instructions:
+- Read the questions properly.
+- Answer ALL the questions.
+- Pay special attention to the mark allocation of each question.
+
+═══════════════════════════════════════════════════════
+
+Question 1: [Topic heading]
+1.1  [Question text]                                               (2)
+___________________________________________________________________________
+___________________________________________________________________________
+
+1.2  [Question text]                                               (1)
+___________________________________________________________________________
+
+1.3  [Question with sub-parts]                                     (4)
+1.3.1  [Sub-question]                                              (2)
+___________________________________________________________________________
+1.3.2  [Sub-question]                                              (2)
+___________________________________________________________________________
+
+Question 2: [Different topic heading or question type]
+[Continue with hierarchical numbering: 2.1, 2.2, 2.3 etc.]
+
+═══════════════════════════════════════════════════════
+
+QUESTION FORMAT RULES:
+- Number questions hierarchically: Question 1 → 1.1 → 1.1.1
+- ALWAYS put mark allocation in brackets at the end of each question: (2)
+- ALWAYS add answer lines (underscores ___________) after each question for learners to write on
+- For 1-mark questions: one answer line
+- For 2+ mark questions: two or more answer lines
+- For multiple choice: list options as a. b. c. d. on separate lines, NO answer lines needed
+- For true/false: add _________ after each statement
+
+QUESTION TYPE MIX — use at least 3 different types:
+- Multiple choice (a, b, c, d) — good for knowledge recall
+- True or False — good for quick knowledge checks
+- Short answer / fill in the blank — "Name two..." / "Give the term for..."
+- Source-based — provide a short text extract, table, or scenario, then ask questions about it
+- Explain / Describe — "Explain why..." / "Describe how..." — good for higher-order
+- Match columns — Column A and Column B matching
+- Order / Sequence — "Arrange the following..."
+- Calculate / Show working — for Maths
+
+TOTAL: _____ / [X] marks
+
+═══════════════════════════════════════════════════════
+MEMORANDUM
+═══════════════════════════════════════════════════════
+
+Question 1:
+1.1  [Answer] ✓✓ (2)
+1.2  [Answer] ✓ (1)
+1.3.1  [Answer with detail] ✓✓ (2)
+[Number every answer to match the question. Use ✓ marks to show mark allocation.]
+
+TOTAL: [X] marks
+
+COGNITIVE LEVEL ANALYSIS:
+Cognitive Level | Prescribed % | Actual Marks | Actual %
+${doeRatios.split('|').map(r => r.trim()).join('\n')}
+Total: [X] marks | 100%
+
+═══════════════════════════════════════════════════════
+EXTENSION ACTIVITY
+═══════════════════════════════════════════════════════
+[One challenging higher-order question with a model answer. This is for fast finishers.]
+
+═══════════════════════════════════════════════════════
+
+CRITICAL RULES:
+1. Calculate the TOTAL marks to match the time allocation (roughly 1 mark per minute).
+2. Distribute marks across cognitive levels matching the DoE ratios above.
+3. Include at least 10 numbered question items (sub-questions count).
+4. Every question MUST have marks in brackets and answer lines.
+5. The memorandum must have answers for EVERY question with ✓ marks.
+6. Use South African context, names, currency (rands), and scenarios throughout.
+7. Stay within the CAPS ATP scope for Grade ${g} Term ${t} ${subject} — ${topic}.`;
+
+  const userText = `Create a ${resourceType} for ${subject} — ${topic}. Grade ${g}, Term ${t}, ${language}, ${duration || '1 hour'}, ${difficulty || 'on'} grade level.${includeRubric ? ' Include a marking rubric.' : ''} Apply DoE cognitive level ratios. Minimum 10 question items. SA context. JSON only: {"content":"resource text"}`;
 
   async function callAPI(system, user, maxTok) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -95,77 +188,7 @@ export default async function handler(req, res) {
     return raw.replace(/```json|```/g, '').trim();
   }
 
-  function extractDiagram(raw) {
-    let parsed;
-    try { parsed = JSON.parse(raw); } catch(e) { return null; }
-    if (parsed && parsed.svg) return parsed;
-    for (const k of Object.keys(parsed)) {
-      if (parsed[k] && typeof parsed[k] === 'object' && parsed[k].svg) return parsed[k];
-    }
-    return null;
-  }
-
-  function delay(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
-
   try {
-    // ═══════════════════════════════════════════════════════════
-    // STEP 1: Generate diagrams FIRST
-    // These are specific, data-rich diagrams learners can answer questions about
-    // ═══════════════════════════════════════════════════════════
-    let diagramsArray = [];
-    let diagramDescriptions = [];
-
-    if (numDiag > 0) {
-      const diagSystemText = 'You create educational diagrams for South African CAPS Grade ' + g + ' ' + subject + ' assessments. Your diagrams are QUESTION-READY — they contain specific data, values, labels, and details that a learner must study to answer questions.\n\nCRITICAL RULES:\n- Do NOT create educational posters, infographics, or concept explanations.\n- DO create diagrams with SPECIFIC DATA that learners must read, interpret, and calculate from.\n- For bar/line/pie charts: include specific numerical values, labelled axes, a clear title.\n- For science diagrams: label specific parts with letters (A, B, C) or names that learners must identify.\n- For maths diagrams: include specific measurements, angles, coordinates, or values.\n- For flow diagrams: include specific steps with details learners must trace.\n\nReturn ONLY a single flat JSON object — no markdown, no code fences, no explanation.\n\nSVG rules: viewBox="0 0 520 300" width="520" height="300". First element: <rect width="520" height="300" fill="white"/>. font-family="Arial,sans-serif" on all text. Colours: #085041 #1D9E75 #E1F5EE #185FA5 #BA7517 #888780. Clear labels with actual values visible. No JavaScript.';
-
-      for (let i = 1; i <= numDiag; i++) {
-        if (i > 1) await delay(1500);
-
-        const diagUserText = 'Create 1 QUESTION-READY diagram for a Grade ' + g + ' ' + subject + ' assessment on the topic: ' + topic + '.\n\nDiagram type: ' + (diagTypeMap[diagramType] || 'most suitable for assessment questions') + '\nThis is Figure ' + i + ' of ' + numDiag + ' for Addendum A.\n' + (i > 1 ? 'This diagram must show something DIFFERENT from the previous figure(s) — a different data set, different aspect, or different sub-topic.' : '') + '\n\nIMPORTANT: This diagram must contain SPECIFIC data, values, or labels that a teacher can write questions about. A learner must be able to look at this diagram and extract information to answer questions.\n\nReturn JSON:\n{"title":"Figure ' + i + ': [specific descriptive title]","caption":"[What the diagram shows and what data it contains]","whatItContains":"[Detailed plain-text description of ALL the specific data, labels, values, parts, and measurements visible in this diagram. Be extremely specific — list every data point, every label, every value. A teacher must be able to write questions based ONLY on this description without seeing the SVG.]","svg":"[complete SVG code]"}';
-
-        let diagramData = null;
-
-        try {
-          const rawDiag = await callAPI(diagSystemText, diagUserText, 3000);
-          diagramData = extractDiagram(rawDiag);
-          if (diagramData) console.log('Diagram ' + i + ' generated OK');
-        } catch(diagErr) {
-          console.error('Diagram ' + i + ' attempt 1:', diagErr.message);
-        }
-
-        if (!diagramData) {
-          await delay(2000);
-          try {
-            const rawDiag = await callAPI(diagSystemText, diagUserText, 3000);
-            diagramData = extractDiagram(rawDiag);
-            if (diagramData) console.log('Diagram ' + i + ' OK on retry');
-          } catch(retryErr) {
-            console.error('Diagram ' + i + ' retry:', retryErr.message);
-          }
-        }
-
-        if (diagramData) {
-          diagramsArray.push({ ...diagramData, index: i });
-          // Build description for the resource generator
-          const desc = 'Figure ' + i + ': ' + (diagramData.title || 'Diagram') + '. ' + (diagramData.whatItContains || diagramData.caption || 'A diagram about ' + topic);
-          diagramDescriptions.push(desc);
-        }
-      }
-    }
-
-    // ═══════════════════════════════════════════════════════════
-    // STEP 2: Generate resource text that references ACTUAL diagrams
-    // The resource generator knows EXACTLY what each diagram contains
-    // ═══════════════════════════════════════════════════════════
-    let diagramContext = '';
-    if (diagramDescriptions.length > 0) {
-      diagramContext = '\n\nADDENDUM A DIAGRAMS (already created — write questions about THESE EXACT diagrams):\n' + diagramDescriptions.join('\n') + '\n\nFor EACH figure listed above, write at least one question that says "Refer to Figure X in Addendum A" and asks the learner to read, interpret, calculate from, or identify something SPECIFIC in that diagram based on the description above. Your questions must match what the diagram actually contains — do not ask about anything not described above.';
-    }
-
-    const systemText = 'You are an expert South African CAPS ' + phase + ' teacher. Write in ' + language + ' only. Use SA context (rands, names like Sipho/Ayanda/Zanele, local scenarios). Sound like a real experienced teacher.\n\nDoE COGNITIVE LEVELS — MANDATORY: ' + doeRatios + '\nLabel each section with cognitive level and marks. Calculate mark split from total.\n' + (bloomsNote ? bloomsNote + '\n' : '') + 'DIFFICULTY: ' + diffNote + '\nTEXTBOOK: ' + textbookNote + ' — match its vocabulary, style and difficulty.\nATP: Grade ' + g + ' Term ' + t + ' ' + subject + ' — ' + topic + '. Stay within this term scope.' + diagramContext + '\n\nReturn JSON only: {"content":"resource text"}\n\nStructure:\n---TEACHER INSTRUCTIONS---\nTime: [X min] | Grade: ' + g + ' | Term: ' + t + '\nDoE split: ' + doeRatios + '\nMarks: [K:X RP:X CP:X PS:X = total]\nMaterials: [list] | CAPS: ' + subject + ' Gr' + g + ' T' + t + ' ' + topic + '\nNotes: [2-3 prep notes]' + (diagramDescriptions.length > 0 ? '\nNote to teacher: Diagrams are provided in Addendum A. You may rearrange them after downloading.' : '') + '\n\n---THE RESOURCE ROOM---\n' + subject + ' | Grade ' + g + ' | Term ' + t + ' | ' + language + ' | [X] marks\n\nLearner: _______________________  Date: ________  Class: ______\n\n[Sections with DoE cognitive level label. Min 10 questions. Marks in brackets.]\n\nTOTAL: ___ / [X]\n\n---MEMORANDUM---\n[Numbered answers with marks]\n\nTotal: [X] marks' + rubricNote + '\n\n---EXTENSION---\n[One higher-order challenge with answer]';
-
-    const userText = subject + ' | ' + topic + ' | ' + resourceType + ' | ' + language + ' | Gr' + g + ' T' + t + ' | ' + (duration || '1 hour') + ' | ' + (difficulty || 'on') + ' grade' + (diagramDescriptions.length > 0 ? ' | Write questions about the ' + diagramDescriptions.length + ' diagram(s) described above' : '') + (includeRubric ? ' | rubric' : '') + '\n\nApply DoE ratios. SA context. Min 10 questions. JSON only.';
-
     const raw1 = await callAPI(systemText, userText, 4096);
 
     let resourceContent = '';
@@ -182,7 +205,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       content: resourceContent,
-      diagrams: diagramsArray.length > 0 ? diagramsArray : null
+      diagrams: null
     });
 
   } catch (err) {
