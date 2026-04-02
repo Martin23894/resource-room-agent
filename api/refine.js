@@ -1,8 +1,4 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { originalContent, refinementInstruction, subject, topic, resourceType, language, grade, term } = req.body;
@@ -47,15 +43,11 @@ export default async function handler(req, res) {
     let parsed;
     try { parsed = JSON.parse(clean); }
     catch(e) {
-      // If JSON parse fails, the raw text IS the content
       parsed = { content: raw, changesSummary: 'Resource updated.' };
     }
 
-    // Clean up escape sequences
     if (parsed.content) {
       parsed.content = parsed.content.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
-      // Strip any meta-commentary that leaked into content
-      // If content starts with reasoning text (doesn't start with separator or section header), flag it
     }
 
     return res.status(200).json({
