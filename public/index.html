@@ -1446,44 +1446,51 @@ async function downloadWord(){
     if(!d||!d.svg) return '';
     const title=d.title||'';
     const caption=d.caption||'';
-    // Clean up SVG for reliable image conversion
+    // Clean up SVG
     let svgStr=d.svg;
     if(!svgStr.includes('xmlns=')) svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
     if(!svgStr.includes('width="')) svgStr=svgStr.replace(/<svg/,'<svg width="520"');
     if(!svgStr.includes('height="')) svgStr=svgStr.replace(/<svg/,'<svg height="320"');
-    // Remove any script tags or event handlers for safety
     svgStr=svgStr.replace(/<script[\s\S]*?<\/script>/gi,'');
     svgStr=svgStr.replace(/\son\w+="[^"]*"/gi,'');
-    // Convert to PNG via canvas using FileReader (more reliable than blob URL)
-    const png=await new Promise(resolve=>{
-      try{
-        const svgBlob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
-        const reader=new FileReader();
-        reader.onload=()=>{
+
+    // Method 1: Direct SVG base64 (synchronous, most reliable)
+    let imgSrc=null;
+    try{
+      imgSrc='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr)));
+    }catch(e){console.error('SVG base64 failed for diagram',d.index);}
+
+    // Method 2: PNG via canvas (fallback, better Word compatibility)
+    if(imgSrc){
+      const pngSrc=await new Promise(resolve=>{
+        const timeout=setTimeout(()=>{console.error('PNG conversion timed out for diagram',d.index);resolve(null);},5000);
+        try{
           const img=new Image();
           img.onload=()=>{
             try{
               const canvas=document.createElement('canvas');
-              canvas.width=520; canvas.height=320;
+              canvas.width=520;canvas.height=320;
               const ctx=canvas.getContext('2d');
               ctx.fillStyle='#ffffff';
               ctx.fillRect(0,0,520,320);
               ctx.drawImage(img,0,0,520,320);
+              clearTimeout(timeout);
               resolve(canvas.toDataURL('image/png'));
-            }catch(e){console.error('Canvas draw failed for diagram',d.index,e);resolve(null);}
+            }catch(e){clearTimeout(timeout);resolve(null);}
           };
-          img.onerror=(e)=>{console.error('SVG image load failed for diagram',d.index,e);resolve(null);};
-          img.src=reader.result;
-        };
-        reader.onerror=()=>{resolve(null);};
-        reader.readAsDataURL(svgBlob);
-      }catch(e){console.error('SVG conversion error:',e);resolve(null);}
-    });
-    if(png){
+          img.onerror=()=>{clearTimeout(timeout);resolve(null);};
+          img.src=imgSrc;
+        }catch(e){clearTimeout(timeout);resolve(null);}
+      });
+      // Use PNG if we got it (better Word support), otherwise keep SVG base64
+      if(pngSrc) imgSrc=pngSrc;
+    }
+
+    if(imgSrc){
       return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;border-collapse:collapse;page-break-inside:avoid;">
   <tr><td style="background:#f8f7f3;padding:12pt 16pt;">
     <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;">${title}</p>
-    <div style="text-align:center;"><img src="${png}" style="width:480px;max-width:100%;" width="480"/></div>
+    <div style="text-align:center;"><img src="${imgSrc}" style="width:480px;max-width:100%;" width="480"/></div>
     <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;border-top:1px solid #e4e2da;padding-top:6pt;">${caption}</p>
   </td></tr>
 </table>`;
@@ -1505,11 +1512,11 @@ async function downloadWord(){
     let diagramsHtml='';
     for(const d of diagrams){
       const html=await buildWordDiagram(d);
-      diagramsHtml+=html;
+      if(html) diagramsHtml+=html;
     }
-    addendumWordHtml=`
-<p style="font-size:1pt;color:white;">&nbsp;</p>
-<br clear=all style='mso-special-character:line-break;page-break-before:always'>
+    if(diagramsHtml){
+      addendumWordHtml=`
+<p style="page-break-before:always;margin:0;line-height:0;font-size:0;">&nbsp;</p>
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#085041;margin-bottom:14pt;">
   <tr><td style="padding:10pt 20pt;">
     <p style="font-family:Calibri,sans-serif;font-size:16pt;font-weight:bold;color:#ffffff;margin:0;letter-spacing:.5pt;">ADDENDUM A — Diagrams and Figures</p>
@@ -1517,6 +1524,7 @@ async function downloadWord(){
 </table>
 <p style="font-family:Calibri,sans-serif;font-size:9.5pt;color:#73726c;font-style:italic;margin:0 0 12pt;">Teacher note: You may rearrange these diagrams within this document if needed. Cut and paste them next to the relevant questions.</p>
 ${diagramsHtml}`;
+    }
   }
 
   const diffLabel = diff==='below'?'Below grade level':diff==='above'?'Above grade level':'On grade level';
