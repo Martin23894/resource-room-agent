@@ -244,10 +244,10 @@ select:focus{outline:none;border-color:var(--t4);}
       <div style="margin-bottom:10px;">
         <div class="flabel">Resource type</div>
         <div class="tgrid">
-          <button class="tbtn on" data-t="Assessment & Test" onclick="setType(this)">Assessment</button>
+          <button class="tbtn on" data-t="Test" onclick="setType(this)">Test</button>
+          <button class="tbtn" data-t="Exam" onclick="setType(this)">Exam</button>
+          <button class="tbtn" data-t="Final Exam" onclick="setType(this)">Final Exam</button>
           <button class="tbtn" data-t="Worksheet" onclick="setType(this)">Worksheet</button>
-          <button class="tbtn" data-t="Lesson Plan" onclick="setType(this)">Lesson Plan</button>
-          <button class="tbtn" data-t="Exam Prep Pack" onclick="setType(this)">Exam Prep</button>
         </div>
       </div>
       <!-- Language -->
@@ -384,10 +384,10 @@ select:focus{outline:none;border-color:var(--t4);}
         <h2>CAPS agent ready</h2>
         <p>Select grade, term, subject and resource type — then generate a complete CAPS-aligned teacher pack.</p>
         <div class="qrow">
-          <button class="qpill" onclick="qf(3,1,'Mathematics','Number patterns','Assessment & Test','English','on')">Gr3 Maths Assessment</button>
+          <button class="qpill" onclick="qf(3,1,'Mathematics','Number patterns','Test','English','on')">Gr3 Maths Test</button>
           <button class="qpill" onclick="qf(5,2,'Natural Sciences','Food chains','Worksheet','English','on')">Gr5 Science Worksheet</button>
-          <button class="qpill" onclick="qf(7,3,'Social Sciences','Map skills','Lesson Plan','Afrikaans','above')">Gr7 Sosiale Wetenskappe</button>
-          <button class="qpill" onclick="qf(4,4,'Mathematics','Fractions','Exam Prep Pack','English','on')">Gr4 Maths Exam Prep</button>
+          <button class="qpill" onclick="qf(7,3,'Social Sciences','Map skills','Test','Afrikaans','above')">Gr7 Sosiale Wetenskappe</button>
+          <button class="qpill" onclick="qf(4,4,'Mathematics','Fractions','Exam','English','on')">Gr4 Maths Exam</button>
         </div>
       </div>
       <div class="loading" id="ls" style="display:none;">
@@ -751,7 +751,7 @@ TOPICS['Tegnologie'] = TOPICS['Technology'];
 TOPICS['Ekonomiese en Bestuurswetenskappe'] = TOPICS['Economic and Management Sciences'];
 TOPICS['Wiskunde'] = TOPICS['Mathematics'];
 
-let rtype='Assessment & Test', lang='English', diff='on', bloomsMode='none', hist=[], activeTab='generator';
+let rtype='Test', lang='English', diff='on', bloomsMode='none', hist=[], activeTab='generator';
 
 function getPhase(g){ return g<=3?'foundation':g<=6?'intermediate':'senior'; }
 
@@ -774,6 +774,8 @@ function loadTopics(){
   const t=parseInt(document.getElementById('term').value)||3;
   const topicEl=document.getElementById('topic');
   if(!subj){topicEl.innerHTML='<option value="">— Select subject first —</option>';return;}
+  if(rtype==='Exam'||rtype==='Final Exam'){updateTopicsForType();return;}
+  topicEl.disabled=false;
   const subjectTopics=TOPICS[subj]||{};
   const gradeTopics=subjectTopics[g]||subjectTopics[String(g)]||{};
   const list=gradeTopics[t]||gradeTopics[String(t)]||[];
@@ -784,7 +786,41 @@ function loadTopics(){
   }
 }
 
-function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;}
+function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;updateTopicsForType();}
+function updateTopicsForType(){
+  const topicEl=document.getElementById('topic');
+  const raw=document.getElementById('subj').value;
+  const subj=raw.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
+  const g=parseInt(document.getElementById('grade').value)||6;
+  const t=parseInt(document.getElementById('term').value)||3;
+  if(!subj){return;}
+  if(rtype==='Exam'){
+    const subjectTopics=TOPICS[subj]||{};
+    const gradeTopics=subjectTopics[g]||subjectTopics[String(g)]||{};
+    const list=gradeTopics[t]||gradeTopics[String(t)]||[];
+    if(list.length){
+      topicEl.innerHTML='<option value="ALL_TERM" selected>All Term '+t+' topics ('+list.length+' topics)</option>';
+      topicEl.title=list.join(', ');
+    }
+    topicEl.disabled=true;
+  } else if(rtype==='Final Exam'){
+    const subjectTopics=TOPICS[subj]||{};
+    const gradeTopics=subjectTopics[g]||subjectTopics[String(g)]||{};
+    let allTopics=[];
+    for(let term=1;term<=4;term++){
+      const list=gradeTopics[term]||gradeTopics[String(term)]||[];
+      allTopics=allTopics.concat(list);
+    }
+    if(allTopics.length){
+      topicEl.innerHTML='<option value="ALL_YEAR" selected>All Terms 1-4 ('+allTopics.length+' topics)</option>';
+      topicEl.title=allTopics.join(', ');
+    }
+    topicEl.disabled=true;
+  } else {
+    topicEl.disabled=false;
+    loadTopics();
+  }
+}
 function setLang(el){document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');lang=el.dataset.l;}
 function setDiff(el){document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');diff=el.dataset.d;}
 function setBloomsMode(el){
@@ -837,11 +873,32 @@ function qf(g,t,s,topic,tp,l,d){
 async function doGenerate(){
   const rawSubj=document.getElementById('subj').value;
   const subj=rawSubj.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
-  const topic=document.getElementById('topic').value;
+  let topic=document.getElementById('topic').value;
   const dur=document.getElementById('dur').value;
   const grade=document.getElementById('grade').value;
   const term=document.getElementById('term').value;
   const includeRubric=document.getElementById('rubric').checked;
+  const g=parseInt(grade)||6;
+  const t=parseInt(term)||3;
+
+  // For Exam/Final Exam, collect all relevant topics
+  let allTopics='';
+  if(rtype==='Exam'||rtype==='Final Exam'){
+    const subjectTopics=TOPICS[subj]||{};
+    const gradeTopics=subjectTopics[g]||subjectTopics[String(g)]||{};
+    let topicList=[];
+    if(rtype==='Final Exam'){
+      for(let tt=1;tt<=4;tt++){
+        const list=gradeTopics[tt]||gradeTopics[String(tt)]||[];
+        topicList=topicList.concat(list.map(x=>'Term '+tt+': '+x));
+      }
+    } else {
+      const list=gradeTopics[t]||gradeTopics[String(t)]||[];
+      topicList=list.map(x=>'Term '+t+': '+x);
+    }
+    allTopics=topicList.join('; ');
+    topic=rtype==='Final Exam'?'All Terms 1-4':'All Term '+t+' topics';
+  }
   const diagramCount=document.getElementById('diagramCount').value||'0';
   const diagramType=document.getElementById('diagramType').value;
   const bloomsLevels=getBloomsLevels();
@@ -863,7 +920,7 @@ async function doGenerate(){
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,grade,term,bloomsMode,bloomsLevels})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,grade,term,bloomsMode,bloomsLevels,allTopics})
     });
     clearInterval(iv);
     const rawText=await r.text();
