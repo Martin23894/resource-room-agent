@@ -1504,6 +1504,40 @@ async function downloadWord(){
       continue;
     }
 
+    // Pipe-separated table rows → convert to real HTML table
+    if(trimmed.includes('|')&&trimmed.split('|').length>=3){
+      // Start collecting table rows
+      let tableRows=[trimmed];
+      while(i+1<lines.length){
+        const nextLine=lines[i+1].trim();
+        if(nextLine.includes('|')&&nextLine.split('|').length>=3){
+          tableRows.push(nextLine);
+          i++;
+        } else if(nextLine.match(/^[-─═|:+\s]+$/)){
+          // Skip separator lines like ---|---|---
+          i++;
+        } else {
+          break;
+        }
+      }
+      bodyHtml+='<table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;margin:8pt 0;font-family:Calibri,sans-serif;font-size:10.5pt;">';
+      tableRows.forEach((row,ri)=>{
+        const cells=row.split('|').map(c=>c.trim()).filter(c=>c!=='');
+        const isHeader=ri===0;
+        bodyHtml+='<tr>';
+        cells.forEach(cell=>{
+          const tag=isHeader?'th':'td';
+          const style=isHeader
+            ?'style="background:#085041;color:#ffffff;padding:5pt 8pt;border:0.5pt solid #d3d1c7;font-weight:bold;font-size:10pt;text-align:left;"'
+            :'style="padding:5pt 8pt;border:0.5pt solid #d3d1c7;text-align:left;"';
+          bodyHtml+=`<${tag} ${style}>${esc(cell)}</${tag}>`;
+        });
+        bodyHtml+='</tr>';
+      });
+      bodyHtml+='</table>';
+      continue;
+    }
+
     // Empty lines → spacing
     if(trimmed===''){
       bodyHtml+='<p style="margin:3pt 0;"> </p>';
