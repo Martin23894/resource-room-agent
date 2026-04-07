@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   const {
     subject, topic, resourceType, language, duration, difficulty,
     includeRubric, diagramCount, diagramType,
-    grade, term, bloomsMode, bloomsLevels, allTopics
+    grade, term, allTopics
   } = req.body;
 
   if (!subject || !resourceType || !language) {
@@ -45,11 +45,36 @@ export default async function handler(req, res) {
 
   const doeRatios = getDoERatios(subject, g);
 
-  let bloomsNote = '';
-  if (bloomsMode === 'single' && bloomsLevels && bloomsLevels.length > 0)
-    bloomsNote = '\nBloom\'s focus: ' + bloomsLevels[0] + ' — weight questions toward this level.';
-  else if (bloomsMode === 'mixed' && bloomsLevels && bloomsLevels.length > 0)
-    bloomsNote = '\nBloom\'s focus: blend of ' + bloomsLevels.join(', ') + '.';
+  // Calculate prescribed marks per cognitive level
+  function getCognitiveLevelMarks(subj, gradeNum, total) {
+    const s = (subj || '').toLowerCase();
+    if (s.includes('math') || s.includes('wiskunde')) {
+      if (gradeNum <= 3) return {levels: ['Knowledge','Routine Procedures','Complex Procedures','Problem Solving'], pcts: [25,45,20,10]};
+      return {levels: ['Knowledge','Routine Procedures','Complex Procedures','Problem Solving'], pcts: [25,45,25,10]};
+    }
+    if (s.includes('home language') || s.includes('huistaal'))
+      return {levels: ['Lower Order/Literal','Middle Order/Inferential','Higher Order/Critical'], pcts: [30,40,30]};
+    if (s.includes('additional') || s.includes('addisionele'))
+      return {levels: ['Lower Order/Literal','Middle Order/Inferential','Higher Order/Critical'], pcts: [40,35,25]};
+    if (s.includes('natural') || s.includes('natuur'))
+      return {levels: ['Recall','Comprehension','Application/Analysis','Synthesis/Evaluation'], pcts: [25,30,30,15]};
+    if (s.includes('social') || s.includes('sosiale'))
+      return {levels: ['Knowledge/Recall','Comprehension','Application/Analysis','Synthesis/Evaluation'], pcts: [30,30,25,15]};
+    if (s.includes('technolog') || s.includes('tegnol'))
+      return {levels: ['Knowledge','Comprehension','Application','Analysis/Evaluation'], pcts: [20,30,35,15]};
+    if (s.includes('economic') || s.includes('ekonom'))
+      return {levels: ['Knowledge','Application','Analysis/Synthesis'], pcts: [25,45,30]};
+    if (s.includes('life') || s.includes('lewens'))
+      return {levels: ['Knowledge','Understanding','Application'], pcts: [30,40,30]};
+    return {levels: ['Lower Order','Middle Order','Higher Order'], pcts: [30,40,30]};
+  }
+
+  const cogLevels = getCognitiveLevelMarks(subject, g, totalMarks);
+  const cogLevelTable = cogLevels.levels.map((level, i) => {
+    const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
+    return level + ' ' + cogLevels.pcts[i] + '% = ' + marks + ' marks';
+  }).join('\n');
+  const cogLevelLabels = cogLevels.levels.join(', ');
 
   const diffNote = difficulty === 'below' ? 'BELOW grade level — use simpler vocabulary, more scaffolding, shorter questions'
     : difficulty === 'above' ? 'ABOVE grade level — extension-level, higher-order thinking, less scaffolding'
@@ -133,7 +158,13 @@ WORKSHEET FORMAT:
   const systemText = `You are an expert South African CAPS ${phase} teacher creating professional ${resourceType} resources. Write entirely in ${language}. Use SA context throughout (rands, SA names like Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, local places and scenarios).
 
 DIFFICULTY: ${diffNote}
-DoE COGNITIVE LEVELS — MANDATORY: ${doeRatios}${bloomsNote}
+
+DoE COGNITIVE LEVELS — MANDATORY MARK SPLIT:
+${cogLevelTable}
+Total: ${totalMarks} marks
+
+IMPORTANT: Label each question or section with its cognitive level in brackets, e.g. [Knowledge] or [Routine Procedures]. The marks per cognitive level MUST match the prescribed split above.
+
 CAPS: Grade ${g} Term ${t} ${subject}
 ${topicInstruction}
 ${markGuidance}
@@ -207,9 +238,12 @@ ANSWERS
 [Numbered answers for all questions]
 ` : `
 COGNITIVE LEVEL ANALYSIS:
-Cognitive Level | Prescribed % | Actual Marks | Actual %
-${doeRatios.split('|').map(r => r.trim()).join('\n')}
-Total: ${totalMarks} marks | 100%
+Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
+${cogLevels.levels.map((level, i) => {
+    const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
+    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks + ' | [fill in] | [fill in]';
+  }).join('\n')}
+Total | 100% | ${totalMarks} | ${totalMarks} | 100%
 `}
 ${!isWorksheet ? `
 ═══════════════════════════════════════════════════════
