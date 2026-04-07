@@ -1436,9 +1436,32 @@ async function downloadWord(){
     const line=lines[i];
     const trimmed=line.trim();
 
-    // Section separator lines
-    if(trimmed.match(/^═+$/)){
+    // Section separator lines (═══ and ━━━ and ─── and ---)
+    if(trimmed.match(/^[═━─\-]{3,}$/)){
       bodyHtml+='<hr style="border:1.5px solid #085041;margin:14pt 0 6pt;"/>';
+      continue;
+    }
+
+    // Markdown headers → convert to proper headings
+    if(trimmed.startsWith('### ')){
+      const heading=trimmed.replace(/^###\s+/,'');
+      bodyHtml+=`<h3 style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#1a1a18;margin:12pt 0 4pt;border-bottom:1px solid #d3d1c7;padding-bottom:3pt;">${esc(heading)}</h3>`;
+      continue;
+    }
+    if(trimmed.startsWith('## ')){
+      const heading=trimmed.replace(/^##\s+/,'');
+      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">${esc(heading)}</h2>`;
+      continue;
+    }
+    if(trimmed.startsWith('# ')){
+      const heading=trimmed.replace(/^#\s+/,'');
+      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:14pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">${esc(heading)}</h2>`;
+      continue;
+    }
+
+    // Bold markdown **text** → strip markers (handled by Word bold)
+    // Skip pure markdown separator lines like | --- | --- |
+    if(trimmed.match(/^\|[\s\-:]+\|[\s\-:|]*$/)){
       continue;
     }
 
@@ -1682,7 +1705,7 @@ ${addendumWordHtml}
 <table width="100%" cellpadding="0" cellspacing="0" style="border-top:1.5px solid #085041;margin-top:20pt;">
   <tr>
     <td style="padding:8pt 0 0;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade ${esc(gradeVal)} Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic)}</p>
+      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade ${esc(gradeVal)} Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic).replace('ALL_TERM','All Term '+termVal+' topics').replace('ALL_YEAR','All Terms 1-4')}</p>
     </td>
     <td align="right" style="padding:8pt 0 0;">
       <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">theresourceroom.co.za</p>
