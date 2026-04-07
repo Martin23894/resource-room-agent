@@ -343,32 +343,117 @@ ${includeRubric ? '12. Include the MARKING RUBRIC section at the end. This is re
   }
 
   try {
-    // Token limits must cover: questions + full memo + cognitive table + extension + rubric
-    // A 50-mark test with memo needs ~5000-6000 tokens minimum
-    // Rubric adds ~1000-1500 tokens
     const rubricExtra = includeRubric ? 1500 : 0;
-    let tokenLimit = 7000 + rubricExtra; // Test default — generous to prevent cutoff
-    if (isExam) tokenLimit = 8192; // Max for exams
-    if (isFinalExam) tokenLimit = 8192; // Max for final exams
-    if (isWorksheet) tokenLimit = 4000 + rubricExtra;
-    const raw1 = await callAPI(systemText, userText, tokenLimit);
 
-    let resourceContent = '';
-    try {
-      const parsed1 = JSON.parse(raw1);
-      resourceContent = parsed1.content || raw1;
-    } catch(e) {
-      let cleaned = raw1;
-      cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
-      cleaned = cleaned.replace(/"\s*\}\s*$/, '');
-      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-      resourceContent = cleaned;
+    if (isExam || isFinalExam) {
+      // ═══════════════════════════════════════════════════════════
+      // TWO-CALL STRATEGY for Exams and Final Exams
+      // Call 1: Question paper only (no memo, no cognitive table)
+      // Call 2: Memo + cognitive table + extension + rubric
+      // ═══════════════════════════════════════════════════════════
+
+      // Call 1: Questions only
+      const questionsPrompt = systemText.replace(
+        /═+\nMEMORANDUM[\s\S]*$/,
+        'TOTAL: _____ / ' + totalMarks + ' marks\n\nDo NOT include a memorandum, cognitive level table, extension, or rubric in this response. ONLY generate the question paper up to and including the TOTAL line.'
+      );
+      const questionsUser = `Create ONLY the question paper (NO memorandum) for a ${resourceType} for ${subject}. Grade ${g}, Term ${t}, ${language}, ${timeAllocation}, ${difficulty || 'on'} grade level. ${topicInstruction} JSON only: {"content":"question paper text"}`;
+
+      const raw1 = await callAPI(questionsPrompt, questionsUser, 5000);
+
+      let questionPaper = '';
+      try {
+        const parsed1 = JSON.parse(raw1);
+        questionPaper = parsed1.content || raw1;
+      } catch(e) {
+        let cleaned = raw1;
+        cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
+        cleaned = cleaned.replace(/"\s*\}\s*$/, '');
+        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+        questionPaper = cleaned;
+      }
+
+      // Call 2: Memo + cognitive table + extension + rubric
+      const memoSystem = `You are a South African CAPS ${phase} teacher. You have just created a ${resourceType} for Grade ${g} Term ${t} ${subject} in ${language}. Now create the COMPLETE memorandum and supporting sections for this question paper.
+
+DoE COGNITIVE LEVELS:
+${cogLevelTable}
+Total: ${totalMarks} marks
+
+Return JSON only: {"content":"memorandum text"}`;
+
+      const memoUser = `Here is the question paper you created:
+
+${questionPaper}
+
+Now create ALL of the following sections for this question paper:
+
+1. MEMORANDUM — a table with columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+   - Answer for EVERY question — no gaps
+   - Marks must add up to EXACTLY ${totalMarks}
+   - Use (Any two) / (Any three) where multiple answers are acceptable
+
+2. COGNITIVE LEVEL ANALYSIS TABLE:
+   Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
+   ${cogLevels.levels.map((level, i) => {
+       const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
+       return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks;
+     }).join('\n   ')}
+   Then list which questions fall under each level.
+
+3. EXTENSION ACTIVITY — One challenging higher-order question with model answer.
+
+${includeRubric ? '4. MARKING RUBRIC — 5-level rubric (Outstanding/Good/Satisfactory/Needs Improvement/Not Achieved) with 3-4 criteria rows relevant to ' + subject + '.' : ''}
+
+JSON only: {"content":"memorandum and all sections"}`;
+
+      const raw2 = await callAPI(memoSystem, memoUser, 8192);
+
+      let memoContent = '';
+      try {
+        const parsed2 = JSON.parse(raw2);
+        memoContent = parsed2.content || raw2;
+      } catch(e) {
+        let cleaned = raw2;
+        cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
+        cleaned = cleaned.replace(/"\s*\}\s*$/, '');
+        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+        memoContent = cleaned;
+      }
+
+      // Combine question paper + memo
+      const fullResource = questionPaper + '\n\n' + memoContent;
+
+      return res.status(200).json({
+        content: fullResource,
+        diagrams: null
+      });
+
+    } else {
+      // ═══════════════════════════════════════════════════════════
+      // SINGLE CALL for Tests and Worksheets (they fit in one call)
+      // ═══════════════════════════════════════════════════════════
+      let tokenLimit = 7000 + rubricExtra;
+      if (isWorksheet) tokenLimit = 4500 + rubricExtra;
+      const raw1 = await callAPI(systemText, userText, tokenLimit);
+
+      let resourceContent = '';
+      try {
+        const parsed1 = JSON.parse(raw1);
+        resourceContent = parsed1.content || raw1;
+      } catch(e) {
+        let cleaned = raw1;
+        cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
+        cleaned = cleaned.replace(/"\s*\}\s*$/, '');
+        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+        resourceContent = cleaned;
+      }
+
+      return res.status(200).json({
+        content: resourceContent,
+        diagrams: null
+      });
     }
-
-    return res.status(200).json({
-      content: resourceContent,
-      diagrams: null
-    });
 
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
