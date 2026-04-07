@@ -4,8 +4,6 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>The Resource Room — CAPS Agent Gr1–7</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Caveat:wght@400;600&family=Comic+Neue:wght@400;700&family=Patrick+Hand&family=Teachers&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -257,30 +255,6 @@ select:focus{outline:none;border-color:var(--t4);}
           <button class="lbtn on" data-l="English" onclick="setLang(this)">English</button>
           <button class="lbtn" data-l="Afrikaans" onclick="setLang(this)">Afrikaans</button>
         </div>
-      </div>
-      <!-- Font -->
-      <div style="margin-bottom:10px;">
-        <div class="flabel">Resource font</div>
-        <div class="sw">
-          <select id="fontChoice" onchange="updateFontPreview()">
-            <option value="'Teachers Pet', cursive" selected>Teachers Pet — SA classroom favourite</option>
-            <option value="Arial, sans-serif">Arial — clean &amp; professional</option>
-            <option value="Calibri, sans-serif">Calibri — Word standard</option>
-            <option value="'Comic Neue', 'Comic Sans MS', cursive">Comic Sans — Foundation Phase</option>
-            <option value="'Patrick Hand', cursive">Patrick Hand — handwriting style</option>
-            <option value="'Caveat', cursive">Caveat — casual handwritten</option>
-            <option value="'Teachers Pet', cursive">Teachers Pet — SA classroom favourite*</option>
-            <option value="'Teachers', cursive">Teachers — similar web font</option>
-            <option value="'Architects Daughter', cursive">Architects Daughter — teacher favourite</option>
-            <option value="'Century Gothic', sans-serif">Century Gothic — modern &amp; clean</option>
-            <option value="'Trebuchet MS', sans-serif">Trebuchet MS — friendly</option>
-            <option value="Georgia, serif">Georgia — formal &amp; readable</option>
-          </select>
-        </div>
-        <div id="font-preview" style="margin-top:5px;padding:6px 10px;background:var(--sur);border:1px solid var(--bdr2);border-radius:6px;font-size:12px;color:var(--ink2);">
-          The quick brown fox — Grade 6 Maths
-        </div>
-        <div id="font-note" style="display:none;margin-top:4px;font-size:10px;color:var(--ink4);line-height:1.4;">* Teachers Pet must be installed on your computer. It will show in Word even if not previewed here.</div>
       </div>
       <!-- Difficulty -->
       <div style="margin-bottom:10px;">
@@ -831,29 +805,30 @@ function updateDoeDisplay(){
   const el=document.getElementById('doe-display');
   if(!subj){el.innerHTML='Select a subject to see prescribed cognitive level ratios';return;}
   const s=subj.toLowerCase();
-  let ratios='';
+  let levels=[];
   if(s.includes('math')||s.includes('wiskunde')){
-    ratios=g<=3
-      ?'<b>Knowledge</b> 25% · <b>Routine Procedures</b> 45% · <b>Complex Procedures</b> 20% · <b>Problem Solving</b> 10%'
-      :'<b>Knowledge</b> 25% · <b>Routine Procedures</b> 45% · <b>Complex Procedures</b> 25% · <b>Problem Solving</b> 10%';
+    levels=g<=3
+      ?[['Knowledge','25%'],['Routine Procedures','45%'],['Complex Procedures','20%'],['Problem Solving','10%']]
+      :[['Knowledge','25%'],['Routine Procedures','45%'],['Complex Procedures','25%'],['Problem Solving','10%']];
   } else if(s.includes('home language')||s.includes('huistaal')){
-    ratios='<b>Lower Order/Literal</b> 30% · <b>Middle Order/Inferential</b> 40% · <b>Higher Order/Critical</b> 30%';
+    levels=[['Lower Order/Literal','30%'],['Middle Order/Inferential','40%'],['Higher Order/Critical','30%']];
   } else if(s.includes('additional')||s.includes('addisionele')){
-    ratios='<b>Lower Order/Literal</b> 40% · <b>Middle Order/Inferential</b> 35% · <b>Higher Order/Critical</b> 25%';
+    levels=[['Lower Order/Literal','40%'],['Middle Order/Inferential','35%'],['Higher Order/Critical','25%']];
   } else if(s.includes('natural')||s.includes('natuur')){
-    ratios='<b>Recall</b> 25% · <b>Comprehension</b> 30% · <b>Application/Analysis</b> 30% · <b>Synthesis/Evaluation</b> 15%';
+    levels=[['Recall','25%'],['Comprehension','30%'],['Application/Analysis','30%'],['Synthesis/Evaluation','15%']];
   } else if(s.includes('social')||s.includes('sosiale')){
-    ratios='<b>Knowledge/Recall</b> 30% · <b>Comprehension</b> 30% · <b>Application/Analysis</b> 25% · <b>Synthesis/Evaluation</b> 15%';
+    levels=[['Knowledge/Recall','30%'],['Comprehension','30%'],['Application/Analysis','25%'],['Synthesis/Evaluation','15%']];
   } else if(s.includes('technolog')||s.includes('tegnol')){
-    ratios='<b>Knowledge</b> 20% · <b>Comprehension</b> 30% · <b>Application</b> 35% · <b>Analysis/Evaluation</b> 15%';
+    levels=[['Knowledge','20%'],['Comprehension','30%'],['Application','35%'],['Analysis/Evaluation','15%']];
   } else if(s.includes('economic')||s.includes('ekonom')){
-    ratios='<b>Knowledge</b> 25% · <b>Application</b> 45% · <b>Analysis/Synthesis</b> 30%';
+    levels=[['Knowledge','25%'],['Application','45%'],['Analysis/Synthesis','30%']];
   } else if(s.includes('life')||s.includes('lewens')){
-    ratios='<b>Knowledge</b> 30% · <b>Understanding</b> 40% · <b>Application</b> 30%';
+    levels=[['Knowledge','30%'],['Understanding','40%'],['Application','30%']];
   } else {
-    ratios='<b>Lower Order</b> 30% · <b>Middle Order</b> 40% · <b>Higher Order</b> 30%';
+    levels=[['Lower Order','30%'],['Middle Order','40%'],['Higher Order','30%']];
   }
-  el.innerHTML='<div style="color:var(--t8);font-weight:600;margin-bottom:3px;">'+subj+'</div>'+ratios;
+  const rows=levels.map(l=>'<div style="display:flex;justify-content:space-between;padding:2px 0;"><span><b>'+l[0]+'</b></span><span style="color:var(--t6);font-weight:600;">'+l[1]+'</span></div>').join('');
+  el.innerHTML='<div style="color:var(--t8);font-weight:600;margin-bottom:5px;font-size:11px;">'+subj+'</div>'+rows;
 }
 function toggleDiagOptions(){
   const count=parseInt(document.getElementById('diagramCount').value)||0;
@@ -941,7 +916,7 @@ async function doGenerate(){
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,grade,term,allTopics})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,grade,term,allTopics})
     });
     clearInterval(iv);
     const rawText=await r.text();
@@ -949,12 +924,12 @@ async function doGenerate(){
     try{d=JSON.parse(rawText);}
     catch(e){throw new Error('Server error: '+(rawText.substring(0,120)||'No response from server'));}
     if(!r.ok||d.error)throw new Error(d.error||'Server error '+r.status);
-    // Clean up content: strip any JSON wrapper, unescape \n sequences
-    let cleanContent = d.content || '';
-    cleanContent = cleanContent.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
-    cleanContent = cleanContent.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
-    addHist(subj,topic,cleanContent,d.diagrams,grade,term);
-    renderOut(subj,topic,cleanContent,d.diagrams,grade,term);
+    // Store docx data for download
+    window._docxBase64=d.docxBase64||null;
+    window._docxFilename=d.filename||'resource.docx';
+    const preview=d.preview||d.content||'';
+    addHist(subj,topic,preview,null,grade,term);
+    renderOut(subj,topic,preview,null,grade,term);
   }catch(e){
     clearInterval(iv);
     document.getElementById('os').innerHTML=`<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Check your API key in Railway → Variables.</div>`;
@@ -1005,9 +980,7 @@ function renderOut(subj,topic,content,diagrams,grade,term){
   </div>
   <div class="brow">
     <button class="abtn" onclick="doCopy(this)">Copy</button>
-    <button class="abtn word" onclick="downloadWord()">⬇ Word</button>
-    <button class="abtn odt" onclick="downloadODT()">⬇ LibreOffice</button>
-    <button class="abtn pdf" onclick="window.print()">⬇ PDF</button>
+    <button class="abtn word" onclick="downloadDocx()">⬇ Download Word</button>
     <button class="abtn pri" onclick="doGenerate()">Regenerate ↺</button>
   </div>
 </div>
@@ -1025,7 +998,7 @@ function renderOut(subj,topic,content,diagrams,grade,term){
   ${addendumHtml}
   <div class="pack-foot">
     <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
-    <button class="cbtn" onclick="window.print()">Print / Save PDF</button>
+    <button class="cbtn" onclick="downloadDocx()">⬇ Download Word</button>
   </div>
 </div>
 
@@ -1156,217 +1129,6 @@ function copyCover(){
   navigator.clipboard.writeText(txt).then(()=>alert('Copied! Paste into your Teacha listing.')).catch(()=>alert('Please copy manually.'));
 }
 
-async function downloadODT(){
-  if(!window._cur)return;
-  if(typeof JSZip==='undefined'){alert('JSZip not loaded yet — please try again in a moment.');return;}
-  const raw=window._cur;
-  const subj=document.getElementById('subj').value||'Resource';
-  const topic=document.getElementById('topic').value||'';
-  const grade=document.getElementById('grade').value||'6';
-  const term=document.getElementById('term').value||'3';
-  const fontChoice=document.getElementById('fontChoice')?document.getElementById('fontChoice').value:'Liberation Sans, Arial, sans-serif';
-  const wordFont=fontChoice.split(',')[0].replace(/['"]/g,'').trim()||'Liberation Sans';
-  const diagrams=window._diagrams||[];
-  const now=new Date().toLocaleDateString('en-ZA');
-
-  // Convert diagrams to PNG data URLs for embedding
-  async function diagToPng(d){
-    if(!d||!d.svg)return null;
-    let svgStr=d.svg;
-    if(!svgStr.includes('xmlns='))svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
-    if(!svgStr.includes('width="'))svgStr=svgStr.replace(/<svg/,'<svg width="520"');
-    if(!svgStr.includes('height="'))svgStr=svgStr.replace(/<svg/,'<svg height="320"');
-    svgStr=svgStr.replace(/<script[\s\S]*?<\/script>/gi,'');
-    svgStr=svgStr.replace(/\son\w+="[^"]*"/gi,'');
-    return new Promise(resolve=>{
-      try{
-        const svgBlob=new Blob([svgStr],{type:'image/svg+xml;charset=utf-8'});
-        const reader=new FileReader();
-        reader.onload=()=>{
-          const img=new Image();
-          img.onload=()=>{
-            try{
-              const canvas=document.createElement('canvas');
-              canvas.width=520;canvas.height=320;
-              const ctx=canvas.getContext('2d');
-              ctx.fillStyle='#ffffff';ctx.fillRect(0,0,520,320);
-              ctx.drawImage(img,0,0,520,320);
-              resolve(canvas.toDataURL('image/png').split(',')[1]);
-            }catch(e){console.error('ODT canvas draw failed:',e);resolve(null);}
-          };
-          img.onerror=(e)=>{console.error('ODT SVG load failed:',e);resolve(null);};
-          img.src=reader.result;
-        };
-        reader.onerror=()=>{resolve(null);};
-        reader.readAsDataURL(svgBlob);
-      }catch(e){resolve(null);}
-    });
-  }
-
-  // Build PNG map for diagrams
-  const diagPngMap={};
-  for(const d of diagrams){
-    const png=await diagToPng(d);
-    if(png) diagPngMap[d.index]=png;
-  }
-
-  // Convert raw content lines to ODT paragraph XML
-  function escXml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');}
-
-  function lineToODT(line){
-    const t=line.trim();
-    if(!t) return '<text:p text:style-name="P_gap"/>';
-    if(t.match(/^═+$/)) return '<text:p text:style-name="P_rule"><text:span text:style-name="S_rule">──────────────────────────────────────</text:span></text:p>';
-    if(t==='TEACHER INSTRUCTIONS'||t==='MEMORANDUM'||t.startsWith('EXTENSION')||t==='MARKING RUBRIC'||t.startsWith('THE RESOURCE ROOM'))
-      return `<text:p text:style-name="P_heading"><text:span text:style-name="S_heading">${escXml(t)}</text:span></text:p>`;
-    if(t.match(/^SECTION\s+[A-Z]/)||t.match(/^AFDELING\s+[A-Z]/))
-      return `<text:p text:style-name="P_section">${escXml(t)}</text:p>`;
-    if(t.startsWith('TOTAL')||t.startsWith('TOTAAL'))
-      return `<text:p text:style-name="P_total">${escXml(t)}</text:p>`;
-    if(t.match(/^\d+[\.\)]/))
-      return `<text:p text:style-name="P_question">${escXml(t)}</text:p>`;
-    if(t.match(/^[a-z][\.\)]/))
-      return `<text:p text:style-name="P_subq">${escXml(t)}</text:p>`;
-    if(t.match(/^\[DIAGRAM_(\d+)\]$/)){
-      const idx=parseInt(t.match(/\d+/)[0]);
-      if(diagPngMap[idx]) return `[[DIAG_FRAME_${idx}]]`;
-      return `<text:p text:style-name="P_caption">[Diagram ${idx}: ${escXml((diagrams.find(d=>d.index===idx)||{}).title||'')}]</text:p>`;
-    }
-    return `<text:p text:style-name="P_body">${escXml(t)}</text:p>`;
-  }
-
-  // Build diagrams for beginning/end
-  function diagFrame(d,idx){
-    if(!diagPngMap[idx]) return '';
-    return `[[DIAG_FRAME_${idx}]]`;
-  }
-
-  let contentLines=raw.split('\n').map(lineToODT).join('\n');
-
-  // Build ODT content.xml
-  const diagImages=Object.keys(diagPngMap).map(idx=>{
-    const d=diagrams.find(d=>d.index==idx)||{};
-    return `<draw:frame draw:name="diagram${idx}" text:anchor-type="paragraph" draw:z-index="0" svg:width="15cm" svg:height="9.2cm" draw:style-name="fr1">
-  <draw:image xlink:href="Pictures/diagram${idx}.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-</draw:frame>`;
-  });
-
-  // Replace diagram frame placeholders with actual ODT draw:frame elements
-  Object.keys(diagPngMap).forEach(idx=>{
-    const d=diagrams.find(d=>d.index==idx)||{};
-    const titleLine=d.title?`<text:p text:style-name="P_diag_title">${escXml(d.title)}</text:p>`:'';
-    const captionLine=d.caption?`<text:p text:style-name="P_caption">${escXml(d.caption)}</text:p>`:'';
-    const frame=`${titleLine}
-<text:p text:style-name="P_diag_img"><draw:frame draw:name="diagram${idx}" text:anchor-type="as-char" svg:width="15cm" svg:height="9.2cm">
-  <draw:image xlink:href="Pictures/diagram${idx}.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-</draw:frame></text:p>
-${captionLine}`;
-    contentLines=contentLines.split(`[[DIAG_FRAME_${idx}]]`).join(frame);
-  });
-
-  // Addendum A diagrams
-  let addendumDiagXml='';
-  if(diagrams.length>0){
-    addendumDiagXml+=`<text:p text:style-name="P_gap"/>
-<text:p text:style-name="P_rule"><text:span text:style-name="S_rule">──────────────────────────────────────</text:span></text:p>
-<text:p text:style-name="P_heading"><text:span text:style-name="S_heading">ADDENDUM A — Diagrams and Figures</text:span></text:p>
-<text:p text:style-name="P_caption">Teacher note: You may rearrange these diagrams within this document if needed.</text:p>`;
-    diagrams.forEach(d=>{
-      if(!diagPngMap[d.index])return;
-      addendumDiagXml+=`<text:p text:style-name="P_diag_title">${escXml(d.title||'')}</text:p>
-<text:p text:style-name="P_diag_img"><draw:frame draw:name="diag_a${d.index}" text:anchor-type="as-char" svg:width="15cm" svg:height="9.2cm">
-  <draw:image xlink:href="Pictures/diagram${d.index}.png" xlink:type="simple" xlink:show="embed" xlink:actuate="onLoad"/>
-</draw:frame></text:p>
-<text:p text:style-name="P_caption">${escXml(d.caption||'')}</text:p>`;
-    });
-  }
-
-  const contentXml=`<?xml version="1.0" encoding="UTF-8"?>
-<office:document-content
-  xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
-  xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
-  xmlns:draw="urn:oasis:names:tc:opendocument:xmlns:drawing:1.0"
-  xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"
-  xmlns:xlink="http://www.w3.org/1999/xlink"
-  xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
-  xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
-  office:version="1.3">
-<office:automatic-styles>
-  <style:style style:name="fr1" style:family="graphic"><style:graphic-properties text:anchor-type="as-char" svg:width="15cm" svg:height="9.2cm" style:overflow-behavior="clip"/></style:style>
-</office:automatic-styles>
-<office:body><office:text>
-<text:p text:style-name="P_cover_brand">THE RESOURCE ROOM</text:p>
-<text:p text:style-name="P_cover_sub">CAPS-Aligned Teaching Resources · Grade ${grade} Term ${term} · ${escXml(lang)}</text:p>
-<text:p text:style-name="P_cover_sub">${escXml(rtype)} · ${escXml(subj)} · ${escXml(now)}</text:p>
-<text:p text:style-name="P_gap"/>
-${contentLines}
-${addendumDiagXml}
-<text:p text:style-name="P_footer">© The Resource Room · CAPS Grade ${grade} Term ${term} · ${escXml(subj)} — ${escXml(topic)}</text:p>
-</office:text></office:body>
-</office:document-content>`;
-
-  const stylesXml=`<?xml version="1.0" encoding="UTF-8"?>
-<office:document-styles
-  xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
-  xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0"
-  xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0"
-  xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"
-  office:version="1.3">
-<office:styles>
-  <style:style style:name="P_cover_brand" style:family="paragraph"><style:paragraph-properties fo:text-align="left" fo:margin-bottom="2pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="20pt" fo:font-weight="bold" fo:color="#085041"/></style:style>
-  <style:style style:name="P_cover_sub" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="2pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="10pt" fo:color="#0F6E56"/></style:style>
-  <style:style style:name="P_heading" style:family="paragraph"><style:paragraph-properties fo:margin-top="10pt" fo:margin-bottom="4pt" fo:border-bottom="1.5pt solid #085041" fo:padding-bottom="3pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="13pt" fo:font-weight="bold" fo:color="#085041"/></style:style>
-  <style:style style:name="S_heading" style:family="text"><style:text-properties fo:font-family="${wordFont}" fo:font-size="13pt" fo:font-weight="bold" fo:color="#085041"/></style:style>
-  <style:style style:name="P_section" style:family="paragraph"><style:paragraph-properties fo:margin-top="10pt" fo:margin-bottom="4pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="12pt" fo:font-weight="bold"/></style:style>
-  <style:style style:name="P_body" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="3pt" fo:line-height="165%"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="11.5pt"/></style:style>
-  <style:style style:name="P_question" style:family="paragraph"><style:paragraph-properties fo:margin-top="6pt" fo:margin-bottom="3pt" fo:line-height="160%"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="11.5pt"/></style:style>
-  <style:style style:name="P_subq" style:family="paragraph"><style:paragraph-properties fo:margin-left="1cm" fo:margin-bottom="2pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="11.5pt"/></style:style>
-  <style:style style:name="P_total" style:family="paragraph"><style:paragraph-properties fo:margin-top="10pt" fo:border-top="1.5pt solid #085041" fo:padding-top="5pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="12pt" fo:font-weight="bold" fo:color="#085041"/></style:style>
-  <style:style style:name="P_rule" style:family="paragraph"><style:paragraph-properties fo:margin-top="4pt" fo:margin-bottom="4pt"/><style:text-properties fo:color="#085041"/></style:style>
-  <style:style style:name="S_rule" style:family="text"><style:text-properties fo:color="#085041"/></style:style>
-  <style:style style:name="P_gap" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="3pt"/><style:text-properties fo:font-size="4pt"/></style:style>
-  <style:style style:name="P_diag_title" style:family="paragraph"><style:paragraph-properties fo:margin-top="10pt" fo:margin-bottom="4pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="12pt" fo:font-weight="bold" fo:color="#085041"/></style:style>
-  <style:style style:name="P_diag_img" style:family="paragraph"><style:paragraph-properties fo:text-align="center" fo:margin-bottom="4pt"/></style:style>
-  <style:style style:name="P_caption" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="8pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="10pt" fo:font-style="italic" fo:color="#73726c"/></style:style>
-  <style:style style:name="P_footer" style:family="paragraph"><style:paragraph-properties fo:margin-top="20pt" fo:border-top="1pt solid #085041" fo:padding-top="6pt"/><style:text-properties fo:font-family="${wordFont}" fo:font-size="9pt" fo:color="#9c9a92"/></style:style>
-</office:styles>
-<office:master-styles>
-  <style:master-page style:name="Standard" style:page-layout-name="pm1"/>
-</office:master-styles>
-<office:automatic-styles>
-  <style:page-layout style:name="pm1">
-    <style:page-layout-properties fo:margin-top="2cm" fo:margin-bottom="2cm" fo:margin-left="2.5cm" fo:margin-right="2.5cm"/>
-  </style:page-layout>
-</office:automatic-styles>
-</office:document-styles>`;
-
-  const manifestXml=`<?xml version="1.0" encoding="UTF-8"?>
-<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.3">
-  <manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/>
-  <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
-  <manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/>
-${Object.keys(diagPngMap).map(idx=>`  <manifest:file-entry manifest:full-path="Pictures/diagram${idx}.png" manifest:media-type="image/png"/>`).join('\n')}
-</manifest:manifest>`;
-
-  // Build ZIP (ODT)
-  const zip=new JSZip();
-  zip.file('mimetype','application/vnd.oasis.opendocument.text',{compression:'STORE'});
-  zip.file('content.xml',contentXml);
-  zip.file('styles.xml',stylesXml);
-  zip.folder('META-INF').file('manifest.xml',manifestXml);
-  // Embed diagram PNGs
-  const pics=zip.folder('Pictures');
-  Object.keys(diagPngMap).forEach(idx=>{
-    pics.file(`diagram${idx}.png`,diagPngMap[idx],{base64:true});
-  });
-
-  const blob=await zip.generateAsync({type:'blob',mimeType:'application/vnd.oasis.opendocument.text'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  const filename=(subj+'-'+rtype+'-Grade'+grade+'-Term'+term).replace(/[^a-zA-Z0-9-]/g,'-')+'.odt';
-  a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
-}
 
 function doCopy(btn){
   if(!window._cur)return;
@@ -1382,15 +1144,7 @@ function addHist(subj,topic,content,diagrams,grade,term){
 function loadH(i){const h=hist[i];rtype=h.rtype;lang=h.lang;diff=h.diff;renderOut(h.subj,h.topic,h.content,h.diagrams,h.grade,h.term);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-function updateFontPreview(){
-  const font=document.getElementById('fontChoice').value;
-  const preview=document.getElementById('font-preview');
-  if(preview) preview.style.fontFamily=font;
-  document.querySelectorAll('.pack-body').forEach(el=>{el.style.fontFamily=font;});
-  document.documentElement.style.setProperty('--resource-font', font);
-  const note=document.getElementById('font-note');
-  if(note) note.style.display=font.includes('Teachers Pet')?'block':'none';
-}
+function updateFontPreview(){}
 
 // (init moved to end)
 async function svgToPngDataUrl(svgString){
@@ -1416,369 +1170,19 @@ async function svgToPngDataUrl(svgString){
   });
 }
 
-async function downloadWord(){
-  if(!window._cur)return;
-  const raw=window._cur;
-  const subj=document.getElementById('subj').value||'Resource';
-  const gradeVal=document.getElementById('grade').value||'6';
-  const termVal=document.getElementById('term').value||'3';
-  const topic=document.getElementById('topic').value||'';
-  const fontChoice=document.getElementById('fontChoice')?document.getElementById('fontChoice').value:'Calibri, sans-serif';
-  // Extract base font name for Word CSS (strip quotes and fallbacks)
-  const wordFont=fontChoice.split(',')[0].replace(/['"]/g,'').trim()||'Calibri';
-
-  // Convert plain text content into formatted HTML for Word
-  const lines=raw.split('\n');
-  let bodyHtml='';
-  let inMemo=false, inTeacher=false, inExtension=false, inRubric=false;
-
-  for(let i=0;i<lines.length;i++){
-    const line=lines[i];
-    const trimmed=line.trim();
-
-    // Section separator lines (═══ and ━━━ and ─── and ---)
-    if(trimmed.match(/^[═━─\-]{3,}$/)){
-      bodyHtml+='<hr style="border:1.5px solid #085041;margin:14pt 0 6pt;"/>';
-      continue;
-    }
-
-    // Markdown headers → convert to proper headings
-    if(trimmed.startsWith('### ')){
-      const heading=trimmed.replace(/^###\s+/,'');
-      bodyHtml+=`<h3 style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#1a1a18;margin:12pt 0 4pt;border-bottom:1px solid #d3d1c7;padding-bottom:3pt;">${esc(heading)}</h3>`;
-      continue;
-    }
-    if(trimmed.startsWith('## ')){
-      const heading=trimmed.replace(/^##\s+/,'');
-      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">${esc(heading)}</h2>`;
-      continue;
-    }
-    if(trimmed.startsWith('# ')){
-      const heading=trimmed.replace(/^#\s+/,'');
-      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:14pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">${esc(heading)}</h2>`;
-      continue;
-    }
-
-    // Bold markdown **text** → strip markers (handled by Word bold)
-    // Skip pure markdown separator lines like | --- | --- |
-    if(trimmed.match(/^\|[\s\-:]+\|[\s\-:|]*$/)){
-      continue;
-    }
-
-    // Section headings
-    if(trimmed==='TEACHER INSTRUCTIONS'){
-      inTeacher=true; inMemo=false; inExtension=false; inRubric=false;
-      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#085041;margin:6pt 0 4pt;letter-spacing:.5pt;">TEACHER INSTRUCTIONS</h2>`;
-      continue;
-    }
-    if(trimmed==='MEMORANDUM'||trimmed==='MEMORANDUM / ANSWER KEY'){
-      inMemo=true; inTeacher=false; inExtension=false; inRubric=false;
-      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">MEMORANDUM</h2>`;
-      continue;
-    }
-    if(trimmed.startsWith('EXTENSION')||trimmed.startsWith('ENRICHMENT')){
-      inExtension=true; inMemo=false; inTeacher=false; inRubric=false;
-      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">${esc(trimmed)}</h2>`;
-      continue;
-    }
-    if(trimmed==='MARKING RUBRIC'){
-      inRubric=true; inMemo=false; inTeacher=false; inExtension=false;
-      bodyHtml+=`<h2 style="font-family:Calibri,sans-serif;font-size:13pt;font-weight:bold;color:#085041;margin:14pt 0 4pt;">MARKING RUBRIC</h2>`;
-      continue;
-    }
-
-    // Resource Room header — skip in Word download (branded header already shows it)
-    if(trimmed==='THE RESOURCE ROOM'||trimmed.startsWith('THE RESOURCE ROOM')){
-      continue;
-    }
-
-    // SECTION headings (A, B, C)
-    if(trimmed.match(/^SECTION\s+[A-Z]/)||trimmed.match(/^AFDELING\s+[A-Z]/)){
-      bodyHtml+=`<h3 style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#1a1a18;margin:12pt 0 4pt;border-bottom:1px solid #d3d1c7;padding-bottom:3pt;">${esc(trimmed)}</h3>`;
-      continue;
-    }
-
-    // Learner name / date line
-    if(trimmed.startsWith('Learner Name')||trimmed.startsWith('Leerder Naam')){
-      bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11pt;margin:10pt 0 4pt;">${esc(trimmed)}</p>`;
-      continue;
-    }
-    if(trimmed.startsWith('Date:')||trimmed.startsWith('Datum:')){
-      bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11pt;margin:2pt 0 10pt;">${esc(trimmed)}</p>`;
-      continue;
-    }
-
-    // TOTAL line
-    if(trimmed.startsWith('TOTAL')||trimmed.startsWith('TOTAAL')){
-      bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:10pt 0;border-top:1.5px solid #085041;padding-top:6pt;">${esc(trimmed)}</p>`;
-      continue;
-    }
-
-    // Numbered questions — split number from text for clean layout
-    if(trimmed.match(/^\d+[\.\)]/)){
-      const match=trimmed.match(/^(\d+[\.\)]\d*[\.\)]?\d*[\.\)]?)\s*(.*)/);
-      if(match){
-        const num=match[1];
-        const text=match[2]||'';
-        bodyHtml+=`<table width="100%" cellpadding="0" cellspacing="0" style="margin:6pt 0 3pt;font-family:Calibri,sans-serif;font-size:11.5pt;line-height:1.6;"><tr><td style="width:45pt;vertical-align:top;padding-right:6pt;font-weight:bold;">${esc(num)}</td><td style="vertical-align:top;">${esc(text)}</td></tr></table>`;
-      } else {
-        bodyHtml+=`<table width="100%" cellpadding="0" cellspacing="0" style="margin:6pt 0 3pt;font-family:Calibri,sans-serif;font-size:11.5pt;line-height:1.6;"><tr><td>${esc(trimmed)}</td></tr></table>`;
-      }
-      continue;
-    }
-
-    // Sub-questions a) b) c) d) — same clean layout with indent
-    if(trimmed.match(/^[a-z][\.\)]/)){
-      const match=trimmed.match(/^([a-z][\.\)])\s*(.*)/);
-      if(match){
-        bodyHtml+=`<table width="100%" cellpadding="0" cellspacing="0" style="margin:2pt 0;font-family:Calibri,sans-serif;font-size:11.5pt;line-height:1.5;"><tr><td style="width:45pt;padding-left:18pt;vertical-align:top;">${esc(match[1])}</td><td style="vertical-align:top;">${esc(match[2]||'')}</td></tr></table>`;
-      } else {
-        bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;margin:2pt 0 2pt;padding-left:18pt;line-height:1.5;">${esc(trimmed)}</p>`;
-      }
-      continue;
-    }
-
-    // Unicode box-drawing table rows → convert to pipe format then to HTML table
-    // Detect lines with box characters: ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ │ ─ ═ ║
-    if(trimmed.match(/^[┌┐└┘├┤┬┴┼│─═║\s\-]+$/)){
-      // Pure separator line — skip
-      continue;
-    }
-    if(trimmed.includes('│')){
-      // Convert Unicode box table to pipe format
-      let converted=trimmed.replace(/[│║]/g,'|').replace(/[┌┐└┘├┤┬┴┼─═]/g,'').trim();
-      if(converted.includes('|')&&converted.split('|').filter(c=>c.trim()).length>=2){
-        // Collect all rows of this Unicode table
-        let tableRows=[converted];
-        while(i+1<lines.length){
-          const nextLine=lines[i+1].trim();
-          if(nextLine.match(/^[┌┐└┘├┤┬┴┼│─═║\s\-]+$/)){
-            i++; continue; // Skip separator rows
-          }
-          if(nextLine.includes('│')){
-            const nextConverted=nextLine.replace(/[│║]/g,'|').replace(/[┌┐└┘├┤┬┴┼─═]/g,'').trim();
-            if(nextConverted.includes('|')&&nextConverted.split('|').filter(c=>c.trim()).length>=2){
-              tableRows.push(nextConverted);
-              i++;
-            } else break;
-          } else break;
-        }
-        bodyHtml+='<table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;margin:8pt 0;font-family:Calibri,sans-serif;font-size:10.5pt;">';
-        tableRows.forEach((row,ri)=>{
-          const cells=row.split('|').map(c=>c.trim()).filter(c=>c!=='');
-          const isHeader=ri===0;
-          bodyHtml+='<tr>';
-          cells.forEach(cell=>{
-            const tag=isHeader?'th':'td';
-            const style=isHeader
-              ?'style="background:#085041;color:#ffffff;padding:5pt 8pt;border:0.5pt solid #d3d1c7;font-weight:bold;font-size:10pt;text-align:left;"'
-              :'style="padding:5pt 8pt;border:0.5pt solid #d3d1c7;text-align:left;"';
-            bodyHtml+=`<${tag} ${style}>${esc(cell)}</${tag}>`;
-          });
-          bodyHtml+='</tr>';
-        });
-        bodyHtml+='</table>';
-        continue;
-      }
-    }
-
-    // Pipe-separated table rows → convert to real HTML table
-    if(trimmed.includes('|')&&trimmed.split('|').length>=3){
-      // Start collecting table rows
-      let tableRows=[trimmed];
-      while(i+1<lines.length){
-        const nextLine=lines[i+1].trim();
-        if(nextLine.includes('|')&&nextLine.split('|').length>=3){
-          tableRows.push(nextLine);
-          i++;
-        } else if(nextLine.match(/^[-─═|:+\s]+$/)){
-          // Skip separator lines like ---|---|---
-          i++;
-        } else {
-          break;
-        }
-      }
-      bodyHtml+='<table width="100%" cellpadding="4" cellspacing="0" style="border-collapse:collapse;margin:8pt 0;font-family:Calibri,sans-serif;font-size:10.5pt;">';
-      tableRows.forEach((row,ri)=>{
-        const cells=row.split('|').map(c=>c.trim()).filter(c=>c!=='');
-        const isHeader=ri===0;
-        bodyHtml+='<tr>';
-        cells.forEach(cell=>{
-          const tag=isHeader?'th':'td';
-          const style=isHeader
-            ?'style="background:#085041;color:#ffffff;padding:5pt 8pt;border:0.5pt solid #d3d1c7;font-weight:bold;font-size:10pt;text-align:left;"'
-            :'style="padding:5pt 8pt;border:0.5pt solid #d3d1c7;text-align:left;"';
-          bodyHtml+=`<${tag} ${style}>${esc(cell)}</${tag}>`;
-        });
-        bodyHtml+='</tr>';
-      });
-      bodyHtml+='</table>';
-      continue;
-    }
-
-    // Empty lines → spacing
-    if(trimmed===''){
-      bodyHtml+='<p style="margin:3pt 0;"> </p>';
-      continue;
-    }
-
-    // Everything else
-    const color = inTeacher ? '#3d3d3a' : inMemo ? '#3d3d3a' : '#1a1a18';
-    bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;color:${color};margin:3pt 0;line-height:1.65;">${esc(trimmed)}</p>`;
-  }
-
-  // Build diagram PNG and embed as base64 for Word
-  async function buildWordDiagram(d){
-    if(!d||!d.svg) return '';
-    const title=d.title||'';
-    const caption=d.caption||'';
-    // Clean up SVG
-    let svgStr=d.svg;
-    if(!svgStr.includes('xmlns=')) svgStr=svgStr.replace(/<svg/,'<svg xmlns="http://www.w3.org/2000/svg"');
-    if(!svgStr.includes('width="')) svgStr=svgStr.replace(/<svg/,'<svg width="520"');
-    if(!svgStr.includes('height="')) svgStr=svgStr.replace(/<svg/,'<svg height="320"');
-    svgStr=svgStr.replace(/<script[\s\S]*?<\/script>/gi,'');
-    svgStr=svgStr.replace(/\son\w+="[^"]*"/gi,'');
-
-    // Method 1: Direct SVG base64 (synchronous, most reliable)
-    let imgSrc=null;
-    try{
-      imgSrc='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(svgStr)));
-    }catch(e){console.error('SVG base64 failed for diagram',d.index);}
-
-    // Method 2: PNG via canvas (fallback, better Word compatibility)
-    if(imgSrc){
-      const pngSrc=await new Promise(resolve=>{
-        const timeout=setTimeout(()=>{console.error('PNG conversion timed out for diagram',d.index);resolve(null);},5000);
-        try{
-          const img=new Image();
-          img.onload=()=>{
-            try{
-              const canvas=document.createElement('canvas');
-              canvas.width=520;canvas.height=320;
-              const ctx=canvas.getContext('2d');
-              ctx.fillStyle='#ffffff';
-              ctx.fillRect(0,0,520,320);
-              ctx.drawImage(img,0,0,520,320);
-              clearTimeout(timeout);
-              resolve(canvas.toDataURL('image/png'));
-            }catch(e){clearTimeout(timeout);resolve(null);}
-          };
-          img.onerror=()=>{clearTimeout(timeout);resolve(null);};
-          img.src=imgSrc;
-        }catch(e){clearTimeout(timeout);resolve(null);}
-      });
-      // Use PNG if we got it (better Word support), otherwise keep SVG base64
-      if(pngSrc) imgSrc=pngSrc;
-    }
-
-    if(imgSrc){
-      return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;border-collapse:collapse;page-break-inside:avoid;">
-  <tr><td style="background:#f8f7f3;padding:12pt 16pt;">
-    <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;">${title}</p>
-    <div style="text-align:center;"><img src="${imgSrc}" style="width:480px;max-width:100%;" width="480"/></div>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:8pt 0 0;border-top:1px solid #e4e2da;padding-top:6pt;">${caption}</p>
-  </td></tr>
-</table>`;
-    } else {
-      return `<table width="100%" cellpadding="0" cellspacing="0" style="margin:14pt 0;border:1.5px solid #e4e2da;border-collapse:collapse;">
-  <tr><td style="background:#f8f7f3;padding:12pt 16pt;">
-    <p style="font-family:Calibri,sans-serif;font-size:12pt;font-weight:bold;color:#085041;margin:0 0 8pt;">${title}</p>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;">[See diagram on screen: ${title}]</p>
-    <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#73726c;font-style:italic;margin:4pt 0 0;">${caption}</p>
-  </td></tr>
-</table>`;
-    }
-  }
-
-  const diagrams=window._diagrams||[];
-  let addendumWordHtml='';
-
-  if(diagrams.length>0){
-    let diagramsHtml='';
-    for(const d of diagrams){
-      const html=await buildWordDiagram(d);
-      if(html) diagramsHtml+=html;
-    }
-    if(diagramsHtml){
-      addendumWordHtml=`
-<table width="100%" cellpadding="0" cellspacing="0" style="page-break-before:always;background:#085041;margin-bottom:14pt;">
-  <tr><td style="padding:10pt 20pt;">
-    <p style="font-family:Calibri,sans-serif;font-size:16pt;font-weight:bold;color:#ffffff;margin:0;letter-spacing:.5pt;">ADDENDUM A — Diagrams and Figures</p>
-  </td></tr>
-</table>
-<p style="font-family:Calibri,sans-serif;font-size:9.5pt;color:#73726c;font-style:italic;margin:0 0 12pt;">Teacher note: You may rearrange these diagrams within this document if needed. Cut and paste them next to the relevant questions.</p>
-${diagramsHtml}`;
-    }
-  }
-
-  const diffLabel = diff==='below'?'Below grade level':diff==='above'?'Above grade level':'On grade level';
-  const now=new Date().toLocaleDateString('en-ZA');
-
-  const wordHtml=`
-<html xmlns:o="urn:schemas-microsoft-com:office:office"
-      xmlns:w="urn:schemas-microsoft-com:office:word"
-      xmlns="http://www.w3.org/TR/REC-html40">
-<head>
-<meta charset="UTF-8"/>
-<meta name=ProgId content=Word.Document>
-<meta name=Generator content="Microsoft Word 15">
-<!--[if gte mso 9]>
-<xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml>
-<![endif]-->
-<style>
-  @page { margin: 2cm 2.5cm; }
-  body { font-family: "${wordFont}", Calibri, sans-serif; font-size: 11.5pt; line-height: 1.6; color: #1a1a18; }
-</style>
-</head>
-<body>
-
-<!-- COVER HEADER -->
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#085041;margin-bottom:18pt;">
-  <tr>
-    <td style="padding:16pt 20pt;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;font-weight:bold;letter-spacing:4pt;color:#9FE1CB;margin:0 0 2pt;">THE</p>
-      <p style="font-family:Calibri,sans-serif;font-size:22pt;font-weight:bold;color:#ffffff;margin:0;letter-spacing:-1pt;line-height:1;">RESOURCE</p>
-      <p style="font-family:Calibri,sans-serif;font-size:22pt;font-weight:bold;color:#1D9E75;margin:0;letter-spacing:-1pt;line-height:1;">ROOM</p>
-    </td>
-    <td align="right" style="padding:16pt 20pt;vertical-align:top;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;font-weight:bold;color:#9FE1CB;margin:0 0 4pt;letter-spacing:.5pt;">CAPS-ALIGNED TEACHING RESOURCES</p>
-      <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#E1F5EE;margin:0 0 2pt;">Grade ${esc(gradeVal)} &nbsp;|&nbsp; Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(lang)}</p>
-      <p style="font-family:Calibri,sans-serif;font-size:10pt;color:#9FE1CB;margin:0 0 2pt;">${esc(rtype)} &nbsp;|&nbsp; ${esc(subj)}</p>
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#5DCAA5;margin:4pt 0 0;">${esc(diffLabel)} &nbsp;|&nbsp; ${now}</p>
-    </td>
-  </tr>
-</table>
-
-<!-- CONTENT -->
-${bodyHtml}
-
-<!-- ADDENDUM A (diagrams on separate page) -->
-${addendumWordHtml}
-
-<!-- FOOTER -->
-<br/><br/>
-<table width="100%" cellpadding="0" cellspacing="0" style="border-top:1.5px solid #085041;margin-top:20pt;">
-  <tr>
-    <td style="padding:8pt 0 0;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">© The Resource Room &nbsp;|&nbsp; CAPS Grade ${esc(gradeVal)} Term ${esc(termVal)} &nbsp;|&nbsp; ${esc(subj)} — ${esc(topic).replace('ALL_TERM','All Term '+termVal+' topics').replace('ALL_YEAR','All Terms 1-4')}</p>
-    </td>
-    <td align="right" style="padding:8pt 0 0;">
-      <p style="font-family:Calibri,sans-serif;font-size:9pt;color:#9c9a92;margin:0;">theresourceroom.co.za</p>
-    </td>
-  </tr>
-</table>
-
-</body>
-</html>`;
-
-  const blob=new Blob([wordHtml],{type:'application/msword'});
-  const url=URL.createObjectURL(blob);
+function downloadDocx(){
+  if(!window._docxBase64){alert('Generate a resource first.');return;}
+  const bytes=Uint8Array.from(atob(window._docxBase64),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
   const a=document.createElement('a');
-  const filename=(subj+'-'+rtype+'-Grade'+gradeVal+'-Term'+termVal).replace(/[^a-zA-Z0-9-]/g,'-')+'.doc';
-  a.href=url; a.download=filename; a.click();
-  URL.revokeObjectURL(url);
+  a.href=URL.createObjectURL(blob);
+  a.download=window._docxFilename||'resource.docx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
+async function downloadWord(){downloadDocx();}
+async function downloadODT(){downloadDocx();}
 
 // Init — runs after all functions are defined
 loadSubjects();
