@@ -302,23 +302,11 @@ select:focus{outline:none;border-color:var(--t4);}
           </select>
         </div>
       </div>
-      <!-- Bloom's Taxonomy -->
+      <!-- DoE Cognitive Levels -->
       <div style="margin-bottom:10px;">
-        <div class="flabel">Bloom's focus <span style="font-size:10px;color:var(--ink4);font-weight:400;">(optional — DoE ratios auto-applied)</span></div>
-        <div class="blooms-mode">
-          <button class="bmode-btn" data-m="single" onclick="setBloomsMode(this)">Single level</button>
-          <button class="bmode-btn" data-m="mixed" onclick="setBloomsMode(this)">Mixed blend</button>
-          <button class="bmode-btn on" data-m="none" onclick="setBloomsMode(this)">Auto</button>
-        </div>
-        <div id="blooms-levels" style="display:none;">
-          <div class="blooms-grid">
-            <button class="bloom-btn" data-b="remember" onclick="toggleBloom(this)">Remember</button>
-            <button class="bloom-btn" data-b="understand" onclick="toggleBloom(this)">Understand</button>
-            <button class="bloom-btn" data-b="apply" onclick="toggleBloom(this)">Apply</button>
-            <button class="bloom-btn" data-b="analyse" onclick="toggleBloom(this)">Analyse</button>
-            <button class="bloom-btn" data-b="evaluate" onclick="toggleBloom(this)">Evaluate</button>
-            <button class="bloom-btn" data-b="create" onclick="toggleBloom(this)">Create</button>
-          </div>
+        <div class="flabel">DoE cognitive levels <span style="font-size:10px;color:var(--ink4);font-weight:400;">(auto-applied per subject)</span></div>
+        <div id="doe-display" style="background:var(--sur);border:1.5px solid var(--bdr2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--ink3);line-height:1.6;">
+          Select a subject to see prescribed cognitive level ratios
         </div>
       </div>
       <!-- Toggles -->
@@ -833,18 +821,43 @@ function updateTopicsForType(){
 }
 function setLang(el){document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');lang=el.dataset.l;}
 function setDiff(el){document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');diff=el.dataset.d;}
-function setBloomsMode(el){
-  document.querySelectorAll('.bmode-btn').forEach(b=>b.classList.remove('on'));
-  el.classList.add('on'); bloomsMode=el.dataset.m;
-  document.getElementById('blooms-levels').style.display=bloomsMode==='none'?'none':'block';
+function setBloomsMode(el){}
+function toggleBloom(el){}
+function getBloomsLevels(){return [];}
+function updateDoeDisplay(){
+  const raw=document.getElementById('subj').value;
+  const subj=raw.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
+  const g=parseInt(document.getElementById('grade').value)||6;
+  const el=document.getElementById('doe-display');
+  if(!subj){el.innerHTML='Select a subject to see prescribed cognitive level ratios';return;}
+  const s=subj.toLowerCase();
+  let ratios='';
+  if(s.includes('math')||s.includes('wiskunde')){
+    ratios=g<=3
+      ?'<b>Knowledge</b> 25% · <b>Routine Procedures</b> 45% · <b>Complex Procedures</b> 20% · <b>Problem Solving</b> 10%'
+      :'<b>Knowledge</b> 25% · <b>Routine Procedures</b> 45% · <b>Complex Procedures</b> 25% · <b>Problem Solving</b> 10%';
+  } else if(s.includes('home language')||s.includes('huistaal')){
+    ratios='<b>Lower Order/Literal</b> 30% · <b>Middle Order/Inferential</b> 40% · <b>Higher Order/Critical</b> 30%';
+  } else if(s.includes('additional')||s.includes('addisionele')){
+    ratios='<b>Lower Order/Literal</b> 40% · <b>Middle Order/Inferential</b> 35% · <b>Higher Order/Critical</b> 25%';
+  } else if(s.includes('natural')||s.includes('natuur')){
+    ratios='<b>Recall</b> 25% · <b>Comprehension</b> 30% · <b>Application/Analysis</b> 30% · <b>Synthesis/Evaluation</b> 15%';
+  } else if(s.includes('social')||s.includes('sosiale')){
+    ratios='<b>Knowledge/Recall</b> 30% · <b>Comprehension</b> 30% · <b>Application/Analysis</b> 25% · <b>Synthesis/Evaluation</b> 15%';
+  } else if(s.includes('technolog')||s.includes('tegnol')){
+    ratios='<b>Knowledge</b> 20% · <b>Comprehension</b> 30% · <b>Application</b> 35% · <b>Analysis/Evaluation</b> 15%';
+  } else if(s.includes('economic')||s.includes('ekonom')){
+    ratios='<b>Knowledge</b> 25% · <b>Application</b> 45% · <b>Analysis/Synthesis</b> 30%';
+  } else if(s.includes('life')||s.includes('lewens')){
+    ratios='<b>Knowledge</b> 30% · <b>Understanding</b> 40% · <b>Application</b> 30%';
+  } else {
+    ratios='<b>Lower Order</b> 30% · <b>Middle Order</b> 40% · <b>Higher Order</b> 30%';
+  }
+  el.innerHTML='<div style="color:var(--t8);font-weight:600;margin-bottom:3px;">'+subj+'</div>'+ratios;
 }
-function toggleBloom(el){el.classList.toggle('on');}
 function toggleDiagOptions(){
   const count=parseInt(document.getElementById('diagramCount').value)||0;
   document.getElementById('diag-options').style.display=count>0?'block':'none';
-}
-function getBloomsLevels(){
-  return Array.from(document.querySelectorAll('.bloom-btn.on')).map(b=>b.dataset.b);
 }
 function switchTab(tab,btn){
   activeTab=tab;
@@ -911,18 +924,16 @@ async function doGenerate(){
   }
   const diagramCount=document.getElementById('diagramCount').value||'0';
   const diagramType=document.getElementById('diagramType').value;
-  const bloomsLevels=getBloomsLevels();
   if(!subj){alert('Please select a subject.');return;}
   if(!topic||topic==='— Select subject first —'){alert('Please select a topic.');return;}
-  if((bloomsMode==='single'||bloomsMode==='mixed')&&bloomsLevels.length===0){alert('Please select at least one Bloom\'s level.');return;}
   showGen('l');
   document.getElementById('gbtn').disabled=true;
   document.getElementById('lsub').textContent=`CAPS-aligned · Grade ${grade} · Term ${term}`;
   const msgs=[
     `Generating your Grade ${grade} ${lang} ${rtype}...`,
     `Aligning to CAPS Grade ${grade} Term ${term}...`,
-    bloomsMode!=='none'?`Applying Bloom\'s taxonomy — ${bloomsLevels.join(', ')}...`:'Writing questions and memorandum...',
-    parseInt(diagramCount)>0?`Creating ${diagramCount} diagram(s) for Addendum A...`:includeRubric?'Adding marking rubric...':'Finalising teacher pack...'
+    'Applying DoE cognitive level ratios...',
+    'Writing questions and memorandum...'
   ];
   let mi=0;
   const iv=setInterval(()=>{mi=(mi+1)%msgs.length;const el=document.getElementById('ltxt');if(el)el.textContent=msgs[mi];},2200);
@@ -930,7 +941,7 @@ async function doGenerate(){
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,grade,term,bloomsMode,bloomsLevels,allTopics})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,diagramCount,diagramType,grade,term,allTopics})
     });
     clearInterval(iv);
     const rawText=await r.text();
@@ -971,7 +982,6 @@ function renderOut(subj,topic,content,diagrams,grade,term){
   window._term=term||document.getElementById('term').value;
 
   const diffBadge=diff==='below'?'<span class="pt-badge amber">Below grade</span>':diff==='above'?'<span class="pt-badge blue">Above grade</span>':'<span class="pt-badge green">On grade</span>';
-  const bloomsBadge=bloomsMode!=='none'&&getBloomsLevels().length?`<span class="pt-badge purple">Bloom's: ${getBloomsLevels().join(', ')}</span>`:'';
   const diagCount=diagrams?diagrams.length:0;
   const diagBadge=diagCount>0?`<span class="pt-badge blue">${diagCount} diagram${diagCount>1?'s':''} · Addendum A</span>`:'';
 
@@ -1007,7 +1017,6 @@ function renderOut(subj,topic,content,diagrams,grade,term){
     <div class="pt-badges">
       <span class="pt-badge green">CAPS · Gr${grade} · T${term}</span>
       ${diffBadge}
-      ${bloomsBadge}
       ${diagBadge}
       ${document.getElementById('rubric').checked?'<span class="pt-badge blue">Rubric</span>':''}
     </div>
@@ -1066,9 +1075,7 @@ async function sendRefinement(){
         language:lang,
         grade:window._grade||document.getElementById('grade').value,
         term:window._term||document.getElementById('term').value,
-        difficulty:diff,
-        bloomsMode,
-        bloomsLevels:getBloomsLevels()
+        difficulty:diff
       })
     });
     const d=await r.json();
@@ -1663,8 +1670,8 @@ ${addendumWordHtml}
 
 // Init — runs after all functions are defined
 loadSubjects();
-document.getElementById('subj').addEventListener('change',loadTopics);
-document.getElementById('grade').addEventListener('change',function(){loadSubjects();loadTopics();});
+document.getElementById('subj').addEventListener('change',function(){loadTopics();updateDoeDisplay();});
+document.getElementById('grade').addEventListener('change',function(){loadSubjects();loadTopics();updateDoeDisplay();});
 document.getElementById('term').addEventListener('change',loadTopics);
 
 </script>
