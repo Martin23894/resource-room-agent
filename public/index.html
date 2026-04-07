@@ -1464,9 +1464,8 @@ async function downloadWord(){
       continue;
     }
 
-    // Resource Room header block
+    // Resource Room header — skip in Word download (branded header already shows it)
     if(trimmed==='THE RESOURCE ROOM'||trimmed.startsWith('THE RESOURCE ROOM')){
-      bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11pt;font-weight:bold;color:#085041;margin:4pt 0 2pt;">${esc(trimmed)}</p>`;
       continue;
     }
 
