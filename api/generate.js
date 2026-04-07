@@ -343,117 +343,173 @@ ${includeRubric ? '12. Include the MARKING RUBRIC section at the end. This is re
   }
 
   try {
-    const rubricExtra = includeRubric ? 1500 : 0;
+    // ═══════════════════════════════════════════════════════════
+    // TWO-CALL STRATEGY for ALL resource types
+    // Call 1: Question paper only
+    // Call 2: Memo + cognitive table + extension + rubric
+    // This guarantees the memo NEVER gets cut off
+    // ═══════════════════════════════════════════════════════════
 
-    if (isExam || isFinalExam) {
-      // ═══════════════════════════════════════════════════════════
-      // TWO-CALL STRATEGY for Exams and Final Exams
-      // Call 1: Question paper only (no memo, no cognitive table)
-      // Call 2: Memo + cognitive table + extension + rubric
-      // ═══════════════════════════════════════════════════════════
+    // Call 1: Questions only
+    const questionsSystem = `You are an expert South African CAPS ${phase} teacher creating a professional ${resourceType} question paper. Write entirely in ${language}. Use SA context (rands, SA names like Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, local places).
 
-      // Call 1: Questions only
-      const questionsPrompt = systemText.replace(
-        /═+\nMEMORANDUM[\s\S]*$/,
-        'TOTAL: _____ / ' + totalMarks + ' marks\n\nDo NOT include a memorandum, cognitive level table, extension, or rubric in this response. ONLY generate the question paper up to and including the TOTAL line.'
-      );
-      const questionsUser = `Create ONLY the question paper (NO memorandum) for a ${resourceType} for ${subject}. Grade ${g}, Term ${t}, ${language}, ${timeAllocation}, ${difficulty || 'on'} grade level. ${topicInstruction} JSON only: {"content":"question paper text"}`;
+DIFFICULTY: ${diffNote}
 
-      const raw1 = await callAPI(questionsPrompt, questionsUser, 5000);
+DoE COGNITIVE LEVELS (distribute marks accordingly — but do NOT label cognitive levels in the learner paper):
+${cogLevelTable}
+Total: ${totalMarks} marks
 
-      let questionPaper = '';
-      try {
-        const parsed1 = JSON.parse(raw1);
-        questionPaper = parsed1.content || raw1;
-      } catch(e) {
-        let cleaned = raw1;
-        cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
-        cleaned = cleaned.replace(/"\s*\}\s*$/, '');
-        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-        questionPaper = cleaned;
-      }
+CAPS: Grade ${g} Term ${t} ${subject}
+${topicInstruction}
+${markGuidance}
 
-      // Call 2: Memo + cognitive table + extension + rubric
-      const memoSystem = `You are a South African CAPS ${phase} teacher. You have just created a ${resourceType} for Grade ${g} Term ${t} ${subject} in ${language}. Now create the COMPLETE memorandum and supporting sections for this question paper.
+FORMATTING RULES:
+- NEVER use Unicode box-drawing characters (─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ═ ║). Use simple pipe | tables or plain text only.
+- For tables, use: Column A | Column B format with | separators.
+- For source-based questions with data tables, present them as simple pipe tables.
 
-DoE COGNITIVE LEVELS:
+Return JSON only: {"content":"question paper text"}
+
+${formatInstructions}
+
+${isWorksheet ? `WORKSHEET HEADER:
+${subject} — Worksheet
+Grade ${g} | Term ${t} | ${language}
+Name: ___________________________    Date: ___________________
+Total: ${totalMarks} marks
+` : `COVER PAGE:
+
+${resourceType.toUpperCase()}
+${subject}
+Grade ${g}                                                          Term ${t}
+Name: ___________________________    Date: ___________________
+Surname: ________________________
+Examiner: ______________________     Time: ${timeAllocation}
+
+Total: ${totalMarks}    |    %: _____    |    Code: _____
+
+Comments: _______________________________________________
+
+Instructions:
+* Read the questions properly.
+  o Answer ALL the questions.
+  o Show all working where required.
+  o Pay special attention to the mark allocation of each question.
+`}
+
+QUESTION PAPER RULES:
+${isTest ? '- Do NOT use SECTION A / SECTION B headers. Use Question 1, Question 2, etc.' : ''}
+${(isExam || isFinalExam) ? '- USE SECTION A / SECTION B / SECTION C headers.' : ''}
+- Number: Question 1: [heading] then 1.1, 1.2, 1.1.1 etc.
+- Marks in brackets at end: (2)
+- Answer lines: _______________________________________________ 
+- "Working:" and "Answer:" lines ONLY for calculation questions
+- Multiple choice: a. b. c. d. then Answer: ___
+- True/False: statement then _______________
+- Match columns: use simple pipe | table format
+- NO cognitive level labels anywhere in the question paper
+- Use at least 3 different question types
+${(isExam || isFinalExam) ? '- Spread questions across ALL topics listed.' : ''}
+
+TOTAL: _____ / ${totalMarks} marks
+
+Generate ONLY the question paper. Stop after the TOTAL line. Do NOT include a memorandum.`;
+
+    const questionsUser = `Create the question paper ONLY for a ${resourceType}: ${subject}, Grade ${g}, Term ${t}, ${language}, ${timeAllocation}, ${difficulty || 'on'} grade. ${topicInstruction}${isWorksheet ? ' 8-15 questions.' : ' Minimum 10 question items.'} JSON only.`;
+
+    const questionsTokens = isWorksheet ? 3000 : (isExam || isFinalExam) ? 5000 : 4000;
+    const raw1 = await callAPI(questionsSystem, questionsUser, questionsTokens);
+
+    let questionPaper = '';
+    try {
+      const parsed1 = JSON.parse(raw1);
+      questionPaper = parsed1.content || raw1;
+    } catch(e) {
+      let cleaned = raw1;
+      cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
+      cleaned = cleaned.replace(/"\s*\}\s*$/, '');
+      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      questionPaper = cleaned;
+    }
+
+    // Call 2: Memo + cognitive table + extension + rubric
+    const memoSystem = `You are a South African CAPS ${phase} teacher. Create a COMPLETE memorandum and supporting sections for the question paper below. Write in ${language}.
+
+FORMATTING RULES:
+- NEVER use Unicode box-drawing characters (─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ═ ║). Use simple pipe | tables only.
+- Use this exact table format for the memo:
+  NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+
+DoE Cognitive Levels for ${subject}:
 ${cogLevelTable}
 Total: ${totalMarks} marks
 
 Return JSON only: {"content":"memorandum text"}`;
 
-      const memoUser = `Here is the question paper you created:
+    const memoUser = `Here is the question paper:
 
 ${questionPaper}
 
-Now create ALL of the following sections for this question paper:
+Create ALL of the following:
 
-1. MEMORANDUM — a table with columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-   - Answer for EVERY question — no gaps
-   - Marks must add up to EXACTLY ${totalMarks}
-   - Use (Any two) / (Any three) where multiple answers are acceptable
+MEMORANDUM
+Format as a pipe-separated table (NO Unicode box characters):
+NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
 
-2. COGNITIVE LEVEL ANALYSIS TABLE:
-   Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
-   ${cogLevels.levels.map((level, i) => {
-       const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
-       return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks;
-     }).join('\n   ')}
-   Then list which questions fall under each level.
+Rules:
+- Answer for EVERY question — no gaps
+- Multiple choice: just the letter
+- True/False: TRUE or FALSE + correction if false
+- Short answers: expected answer
+- Calculations: show working + answer, marks per step
+- Where multiple answers acceptable: "(Any two)" + list options
+- Marks must add up to EXACTLY ${totalMarks}
 
-3. EXTENSION ACTIVITY — One challenging higher-order question with model answer.
+TOTAL: ${totalMarks} marks
 
-${includeRubric ? '4. MARKING RUBRIC — 5-level rubric (Outstanding/Good/Satisfactory/Needs Improvement/Not Achieved) with 3-4 criteria rows relevant to ' + subject + '.' : ''}
+${!isWorksheet ? `COGNITIVE LEVEL ANALYSIS TABLE (pipe format):
+Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
+${cogLevels.levels.map((level, i) => {
+    const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
+    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks;
+  }).join('\n')}
 
-JSON only: {"content":"memorandum and all sections"}`;
+Then list: [Level] ([X] marks): Q1.1 (1) + Q1.2 (1) + ... = X
 
-      const raw2 = await callAPI(memoSystem, memoUser, 8192);
+EXTENSION ACTIVITY
+One challenging higher-order question with model answer.
+` : `
+ANSWERS
+Numbered answers for all questions.
+`}
+${includeRubric ? `MARKING RUBRIC (pipe format table):
+CRITERIA | Level 5 Outstanding | Level 4 Good | Level 3 Satisfactory | Level 2 Needs Improvement | Level 1 Not Achieved
+Include 3-4 criteria rows relevant to ${subject}. Add mark ranges per level.` : ''}
 
-      let memoContent = '';
-      try {
-        const parsed2 = JSON.parse(raw2);
-        memoContent = parsed2.content || raw2;
-      } catch(e) {
-        let cleaned = raw2;
-        cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
-        cleaned = cleaned.replace(/"\s*\}\s*$/, '');
-        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-        memoContent = cleaned;
-      }
+JSON only: {"content":"complete memorandum and all sections"}`;
 
-      // Combine question paper + memo
-      const fullResource = questionPaper + '\n\n' + memoContent;
+    const memoTokens = includeRubric ? 8192 : 6000;
+    const raw2 = await callAPI(memoSystem, memoUser, memoTokens);
 
-      return res.status(200).json({
-        content: fullResource,
-        diagrams: null
-      });
-
-    } else {
-      // ═══════════════════════════════════════════════════════════
-      // SINGLE CALL for Tests and Worksheets (they fit in one call)
-      // ═══════════════════════════════════════════════════════════
-      let tokenLimit = 7000 + rubricExtra;
-      if (isWorksheet) tokenLimit = 4500 + rubricExtra;
-      const raw1 = await callAPI(systemText, userText, tokenLimit);
-
-      let resourceContent = '';
-      try {
-        const parsed1 = JSON.parse(raw1);
-        resourceContent = parsed1.content || raw1;
-      } catch(e) {
-        let cleaned = raw1;
-        cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
-        cleaned = cleaned.replace(/"\s*\}\s*$/, '');
-        cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-        resourceContent = cleaned;
-      }
-
-      return res.status(200).json({
-        content: resourceContent,
-        diagrams: null
-      });
+    let memoContent = '';
+    try {
+      const parsed2 = JSON.parse(raw2);
+      memoContent = parsed2.content || raw2;
+    } catch(e) {
+      let cleaned = raw2;
+      cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
+      cleaned = cleaned.replace(/"\s*\}\s*$/, '');
+      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      memoContent = cleaned;
     }
+
+    // Combine question paper + memo
+    const fullResource = questionPaper + '\n\n' + memoContent;
+
+    return res.status(200).json({
+      content: fullResource,
+      diagrams: null
+    });
 
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
