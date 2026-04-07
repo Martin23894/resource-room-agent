@@ -149,7 +149,23 @@ WORKSHEET FORMAT:
   }
 
   const rubricNote = includeRubric
-    ? '\n\nInclude a MARKING RUBRIC section: 4-level rubric (Level 1-4) with criteria and marks.'
+    ? `
+
+═══════════════════════════════════════════════════════
+MARKING RUBRIC
+═══════════════════════════════════════════════════════
+
+Create a rubric table with these columns:
+CRITERIA | Level 5 (Outstanding) | Level 4 (Good) | Level 3 (Satisfactory) | Level 2 (Needs Improvement) | Level 1 (Not Achieved)
+
+Include 3-4 criteria rows relevant to this ${resourceType}, for example:
+- For Languages: Planning/Organisation, Language use/Style/Editing, Structure, Content
+- For Maths: Mathematical reasoning, Accuracy of calculations, Presentation of working, Problem-solving approach
+- For Sciences: Scientific knowledge, Application of concepts, Analysis/Interpretation, Communication
+- For Social Sciences: Knowledge of content, Source interpretation, Writing/Argument, Use of evidence
+
+Each cell must have a brief description of what that level looks like for that criteria.
+Add a marks row at the bottom showing the mark range per level.`
     : '';
 
   // ═══════════════════════════════════════════════════════════
@@ -224,10 +240,25 @@ ${isWorksheet ? '' : `TOTAL: _____ / ${totalMarks} marks
 MEMORANDUM
 ═══════════════════════════════════════════════════════
 
-Question 1:
-1.1  [Answer] ✓✓ (2)
-1.2  [Answer] ✓ (1)
-[Number every answer. Use ✓ marks to show mark allocation.]
+Format the memorandum as a table:
+NO. | POSSIBLE ANSWER | MARKING GUIDANCE | MARK
+
+Example:
+1.1 | B | | 1
+1.2 | Five hundred and six thousand and twenty-six | 1 mark per correct part | 2
+1.3 | (Any two): evaporation, condensation, precipitation | Accept any two from the list | 2
+7.3 | 5h 45min | 1 mark for calculation, 1 mark for answer | 2
+
+Rules for the memorandum:
+- EVERY question must have a corresponding answer — no gaps
+- For multiple choice: just give the letter (A, B, C, or D)
+- For True/False: just give True or False
+- For short answers: give the expected answer
+- For longer answers: give the full model answer with marking guidance
+- Where multiple answers are acceptable, write "(Any two)" or "(Any three)" and list all acceptable options
+- For calculations: show the working AND the answer, specify marks per step
+- Add marking guidance where helpful: "1 mark for method, 1 mark for answer" or "Accept any reasonable answer"
+- The marks in the memo must add up to EXACTLY ${totalMarks}
 
 TOTAL: ${totalMarks} marks
 `}
@@ -235,13 +266,13 @@ ${isWorksheet ? `
 ═══════════════════════════════════════════════════════
 ANSWERS
 ═══════════════════════════════════════════════════════
-[Numbered answers for all questions]
+[Numbered answers for all questions. For calculations show working.]
 ` : `
 COGNITIVE LEVEL ANALYSIS:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cogLevels.levels.map((level, i) => {
     const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
-    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks + ' | [fill in] | [fill in]';
+    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks + ' | [fill in actual] | [fill in actual]';
   }).join('\n')}
 Total | 100% | ${totalMarks} | ${totalMarks} | 100%
 `}
@@ -255,13 +286,15 @@ ${rubricNote}
 
 CRITICAL RULES:
 1. ${markGuidance}
-2. Distribute marks across cognitive levels matching DoE ratios.
+2. Distribute marks across cognitive levels matching DoE ratios. Label each question with its cognitive level.
 3. ${isWorksheet ? 'Include 8-15 question items.' : 'Include at least 10 numbered question items (sub-questions count).'}
 4. Every question MUST have marks in brackets and answer lines.
-5. ${isWorksheet ? 'Include answers for every question.' : 'The memorandum must have answers for EVERY question with ✓ marks.'}
+5. ${isWorksheet ? 'Include answers for every question.' : 'The MEMORANDUM is ESSENTIAL — it must include answers for EVERY SINGLE question. No gaps. Marks in the memo must add up to EXACTLY ' + totalMarks + '.'}
 6. Use South African context, names, currency (rands), and scenarios.
 7. Stay within CAPS ATP scope for Grade ${g} ${isFinalExam ? 'Terms 1-4' : 'Term ' + t} ${subject}.
-${(isExam || isFinalExam) ? '8. EVERY topic listed above must have at least one question. Spread questions across ALL topics.' : ''}`;
+8. ${isWorksheet ? '' : 'Include the COGNITIVE LEVEL ANALYSIS table after the memorandum.'}
+${(isExam || isFinalExam) ? '9. EVERY topic listed above must have at least one question. Spread questions across ALL topics.' : ''}
+${includeRubric ? '10. Include the MARKING RUBRIC section at the end. This is required — do not skip it.' : ''}`;
 
   const userText = `Create a ${resourceType} for ${subject}. Grade ${g}, Term ${t}, ${language}, ${duration || '1 hour'}, ${difficulty || 'on'} grade level. ${topicInstruction}${includeRubric ? ' Include a marking rubric.' : ''} Apply DoE cognitive level ratios. JSON only: {"content":"resource text"}`;
 
@@ -293,8 +326,14 @@ ${(isExam || isFinalExam) ? '8. EVERY topic listed above must have at least one 
   }
 
   try {
-    // Exams and Final Exams need more tokens due to covering multiple topics
-    const tokenLimit = (isExam || isFinalExam) ? 6000 : 4096;
+    // Token limits: must be high enough for questions + full memo + cognitive table + rubric
+    // Test 50 marks ≈ 5000 tokens, Exam 75 marks ≈ 7000, Final Exam 100 marks ≈ 8000
+    // Add 1500 extra if rubric is included
+    const rubricExtra = includeRubric ? 1500 : 0;
+    let tokenLimit = 5500 + rubricExtra; // Test default
+    if (isExam) tokenLimit = 7000 + rubricExtra;
+    if (isFinalExam) tokenLimit = 8192; // Max available
+    if (isWorksheet) tokenLimit = 3500 + rubricExtra;
     const raw1 = await callAPI(systemText, userText, tokenLimit);
 
     let resourceContent = '';
