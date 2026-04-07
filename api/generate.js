@@ -179,7 +179,7 @@ DoE COGNITIVE LEVELS — MANDATORY MARK SPLIT:
 ${cogLevelTable}
 Total: ${totalMarks} marks
 
-IMPORTANT: Label each question or section with its cognitive level in brackets, e.g. [Knowledge] or [Routine Procedures]. The marks per cognitive level MUST match the prescribed split above.
+CRITICAL: Do NOT write cognitive level labels like [Knowledge] or [Routine Procedures] anywhere in the LEARNER paper. Cognitive levels are TEACHER-ONLY information and must ONLY appear in the MEMORANDUM section. Learners must never see what cognitive level a question is.
 
 CAPS: Grade ${g} Term ${t} ${subject}
 ${topicInstruction}
@@ -191,90 +191,105 @@ Return JSON only: {"content":"the complete resource text"}
 ${formatInstructions}
 ═══════════════════════════════════════════════════════
 
-${isWorksheet ? `WORKSHEET HEADER:
-THE RESOURCE ROOM
-${subject} Worksheet — ${topic || 'Term ' + t}
+${isWorksheet ? `WORKSHEET HEADER FORMAT:
+${subject} — Worksheet
 Grade ${g} | Term ${t} | ${language}
 Name: ___________________________    Date: ___________________
 Total: ${totalMarks} marks
-` : `COVER PAGE:
-THE RESOURCE ROOM
 
-${resourceType}
+` : `COVER PAGE FORMAT:
+
+${resourceType.toUpperCase()}
 ${subject}
 Grade ${g}                                                          Term ${t}
 Name: ___________________________    Date: ___________________
 Surname: ________________________
-Time: ${timeAllocation}                                      Total: ${totalMarks} marks
+Examiner: ______________________     Time: ${timeAllocation}
+
+Total: ${totalMarks}    |    %: _____    |    Code: _____
+
+Comments: _______________________________________________
 
 Instructions:
-- Read the questions properly.
-- Answer ALL the questions.
-- Pay special attention to the mark allocation of each question.
+• Read the questions properly.
+  o Answer ALL the questions.
+  o Show all working where required.
+  o Pay special attention to the mark allocation of each question.
+
 `}
 ═══════════════════════════════════════════════════════
 
-QUESTION FORMAT RULES:
-- Number questions hierarchically: Question 1 → 1.1 → 1.1.1
-- ALWAYS put mark allocation in brackets at the end: (2)
-- ALWAYS add answer lines (___________) after each question for learners to write on
-- For 1-mark questions: one answer line
-- For 2+ mark questions: two or more answer lines
-- For multiple choice: list options as a. b. c. d. on separate lines
-- For true/false: add _________ after each statement
-- For matching columns: present Column A and Column B clearly
+QUESTION PAPER FORMAT RULES:
+${isTest ? `- Do NOT use SECTION A / SECTION B headers for a topic test. Just use Question 1, Question 2, etc.
+- Each question can focus on a different ASPECT of the topic (e.g. Question 1: definitions, Question 2: calculations)` : ''}
+${(isExam || isFinalExam) ? `- USE SECTION A / SECTION B / SECTION C headers to organise the exam by question type.` : ''}
+- Number questions hierarchically: Question 1: [topic/heading] → 1.1 → 1.1.1
+- Marks in brackets at the END of each question line: (2)
+- Answer lines as underscores: _______________________________________________
+  • For 1-mark answers: one answer line
+  • For 2+ mark answers: two or more answer lines
+  • For calculations: add "Working:" line ONLY for calculation questions, then answer line below
+  • For multiple choice: list a. b. c. d. on separate lines — NO answer line needed, just "Answer: ___"
+  • For true/false: write the statement, then ___________ on the same line or next line
+  • For matching columns: present Column A and Column B in a clear table format
+- Do NOT write "Working:" for non-calculation questions — just put answer lines
+- Do NOT put any cognitive level labels in the question paper
 
 QUESTION TYPE MIX — use at least 3 different types:
-- Multiple choice (a, b, c, d)
-- True or False
-- Short answer / fill in the blank
-- Source-based — provide a short text extract, table, or scenario then ask questions
-- Explain / Describe
-- Match columns
-- Order / Sequence
-- Calculate / Show working (for Maths)
+- Multiple choice (a, b, c, d) — for knowledge recall
+- True or False — for quick knowledge checks
+- Fill in the blank / Give the term — "Name two...", "What is the term for..."
+- Source-based — provide a short extract, table, data, or scenario, then ask questions about it
+- Explain / Describe — "Explain why...", "Describe how..." — for higher-order thinking
+- Match columns — Column A and Column B
+- Calculate / Show working — for Mathematics (show "Working:" and "Answer:" lines)
+- Order / Arrange — "Arrange the following from smallest to greatest"
 
-${isWorksheet ? '' : `TOTAL: _____ / ${totalMarks} marks
+TOTAL: _____ / ${totalMarks} marks
 
 ═══════════════════════════════════════════════════════
 MEMORANDUM
 ═══════════════════════════════════════════════════════
 
-Format the memorandum as a table:
-NO. | POSSIBLE ANSWER | MARKING GUIDANCE | MARK
+Format the memorandum as a clear table. Include the COGNITIVE LEVEL for each question in the memo — this is the ONLY place cognitive levels should appear:
 
-Example:
-1.1 | B | | 1
-1.2 | Five hundred and six thousand and twenty-six | 1 mark per correct part | 2
-1.3 | (Any two): evaporation, condensation, precipitation | Accept any two from the list | 2
-7.3 | 5h 45min | 1 mark for calculation, 1 mark for answer | 2
+NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
 
-Rules for the memorandum:
+Example rows:
+1.1 | B | | Knowledge | 1
+1.2 | Five hundred and six thousand and twenty-six | 1 mark per correct part | Knowledge | 2
+4.1 | (Any two): evaporation, condensation, precipitation | Accept any two from list | Comprehension | 2
+7.3 | 5h 45min | 1 mark for calculation, 1 mark for answer | Complex Procedures | 2
+
+Memo rules:
 - EVERY question must have a corresponding answer — no gaps
 - For multiple choice: just give the letter (A, B, C, or D)
 - For True/False: just give True or False
 - For short answers: give the expected answer
 - For longer answers: give the full model answer with marking guidance
-- Where multiple answers are acceptable, write "(Any two)" or "(Any three)" and list all acceptable options
-- For calculations: show the working AND the answer, specify marks per step
-- Add marking guidance where helpful: "1 mark for method, 1 mark for answer" or "Accept any reasonable answer"
-- The marks in the memo must add up to EXACTLY ${totalMarks}
+- Where multiple answers are acceptable: "(Any two)" or "(Any three)" + list all acceptable options
+- For calculations: show working AND answer, specify marks per step
+- The COGNITIVE LEVEL column shows which level each question belongs to — this is TEACHER INFORMATION
+- Marks in the memo must add up to EXACTLY ${totalMarks}
 
 TOTAL: ${totalMarks} marks
-`}
+
 ${isWorksheet ? `
 ═══════════════════════════════════════════════════════
 ANSWERS
 ═══════════════════════════════════════════════════════
 [Numbered answers for all questions. For calculations show working.]
 ` : `
-COGNITIVE LEVEL ANALYSIS:
+COGNITIVE LEVEL ANALYSIS TABLE:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cogLevels.levels.map((level, i) => {
     const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
-    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks + ' | [fill in actual] | [fill in actual]';
+    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks + ' | [actual] | [actual %]';
   }).join('\n')}
 Total | 100% | ${totalMarks} | ${totalMarks} | 100%
+
+Then list which questions fall under each cognitive level:
+[Level name] ([X] marks): Q1.1 (1) + Q1.2 (1) + ... = [X]
 `}
 ${!isWorksheet ? `
 ═══════════════════════════════════════════════════════
@@ -287,14 +302,14 @@ ${rubricNote}
 CRITICAL RULES (in order of priority):
 1. ${markGuidance}
 2. COMPLETENESS IS NON-NEGOTIABLE: The resource MUST include ALL sections — questions, TOTAL line, MEMORANDUM with every answer, COGNITIVE LEVEL ANALYSIS table${includeRubric ? ', and MARKING RUBRIC' : ''}. If you run out of space, keep questions shorter — NEVER cut off the memorandum.
-3. Keep questions concise and focused. Do NOT write overly long question stems — save space for the complete memorandum.
-4. Distribute marks across cognitive levels matching DoE ratios. Label each question with its cognitive level.
+3. Keep questions concise and focused. Do NOT write overly long question stems.
+4. NO cognitive level labels anywhere in the learner question paper. They belong ONLY in the memorandum.
 5. ${isWorksheet ? 'Include 8-15 question items.' : 'Include at least 10 numbered question items (sub-questions count).'}
 6. Every question MUST have marks in brackets and answer lines.
 7. ${isWorksheet ? 'Include answers for every question.' : 'The MEMORANDUM must include answers for EVERY SINGLE question. No gaps. Marks must add up to EXACTLY ' + totalMarks + '.'}
-8. Use South African context, names, currency (rands), and scenarios.
+8. Use South African context, names, currency (rands), and scenarios throughout.
 9. Stay within CAPS ATP scope for Grade ${g} ${isFinalExam ? 'Terms 1-4' : 'Term ' + t} ${subject}.
-${isWorksheet ? '' : '10. Include the COGNITIVE LEVEL ANALYSIS table after the memorandum.'}
+${isWorksheet ? '' : '10. Include the COGNITIVE LEVEL ANALYSIS table after the memorandum with question-level breakdown.'}
 ${(isExam || isFinalExam) ? '11. EVERY topic listed above must have at least one question. Spread questions across ALL topics.' : ''}
 ${includeRubric ? '12. Include the MARKING RUBRIC section at the end. This is required — do not skip it.' : ''}`;
 
