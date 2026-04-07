@@ -269,60 +269,96 @@ export default async function handler(req, res) {
   const qSys = `You are a South African CAPS ${phase} Phase teacher creating a ${resourceType} question paper in ${language}. Use SA context (rands, names: Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, SA places).
 
 DIFFICULTY: ${diffNote}
-DoE COGNITIVE LEVELS (distribute marks accordingly — do NOT label levels in the learner paper):
+DoE COGNITIVE LEVELS (distribute marks — do NOT label levels in the learner paper):
 ${cogTable}
 CAPS: Grade ${g} Term ${t} ${subject}
 ${topicInstruction}
-TOTAL: EXACTLY ${totalMarks} marks. TIME: ${timeAllocation}.
 
-RULES:
-- NEVER use Unicode box characters. Plain text only.
+MARKS: The paper must total EXACTLY ${totalMarks} marks. TIME: ${timeAllocation}.
+BEFORE WRITING: Plan your mark allocation first. Add up all marks mentally to confirm they equal ${totalMarks} before you start writing. If you have 8 questions worth 5+5+5+7+7+6+5+10 = 50, that works. Count carefully.
+
+DO NOT INCLUDE:
+- NO title, header, school name, cover page, name/date fields, or instructions block. The system adds these automatically. Start DIRECTLY with your first question.
+- NO cognitive level labels like [Knowledge] or [Routine Procedures]
+- NO notes, commentary, or explanations to the teacher
+- NO Unicode box characters
+
+FORMAT RULES:
 - Question numbering: Question 1: [heading] then 1.1, 1.2, 1.1.1
-- Marks in brackets: (2)
+- Marks in brackets AT THE END of the question line: 1.1 What is 5 x 3? (1)
 - Answer lines: _______________________________________________
-- Working:/Answer: lines ONLY for calculation questions
-- MCQ: a. b. c. d. then Answer: ___
-- True/False: statement then _______________
-- Match columns: plain text list, NOT tables
-- NO cognitive level labels in the question paper
-- NO meta-commentary, notes, or AI reasoning
-${isTest ? '- NO SECTION headers. Use Question 1, 2, 3.' : ''}
+- Working:/Answer: ONLY for calculation questions that need working shown
+- MCQ: a. b. c. d. options then Answer: ___ (short line only)
+- True/False: statement then _______________ on same line
+- Match columns: list Column A items and Column B items as plain text
+- Question totals: [5] at end of each question block
+${isTest ? '- NO SECTION A/B/C headers. Use Question 1, 2, 3.' : ''}
 ${(isExam || isFinalExam) ? '- USE SECTION A/B/C/D headers.' : ''}
 ${(isExam || isFinalExam) ? '- Every topic must have at least one question.' : ''}
 - Minimum ${isWorksheet ? '8' : '10'} question items
-- Keep questions concise
+- Keep questions concise — short stems, clear language
 
-Return JSON: {"content":"question paper text — stop after TOTAL line"}`;
+End with: TOTAL: _____ / ${totalMarks} marks
 
-  const qUsr = `Create the question paper ONLY for: ${subject} ${resourceType}, Grade ${g}, Term ${t}, ${language}, ${totalMarks} marks, ${timeAllocation}. ${topicInstruction}. Stop after TOTAL line.`;
+Return JSON: {"content":"questions only — no cover page, no memo"}`;
 
-  const mSys = `You are a South African CAPS teacher. Create a COMPLETE memorandum in ${language}. NEVER use Unicode box characters. Use pipe | tables only. No meta-commentary or AI reasoning. Return JSON: {"content":"memorandum text"}`;
+  const qUsr = `Create ONLY the questions for: ${subject} ${resourceType}, Grade ${g}, Term ${t}, ${language}, EXACTLY ${totalMarks} marks, ${timeAllocation}. ${topicInstruction}. No cover page. No memo. Start with Question 1. End with TOTAL line.`;
+
+  const mSys = `You are a South African CAPS teacher creating a memorandum in ${language}.
+
+CRITICAL RULES:
+- NEVER use Unicode box characters. Use pipe | tables only.
+- NEVER include notes, adjustments, commentary, discrepancy notices, or reasoning. Just the answers.
+- NEVER repeat the same table twice. Generate each table ONCE only.
+- NEVER question or discuss the mark allocation. Accept the marks as given and provide answers.
+- If marks in the paper add up to more or less than ${totalMarks}, just answer every question with the marks shown. Do NOT comment on it.
+
+Return JSON: {"content":"memorandum text"}`;
 
   const mUsr = (qp) => `Question paper:
 
 ${qp}
 
-Create ALL sections using pipe | tables:
+Create these sections using pipe | tables. ONE table per section. No commentary.
 
-1. MEMORANDUM
+MEMORANDUM
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-Answer every question. Marks total EXACTLY ${totalMarks}.
+(Answer every question exactly as it appears in the paper. Use the marks shown in the paper.)
 
-2. COGNITIVE LEVEL ANALYSIS
+TOTAL: ${totalMarks} marks
+
+COGNITIVE LEVEL ANALYSIS
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l,i) => l + ' | ' + cog.pcts[i] + '% | ' + Math.round(totalMarks*cog.pcts[i]/100)).join('\n')}
-Then: [Level] ([X] marks): Q1.1 (1) + Q2.1 (2) + ... = X
+Then ONE line per level: [Level] ([X] marks): Q1.1 (1) + Q2.1 (2) + ... = X
 
-${!isWorksheet ? '3. EXTENSION ACTIVITY\nOne challenging question with model answer.\n' : ''}
-${includeRubric ? '4. MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good | Level 3 Satisfactory | Level 2 Needs Improvement | Level 1 Not Achieved\n3-4 rows for ' + subject + '. Mark ranges per level.' : ''}`;
+${!isWorksheet ? 'EXTENSION ACTIVITY\nOne challenging question with model answer.\n' : ''}
+${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good | Level 3 Satisfactory | Level 2 Needs Improvement | Level 1 Not Achieved\n3-4 rows for ' + subject + '. Mark ranges per level.' : ''}`;
+
+  // ═══════════════════════════════════════
+  // CLEANUP — remove AI meta-commentary
+  // ═══════════════════════════════════════
+  function cleanOutput(text) {
+    return text.split('\n').filter(line => {
+      const t = line.trim().toUpperCase();
+      if (t.startsWith('NOTE:') || t.startsWith('NOTE ') || t.startsWith('NOTE TO')) return false;
+      if (t.includes('DISCREPANCY') || t.includes('ADJUSTMENT') || t.includes('RECONCILIATION')) return false;
+      if (t.startsWith('REVISED ') || t.startsWith('FINAL INSTRUCTION') || t.startsWith('FINAL CONFIRMED')) return false;
+      if (t.startsWith('THE QUESTION PAPER AS') || t.startsWith('THE PAPER AS')) return false;
+      if (t.startsWith('RECOMMENDED ADJUSTMENT') || t.startsWith('TEACHERS SHOULD')) return false;
+      return true;
+    }).join('\n');
+  }
 
   // ═══════════════════════════════════════
   // EXECUTE
   // ═══════════════════════════════════════
   try {
     const qTok = isWorksheet ? 3000 : (isExam || isFinalExam) ? 5000 : 4000;
-    const questionPaper = await callClaude(qSys, qUsr, qTok);
-    const memoContent = await callClaude(mSys, mUsr(questionPaper), includeRubric ? 8192 : 6000);
+    let questionPaper = await callClaude(qSys, qUsr, qTok);
+    questionPaper = cleanOutput(questionPaper);
+
+    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper), includeRubric ? 8192 : 6000));
 
     const doc = buildDoc(questionPaper, memoContent);
     const buffer = await Packer.toBuffer(doc);
