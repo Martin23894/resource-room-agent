@@ -284,17 +284,19 @@ EXTENSION ACTIVITY
 ` : ''}
 ${rubricNote}
 
-CRITICAL RULES:
+CRITICAL RULES (in order of priority):
 1. ${markGuidance}
-2. Distribute marks across cognitive levels matching DoE ratios. Label each question with its cognitive level.
-3. ${isWorksheet ? 'Include 8-15 question items.' : 'Include at least 10 numbered question items (sub-questions count).'}
-4. Every question MUST have marks in brackets and answer lines.
-5. ${isWorksheet ? 'Include answers for every question.' : 'The MEMORANDUM is ESSENTIAL — it must include answers for EVERY SINGLE question. No gaps. Marks in the memo must add up to EXACTLY ' + totalMarks + '.'}
-6. Use South African context, names, currency (rands), and scenarios.
-7. Stay within CAPS ATP scope for Grade ${g} ${isFinalExam ? 'Terms 1-4' : 'Term ' + t} ${subject}.
-8. ${isWorksheet ? '' : 'Include the COGNITIVE LEVEL ANALYSIS table after the memorandum.'}
-${(isExam || isFinalExam) ? '9. EVERY topic listed above must have at least one question. Spread questions across ALL topics.' : ''}
-${includeRubric ? '10. Include the MARKING RUBRIC section at the end. This is required — do not skip it.' : ''}`;
+2. COMPLETENESS IS NON-NEGOTIABLE: The resource MUST include ALL sections — questions, TOTAL line, MEMORANDUM with every answer, COGNITIVE LEVEL ANALYSIS table${includeRubric ? ', and MARKING RUBRIC' : ''}. If you run out of space, keep questions shorter — NEVER cut off the memorandum.
+3. Keep questions concise and focused. Do NOT write overly long question stems — save space for the complete memorandum.
+4. Distribute marks across cognitive levels matching DoE ratios. Label each question with its cognitive level.
+5. ${isWorksheet ? 'Include 8-15 question items.' : 'Include at least 10 numbered question items (sub-questions count).'}
+6. Every question MUST have marks in brackets and answer lines.
+7. ${isWorksheet ? 'Include answers for every question.' : 'The MEMORANDUM must include answers for EVERY SINGLE question. No gaps. Marks must add up to EXACTLY ' + totalMarks + '.'}
+8. Use South African context, names, currency (rands), and scenarios.
+9. Stay within CAPS ATP scope for Grade ${g} ${isFinalExam ? 'Terms 1-4' : 'Term ' + t} ${subject}.
+${isWorksheet ? '' : '10. Include the COGNITIVE LEVEL ANALYSIS table after the memorandum.'}
+${(isExam || isFinalExam) ? '11. EVERY topic listed above must have at least one question. Spread questions across ALL topics.' : ''}
+${includeRubric ? '12. Include the MARKING RUBRIC section at the end. This is required — do not skip it.' : ''}`;
 
   const userText = `Create a ${resourceType} for ${subject}. Grade ${g}, Term ${t}, ${language}, ${duration || '1 hour'}, ${difficulty || 'on'} grade level. ${topicInstruction}${includeRubric ? ' Include a marking rubric.' : ''} Apply DoE cognitive level ratios. JSON only: {"content":"resource text"}`;
 
@@ -326,14 +328,14 @@ ${includeRubric ? '10. Include the MARKING RUBRIC section at the end. This is re
   }
 
   try {
-    // Token limits: must be high enough for questions + full memo + cognitive table + rubric
-    // Test 50 marks ≈ 5000 tokens, Exam 75 marks ≈ 7000, Final Exam 100 marks ≈ 8000
-    // Add 1500 extra if rubric is included
+    // Token limits must cover: questions + full memo + cognitive table + extension + rubric
+    // A 50-mark test with memo needs ~5000-6000 tokens minimum
+    // Rubric adds ~1000-1500 tokens
     const rubricExtra = includeRubric ? 1500 : 0;
-    let tokenLimit = 5500 + rubricExtra; // Test default
-    if (isExam) tokenLimit = 7000 + rubricExtra;
-    if (isFinalExam) tokenLimit = 8192; // Max available
-    if (isWorksheet) tokenLimit = 3500 + rubricExtra;
+    let tokenLimit = 7000 + rubricExtra; // Test default — generous to prevent cutoff
+    if (isExam) tokenLimit = 8192; // Max for exams
+    if (isFinalExam) tokenLimit = 8192; // Max for final exams
+    if (isWorksheet) tokenLimit = 4000 + rubricExtra;
     const raw1 = await callAPI(systemText, userText, tokenLimit);
 
     let resourceContent = '';
