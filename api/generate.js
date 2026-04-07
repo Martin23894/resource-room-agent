@@ -15,6 +15,11 @@ export default async function handler(req, res) {
   const t = parseInt(term) || 3;
   const phase = g <= 3 ? 'Foundation Phase' : g <= 6 ? 'Intermediate Phase' : 'Senior Phase';
 
+  // Parse duration string: "50 marks, 1 hour" → marks=50, time="1 hour"
+  const durParts = (duration || '50 marks, 1 hour').split(',').map(s => s.trim());
+  const totalMarks = parseInt(durParts[0]) || 50;
+  const timeAllocation = durParts[1] || '1 hour';
+
   function getDoERatios(subj, gradeNum) {
     const s = (subj || '').toLowerCase();
     if (s.includes('math') || s.includes('wiskunde'))
@@ -73,7 +78,7 @@ export default async function handler(req, res) {
   let markGuidance = '';
 
   if (isTest) {
-    markGuidance = 'Calculate total marks based on time: roughly 1 mark per minute. A 1-hour test = ~50-60 marks.';
+    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The resource must total EXACTLY ' + totalMarks + ' marks.';
     formatInstructions = `
 TEST FORMAT:
 - Formal cover page with all fields
@@ -82,7 +87,7 @@ TEST FORMAT:
 - Full memorandum with tick marks
 - Cognitive level analysis table at the end`;
   } else if (isExam) {
-    markGuidance = 'Term exam: typically 50-75 marks for 1.5-2 hours. Spread marks across ALL topics from the term.';
+    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The exam must total EXACTLY ' + totalMarks + ' marks. Spread marks across ALL topics from the term.';
     formatInstructions = `
 EXAM FORMAT:
 - Formal cover page with all fields
@@ -93,7 +98,7 @@ EXAM FORMAT:
 - Full memorandum with tick marks
 - Cognitive level analysis table at the end`;
   } else if (isFinalExam) {
-    markGuidance = 'Final exam: typically 75-100 marks for 2-2.5 hours. Cover ALL 4 terms with heavier weighting on Terms 3-4.';
+    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The final exam must total EXACTLY ' + totalMarks + ' marks. Cover ALL 4 terms with heavier weighting on Terms 3-4.';
     formatInstructions = `
 FINAL EXAM FORMAT:
 - Formal cover page with all fields
@@ -105,7 +110,7 @@ FINAL EXAM FORMAT:
 - Full memorandum with tick marks
 - Cognitive level analysis table at the end`;
   } else if (isWorksheet) {
-    markGuidance = 'Worksheet: typically 15-30 marks, designed for 20-30 minutes of classwork or homework.';
+    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The worksheet must total EXACTLY ' + totalMarks + ' marks.';
     formatInstructions = `
 WORKSHEET FORMAT:
 - NO formal cover page — just a simple header line with: Subject | Grade | Term | Topic | Name: ______ Date: ______
@@ -144,7 +149,7 @@ THE RESOURCE ROOM
 ${subject} Worksheet — ${topic || 'Term ' + t}
 Grade ${g} | Term ${t} | ${language}
 Name: ___________________________    Date: ___________________
-Total: [X] marks
+Total: ${totalMarks} marks
 ` : `COVER PAGE:
 THE RESOURCE ROOM
 
@@ -153,7 +158,7 @@ ${subject}
 Grade ${g}                                                          Term ${t}
 Name: ___________________________    Date: ___________________
 Surname: ________________________
-Time: ${duration || '1 hour'}                                      Total: [X] marks
+Time: ${timeAllocation}                                      Total: ${totalMarks} marks
 
 Instructions:
 - Read the questions properly.
@@ -182,7 +187,7 @@ QUESTION TYPE MIX — use at least 3 different types:
 - Order / Sequence
 - Calculate / Show working (for Maths)
 
-${isWorksheet ? '' : `TOTAL: _____ / [X] marks
+${isWorksheet ? '' : `TOTAL: _____ / ${totalMarks} marks
 
 ═══════════════════════════════════════════════════════
 MEMORANDUM
@@ -193,7 +198,7 @@ Question 1:
 1.2  [Answer] ✓ (1)
 [Number every answer. Use ✓ marks to show mark allocation.]
 
-TOTAL: [X] marks
+TOTAL: ${totalMarks} marks
 `}
 ${isWorksheet ? `
 ═══════════════════════════════════════════════════════
@@ -204,7 +209,7 @@ ANSWERS
 COGNITIVE LEVEL ANALYSIS:
 Cognitive Level | Prescribed % | Actual Marks | Actual %
 ${doeRatios.split('|').map(r => r.trim()).join('\n')}
-Total: [X] marks | 100%
+Total: ${totalMarks} marks | 100%
 `}
 ${!isWorksheet ? `
 ═══════════════════════════════════════════════════════
