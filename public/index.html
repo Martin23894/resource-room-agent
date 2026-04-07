@@ -291,16 +291,14 @@ select:focus{outline:none;border-color:var(--t4);}
           <button class="dbtn above" data-d="above" onclick="setDiff(this)">Above<br>grade</button>
         </div>
       </div>
-      <!-- Duration -->
+      <!-- Duration / Marks -->
       <div style="margin-bottom:10px;">
         <div class="flabel">Duration / marks</div>
         <div class="sw">
           <select id="dur">
-            <option value="1 hour, 50 marks">1 hour — 50 marks</option>
-            <option value="45 minutes, 40 marks">45 min — 40 marks</option>
-            <option value="30 minutes, 30 marks">30 min — 30 marks</option>
-            <option value="2 hours, 100 marks">2 hours — 100 marks</option>
-            <option value="flexible duration">Flexible / Worksheet</option>
+            <option value="50 marks, 1 hour">Standard test — 50 marks (1 hour)</option>
+            <option value="30 marks, 45 minutes">Quick test — 30 marks (45 min)</option>
+            <option value="60 marks, 1 hour 30 minutes">Full FAT — 60 marks (1hr 30min)</option>
           </select>
         </div>
       </div>
@@ -786,7 +784,19 @@ function loadTopics(){
   }
 }
 
-function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;updateTopicsForType();}
+function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');rtype=el.dataset.t;updateTopicsForType();updateDurationForType();}
+function updateDurationForType(){
+  const durEl=document.getElementById('dur');
+  if(rtype==='Test'){
+    durEl.innerHTML='<option value="50 marks, 1 hour">Standard test — 50 marks (1 hour)</option><option value="30 marks, 45 minutes">Quick test — 30 marks (45 min)</option><option value="60 marks, 1 hour 30 minutes">Full FAT — 60 marks (1hr 30min)</option>';
+  } else if(rtype==='Exam'){
+    durEl.innerHTML='<option value="60 marks, 1 hour 30 minutes">Term exam — 60 marks (1hr 30min)</option><option value="75 marks, 2 hours">Term exam — 75 marks (2 hours)</option>';
+  } else if(rtype==='Final Exam'){
+    durEl.innerHTML='<option value="75 marks, 2 hours">Final exam — 75 marks (2 hours)</option><option value="100 marks, 2 hours 30 minutes">Final exam — 100 marks (2hr 30min)</option>';
+  } else if(rtype==='Worksheet'){
+    durEl.innerHTML='<option value="20 marks, 30 minutes">Classwork — 20 marks (30 min)</option><option value="10 marks, 15 minutes">Quick practice — 10 marks (15 min)</option><option value="25 marks, 45 minutes">Homework — 25 marks (45 min)</option>';
+  }
+}
 function updateTopicsForType(){
   const topicEl=document.getElementById('topic');
   const raw=document.getElementById('subj').value;
