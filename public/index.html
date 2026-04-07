@@ -1514,15 +1514,27 @@ async function downloadWord(){
       continue;
     }
 
-    // Numbered questions
+    // Numbered questions — split number from text for clean layout
     if(trimmed.match(/^\d+[\.\)]/)){
-      bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;margin:6pt 0 3pt;line-height:1.6;">${esc(trimmed)}</p>`;
+      const match=trimmed.match(/^(\d+[\.\)]\d*[\.\)]?\d*[\.\)]?)\s*(.*)/);
+      if(match){
+        const num=match[1];
+        const text=match[2]||'';
+        bodyHtml+=`<table width="100%" cellpadding="0" cellspacing="0" style="margin:6pt 0 3pt;font-family:Calibri,sans-serif;font-size:11.5pt;line-height:1.6;"><tr><td style="width:45pt;vertical-align:top;padding-right:6pt;font-weight:bold;">${esc(num)}</td><td style="vertical-align:top;">${esc(text)}</td></tr></table>`;
+      } else {
+        bodyHtml+=`<table width="100%" cellpadding="0" cellspacing="0" style="margin:6pt 0 3pt;font-family:Calibri,sans-serif;font-size:11.5pt;line-height:1.6;"><tr><td>${esc(trimmed)}</td></tr></table>`;
+      }
       continue;
     }
 
-    // Sub-questions a) b) c)
+    // Sub-questions a) b) c) d) — same clean layout with indent
     if(trimmed.match(/^[a-z][\.\)]/)){
-      bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;margin:2pt 0 2pt;padding-left:18pt;line-height:1.5;">${esc(trimmed)}</p>`;
+      const match=trimmed.match(/^([a-z][\.\)])\s*(.*)/);
+      if(match){
+        bodyHtml+=`<table width="100%" cellpadding="0" cellspacing="0" style="margin:2pt 0;font-family:Calibri,sans-serif;font-size:11.5pt;line-height:1.5;"><tr><td style="width:45pt;padding-left:18pt;vertical-align:top;">${esc(match[1])}</td><td style="vertical-align:top;">${esc(match[2]||'')}</td></tr></table>`;
+      } else {
+        bodyHtml+=`<p style="font-family:Calibri,sans-serif;font-size:11.5pt;margin:2pt 0 2pt;padding-left:18pt;line-height:1.5;">${esc(trimmed)}</p>`;
+      }
       continue;
     }
 
