@@ -1,517 +1,338 @@
+import {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  AlignmentType, BorderStyle, WidthType, TabStopType,
+  ShadingType, Header, Footer
+} from 'docx';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const {
-    subject, topic, resourceType, language, duration, difficulty,
-    includeRubric, diagramCount, diagramType,
-    grade, term, allTopics
-  } = req.body;
-
-  if (!subject || !resourceType || !language) {
-    return res.status(400).json({ error: 'Missing required fields' });
-  }
+  const { subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term, allTopics } = req.body;
+  if (!subject || !resourceType || !language) return res.status(400).json({ error: 'Missing required fields' });
 
   const g = parseInt(grade) || 6;
   const t = parseInt(term) || 3;
-  const phase = g <= 3 ? 'Foundation Phase' : g <= 6 ? 'Intermediate Phase' : 'Senior Phase';
-
-  // Parse duration string: "50 marks, 1 hour" → marks=50, time="1 hour"
-  const durParts = (duration || '50 marks, 1 hour').split(',').map(s => s.trim());
-  const totalMarks = parseInt(durParts[0]) || 50;
-  const timeAllocation = durParts[1] || '1 hour';
-
-  function getDoERatios(subj, gradeNum) {
-    const s = (subj || '').toLowerCase();
-    if (s.includes('math') || s.includes('wiskunde'))
-      return gradeNum <= 3
-        ? 'Knowledge 25% | Routine Procedures 45% | Complex Procedures 20% | Problem Solving 10%'
-        : 'Knowledge 25% | Routine Procedures 45% | Complex Procedures 25% | Problem Solving 10%';
-    if (s.includes('home language') || s.includes('huistaal'))
-      return 'Lower Order/Literal 30% | Middle Order/Inferential 40% | Higher Order/Critical 30%';
-    if (s.includes('additional') || s.includes('addisionele'))
-      return 'Lower Order/Literal 40% | Middle Order/Inferential 35% | Higher Order/Critical 25%';
-    if (s.includes('natural') || s.includes('natuur'))
-      return 'Recall 25% | Comprehension 30% | Application/Analysis 30% | Synthesis/Evaluation 15%';
-    if (s.includes('social') || s.includes('sosiale'))
-      return 'Knowledge/Recall 30% | Comprehension 30% | Application/Analysis 25% | Synthesis/Evaluation 15%';
-    if (s.includes('technolog') || s.includes('tegnol'))
-      return 'Knowledge 20% | Comprehension 30% | Application 35% | Analysis/Evaluation 15%';
-    if (s.includes('economic') || s.includes('ekonom'))
-      return 'Knowledge 25% | Application 45% | Analysis/Synthesis 30%';
-    if (s.includes('life') || s.includes('lewens'))
-      return 'Knowledge 30% | Understanding 40% | Application 30%';
-    return 'Lower Order 30% | Middle Order 40% | Higher Order 30%';
-  }
-
-  const doeRatios = getDoERatios(subject, g);
-
-  // Calculate prescribed marks per cognitive level
-  function getCognitiveLevelMarks(subj, gradeNum, total) {
-    const s = (subj || '').toLowerCase();
-    if (s.includes('math') || s.includes('wiskunde')) {
-      if (gradeNum <= 3) return {levels: ['Knowledge','Routine Procedures','Complex Procedures','Problem Solving'], pcts: [25,45,20,10]};
-      return {levels: ['Knowledge','Routine Procedures','Complex Procedures','Problem Solving'], pcts: [25,45,25,10]};
-    }
-    if (s.includes('home language') || s.includes('huistaal'))
-      return {levels: ['Lower Order/Literal','Middle Order/Inferential','Higher Order/Critical'], pcts: [30,40,30]};
-    if (s.includes('additional') || s.includes('addisionele'))
-      return {levels: ['Lower Order/Literal','Middle Order/Inferential','Higher Order/Critical'], pcts: [40,35,25]};
-    if (s.includes('natural') || s.includes('natuur'))
-      return {levels: ['Recall','Comprehension','Application/Analysis','Synthesis/Evaluation'], pcts: [25,30,30,15]};
-    if (s.includes('social') || s.includes('sosiale'))
-      return {levels: ['Knowledge/Recall','Comprehension','Application/Analysis','Synthesis/Evaluation'], pcts: [30,30,25,15]};
-    if (s.includes('technolog') || s.includes('tegnol'))
-      return {levels: ['Knowledge','Comprehension','Application','Analysis/Evaluation'], pcts: [20,30,35,15]};
-    if (s.includes('economic') || s.includes('ekonom'))
-      return {levels: ['Knowledge','Application','Analysis/Synthesis'], pcts: [25,45,30]};
-    if (s.includes('life') || s.includes('lewens'))
-      return {levels: ['Knowledge','Understanding','Application'], pcts: [30,40,30]};
-    return {levels: ['Lower Order','Middle Order','Higher Order'], pcts: [30,40,30]};
-  }
-
-  const cogLevels = getCognitiveLevelMarks(subject, g, totalMarks);
-  const cogLevelTable = cogLevels.levels.map((level, i) => {
-    const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
-    return level + ' ' + cogLevels.pcts[i] + '% = ' + marks + ' marks';
-  }).join('\n');
-  const cogLevelLabels = cogLevels.levels.join(', ');
-
-  const diffNote = difficulty === 'below' ? 'BELOW grade level — use simpler vocabulary, more scaffolding, shorter questions'
-    : difficulty === 'above' ? 'ABOVE grade level — extension-level, higher-order thinking, less scaffolding'
-    : 'ON grade level — standard CAPS difficulty';
-
-  // ═══════════════════════════════════════════════════════════
-  // RESOURCE-TYPE-SPECIFIC INSTRUCTIONS
-  // ═══════════════════════════════════════════════════════════
+  const phase = g <= 3 ? 'Foundation' : g <= 6 ? 'Intermediate' : 'Senior';
   const isExam = resourceType === 'Exam';
   const isFinalExam = resourceType === 'Final Exam';
   const isWorksheet = resourceType === 'Worksheet';
   const isTest = resourceType === 'Test';
 
-  // Determine topic content for the prompt
+  const durParts = (duration || '50 marks, 1 hour').split(',').map(s => s.trim());
+  const totalMarks = parseInt(durParts[0]) || 50;
+  const timeAllocation = durParts[1] || '1 hour';
+  const diffNote = difficulty === 'below' ? 'Below grade level' : difficulty === 'above' ? 'Above grade level' : 'On grade level';
+
+  // ═══════════════════════════════════════
+  // DoE COGNITIVE LEVELS
+  // ═══════════════════════════════════════
+  function getCogLevels(subj, gr) {
+    const s = (subj || '').toLowerCase();
+    if (s.includes('math') || s.includes('wiskunde'))
+      return { levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'], pcts: gr <= 3 ? [25,45,20,10] : [25,45,25,10] };
+    if (s.includes('home language') || s.includes('huistaal'))
+      return { levels: ['Lower Order/Literal', 'Middle Order/Inferential', 'Higher Order/Critical'], pcts: [30,40,30] };
+    if (s.includes('additional') || s.includes('addisionele'))
+      return { levels: ['Lower Order/Literal', 'Middle Order/Inferential', 'Higher Order/Critical'], pcts: [40,35,25] };
+    if (s.includes('natural') || s.includes('natuur'))
+      return { levels: ['Recall', 'Comprehension', 'Application/Analysis', 'Synthesis/Evaluation'], pcts: [25,30,30,15] };
+    if (s.includes('social') || s.includes('sosiale'))
+      return { levels: ['Knowledge/Recall', 'Comprehension', 'Application/Analysis', 'Synthesis/Evaluation'], pcts: [30,30,25,15] };
+    if (s.includes('technolog') || s.includes('tegnol'))
+      return { levels: ['Knowledge', 'Comprehension', 'Application', 'Analysis/Evaluation'], pcts: [20,30,35,15] };
+    if (s.includes('economic') || s.includes('ekonom'))
+      return { levels: ['Knowledge', 'Application', 'Analysis/Synthesis'], pcts: [25,45,30] };
+    if (s.includes('life') || s.includes('lewens'))
+      return { levels: ['Knowledge', 'Understanding', 'Application'], pcts: [30,40,30] };
+    return { levels: ['Lower Order', 'Middle Order', 'Higher Order'], pcts: [30,40,30] };
+  }
+
+  const cog = getCogLevels(subject, g);
+  const cogTable = cog.levels.map((l, i) => l + ' ' + cog.pcts[i] + '% = ' + Math.round(totalMarks * cog.pcts[i] / 100) + ' marks').join('\n');
+
   let topicInstruction = '';
-  if (isFinalExam && allTopics) {
-    topicInstruction = 'FINAL EXAM — cover ALL topics from the entire year. Spread questions across all topics proportionally. Every major topic must have at least one question.\n\nTopics to cover:\n' + allTopics;
-  } else if (isExam && allTopics) {
-    topicInstruction = 'TERM EXAM — cover ALL topics from Term ' + t + '. Spread questions across all topics proportionally. Every topic must have at least one question.\n\nTopics to cover:\n' + allTopics;
-  } else {
-    topicInstruction = 'TOPIC: ' + (topic || subject);
+  if (isFinalExam && allTopics) topicInstruction = 'FINAL EXAM — cover ALL topics from the entire year:\n' + allTopics;
+  else if (isExam && allTopics) topicInstruction = 'TERM EXAM — cover ALL Term ' + t + ' topics:\n' + allTopics;
+  else topicInstruction = 'TOPIC: ' + (topic || subject);
+
+  // ═══════════════════════════════════════
+  // DOCX HELPERS
+  // ═══════════════════════════════════════
+  const FONT = 'Arial';
+  const GREEN = '085041';
+  const bdr = { style: BorderStyle.SINGLE, size: 1, color: 'AAAAAA' };
+  const cellBorders = { top: bdr, bottom: bdr, left: bdr, right: bdr };
+
+  function txt(text, opts = {}) {
+    return new TextRun({ text: String(text), font: FONT, size: opts.size || 22, bold: !!opts.bold, color: opts.color || '000000', italics: !!opts.italics });
   }
 
-  // Resource-specific format instructions
-  let formatInstructions = '';
-  let markGuidance = '';
-
-  if (isTest) {
-    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The resource must total EXACTLY ' + totalMarks + ' marks.';
-    formatInstructions = `
-TEST FORMAT:
-- Formal cover page with all fields
-- Questions grouped by topic sections if covering multiple sub-topics
-- Mix of question types (multiple choice, short answer, explain, source-based)
-- Full memorandum with tick marks
-- Cognitive level analysis table at the end`;
-  } else if (isExam) {
-    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The exam must total EXACTLY ' + totalMarks + ' marks. Spread marks across ALL topics from the term.';
-    formatInstructions = `
-EXAM FORMAT:
-- Formal cover page with all fields
-- SECTION A: Objective questions (multiple choice, true/false, matching columns) — covers breadth across all term topics — approximately 30% of marks
-- SECTION B: Short answer questions — 2-3 marks each, covering different topics — approximately 30% of marks
-- SECTION C: Structured/longer questions — source-based, explain, calculate, describe — approximately 40% of marks
-- Each section must draw from DIFFERENT topics across the term
-- Full memorandum with tick marks
-- Cognitive level analysis table at the end`;
-  } else if (isFinalExam) {
-    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The final exam must total EXACTLY ' + totalMarks + ' marks. Cover ALL 4 terms with heavier weighting on Terms 3-4.';
-    formatInstructions = `
-FINAL EXAM FORMAT:
-- Formal cover page with all fields
-- SECTION A: Objective questions (multiple choice, true/false, matching columns) — covers breadth across ALL terms — approximately 25% of marks
-- SECTION B: Short answer questions — covers Terms 1-4 — approximately 25% of marks
-- SECTION C: Structured/longer questions from Terms 1-2 — approximately 20% of marks
-- SECTION D: Structured/longer questions from Terms 3-4 — approximately 30% of marks (heavier weighting on recent work)
-- Each section must draw from DIFFERENT topics and terms
-- Full memorandum with tick marks
-- Cognitive level analysis table at the end`;
-  } else if (isWorksheet) {
-    markGuidance = 'TOTAL MARKS: ' + totalMarks + '. TIME: ' + timeAllocation + '. The worksheet must total EXACTLY ' + totalMarks + ' marks.';
-    formatInstructions = `
-WORKSHEET FORMAT:
-- NO formal cover page — just a simple header line with: Subject | Grade | Term | Topic | Name: ______ Date: ______
-- Focused on ONE topic only — practice and reinforcement
-- 8-15 questions, progressing from easy to harder
-- Mix of question types but simpler than a test
-- Answer lines after each question
-- Short memorandum at the end
-- NO cognitive level analysis table needed
-- Keep it to 2-3 pages maximum`;
+  function para(content, opts = {}) {
+    const children = typeof content === 'string' ? [txt(content, opts)] : content;
+    return new Paragraph({
+      children,
+      spacing: { before: opts.spaceBefore || 0, after: opts.spaceAfter || 60 },
+      alignment: opts.align || AlignmentType.LEFT,
+      indent: opts.indent,
+      tabStops: opts.tabStops
+    });
   }
 
-  const rubricNote = includeRubric
-    ? `
+  function sectionHead(text) {
+    return para(text, { bold: true, size: 26, color: GREEN, spaceBefore: 300, spaceAfter: 120 });
+  }
 
-═══════════════════════════════════════════════════════
-MARKING RUBRIC
-═══════════════════════════════════════════════════════
+  function questionHead(text) {
+    return new Paragraph({
+      children: [txt(text, { bold: true, size: 24 })],
+      spacing: { before: 240, after: 80 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' } }
+    });
+  }
 
-Create a rubric table with these columns:
-CRITERIA | Level 5 (Outstanding) | Level 4 (Good) | Level 3 (Satisfactory) | Level 2 (Needs Improvement) | Level 1 (Not Achieved)
+  function numQ(num, text) {
+    return new Paragraph({
+      children: [txt(num, { bold: true }), new TextRun({ text: '\t', font: FONT }), txt(text)],
+      tabStops: [{ type: TabStopType.LEFT, position: 900 }],
+      indent: { left: 900, hanging: 900 },
+      spacing: { before: 120, after: 40 }
+    });
+  }
 
-Include 3-4 criteria rows relevant to this ${resourceType}, for example:
-- For Languages: Planning/Organisation, Language use/Style/Editing, Structure, Content
-- For Maths: Mathematical reasoning, Accuracy of calculations, Presentation of working, Problem-solving approach
-- For Sciences: Scientific knowledge, Application of concepts, Analysis/Interpretation, Communication
-- For Social Sciences: Knowledge of content, Source interpretation, Writing/Argument, Use of evidence
+  function optLine(text) {
+    return para(text, { indent: { left: 1200 }, spaceAfter: 20 });
+  }
 
-Each cell must have a brief description of what that level looks like for that criteria.
-Add a marks row at the bottom showing the mark range per level.`
-    : '';
+  function blankLine() {
+    return para('_______________________________________________', { indent: { left: 900 }, spaceAfter: 80 });
+  }
 
-  // ═══════════════════════════════════════════════════════════
-  // SYSTEM PROMPT
-  // ═══════════════════════════════════════════════════════════
-  const systemText = `You are an expert South African CAPS ${phase} teacher creating professional ${resourceType} resources. Write entirely in ${language}. Use SA context throughout (rands, SA names like Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, local places and scenarios).
+  function workLine() {
+    return para([txt('Working: ', { bold: true, size: 20 }), txt('_______________________________________________', { size: 20 })], { indent: { left: 900 }, spaceAfter: 20 });
+  }
 
-DIFFICULTY: ${diffNote}
+  function ansLine() {
+    return para([txt('Answer: ', { bold: true, size: 20 }), txt('_______________________________________________', { size: 20 })], { indent: { left: 900 }, spaceAfter: 80 });
+  }
 
-DoE COGNITIVE LEVELS — MANDATORY MARK SPLIT:
-${cogLevelTable}
-Total: ${totalMarks} marks
+  function cell(text, opts = {}) {
+    return new TableCell({
+      children: [new Paragraph({
+        children: [txt(String(text), { size: opts.size || 18, bold: !!opts.bold, color: opts.color || '000000' })],
+        alignment: opts.align || AlignmentType.LEFT
+      })],
+      width: opts.width ? { size: opts.width, type: WidthType.DXA } : undefined,
+      shading: opts.fill ? { fill: opts.fill, type: ShadingType.CLEAR } : undefined,
+      borders: cellBorders
+    });
+  }
 
-CRITICAL: Do NOT write cognitive level labels like [Knowledge] or [Routine Procedures] anywhere in the LEARNER paper. Cognitive levels are TEACHER-ONLY information and must ONLY appear in the MEMORANDUM section. Learners must never see what cognitive level a question is.
+  function tbl(headers, rows) {
+    const hRow = new TableRow({ children: headers.map(h => cell(h, { bold: true, color: 'FFFFFF', fill: GREEN })) });
+    const dRows = rows.map(r => new TableRow({ children: r.map(c => cell(c)) }));
+    return new Table({ rows: [hRow, ...dRows], width: { size: 100, type: WidthType.PERCENTAGE } });
+  }
 
-CAPS: Grade ${g} Term ${t} ${subject}
-${topicInstruction}
-${markGuidance}
+  // ═══════════════════════════════════════
+  // COVER PAGE
+  // ═══════════════════════════════════════
+  function buildCover() {
+    const els = [];
+    els.push(para('THE RESOURCE ROOM', { bold: true, size: 28, color: GREEN, align: AlignmentType.CENTER, spaceAfter: 200 }));
+    els.push(para(resourceType.toUpperCase(), { bold: true, size: 36, align: AlignmentType.CENTER, spaceAfter: 80 }));
+    els.push(para(subject, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 200 }));
+    els.push(para([txt('Grade ' + g, { size: 24 }), txt('                                                                    Term ' + t, { size: 24 })], { spaceAfter: 80 }));
+    els.push(para([txt('Name: ___________________________', {}), txt('          Date: ___________________', {})], { spaceAfter: 40 }));
+    els.push(para('Surname: ________________________', { spaceAfter: 40 }));
+    if (!isWorksheet) {
+      els.push(para([txt('Examiner: ______________________', {}), txt('     Time: ' + timeAllocation, {})], { spaceAfter: 120 }));
+    }
+    els.push(new Table({
+      rows: [new TableRow({
+        children: [
+          cell('Total', { bold: true }), cell(String(totalMarks), { bold: true, align: AlignmentType.CENTER }),
+          cell('%', { bold: true, align: AlignmentType.CENTER }), cell('Code', { bold: true, align: AlignmentType.CENTER })
+        ]
+      })],
+      width: { size: 100, type: WidthType.PERCENTAGE }
+    }));
+    els.push(para(''));
+    els.push(para([txt('Comments: ', { bold: true, size: 20 }), txt('_______________________________________________', { size: 20 })], { spaceAfter: 120 }));
+    els.push(para('Instructions:', { bold: true, spaceAfter: 40 }));
+    els.push(para('•   Read the questions properly.', { indent: { left: 360 }, spaceAfter: 20 }));
+    els.push(para('○   Answer ALL the questions.', { indent: { left: 720 }, spaceAfter: 20 }));
+    els.push(para('○   Show all working where required.', { indent: { left: 720 }, spaceAfter: 20 }));
+    els.push(para('○   Pay special attention to the mark allocation of each question.', { indent: { left: 720 }, spaceAfter: 200 }));
+    return els;
+  }
 
-Return JSON only: {"content":"the complete resource text"}
+  // ═══════════════════════════════════════
+  // TEXT → DOCX ELEMENTS
+  // ═══════════════════════════════════════
+  function parseText(text) {
+    const lines = text.split('\n');
+    const els = [];
+    for (let i = 0; i < lines.length; i++) {
+      const tr = lines[i].trim();
+      if (!tr) { els.push(para('', { spaceAfter: 40 })); continue; }
+      if (/^[═━─\-_]{3,}$/.test(tr)) continue;
+      if (/^\|[\s\-:]+\|/.test(tr)) continue;
+      if (/^#{1,3}\s+/.test(tr)) { els.push(sectionHead(tr.replace(/^#+\s+/, ''))); continue; }
+      if (/^SECTION\s+[A-Z]/i.test(tr) || /^AFDELING\s+[A-Z]/i.test(tr)) { els.push(sectionHead(tr)); continue; }
+      if (/^Question\s+\d+/i.test(tr) || /^Vraag\s+\d+/i.test(tr)) { els.push(questionHead(tr)); continue; }
+      if (/^TOTAL/i.test(tr) || /^TOTAAL/i.test(tr)) { els.push(para(tr, { bold: true, size: 24, color: GREEN, spaceBefore: 200 })); continue; }
+      if (/^MEMORANDUM/i.test(tr)) { els.push(sectionHead('MEMORANDUM')); continue; }
+      if (/^COGNITIVE LEVEL/i.test(tr)) { els.push(sectionHead(tr)); continue; }
+      if (/^EXTENSION/i.test(tr) || /^ENRICHMENT/i.test(tr)) { els.push(sectionHead(tr)); continue; }
+      if (/^MARKING RUBRIC/i.test(tr) || /^RUBRIC/i.test(tr)) { els.push(sectionHead(tr)); continue; }
+      if (/^\[\d+\]$/.test(tr)) { els.push(para(tr, { bold: true, align: AlignmentType.RIGHT })); continue; }
 
-═══════════════════════════════════════════════════════
-${formatInstructions}
-═══════════════════════════════════════════════════════
+      // Numbered items (1.1, 2.3.1, etc.)
+      const nm = tr.match(/^(\d+[\.\d]*)\s+(.*)/);
+      if (nm && /^\d+\.\d+/.test(tr)) { els.push(numQ(nm[1], nm[2])); continue; }
 
-${isWorksheet ? `WORKSHEET HEADER FORMAT:
-${subject} — Worksheet
-Grade ${g} | Term ${t} | ${language}
-Name: ___________________________    Date: ___________________
-Total: ${totalMarks} marks
+      // MCQ options
+      if (/^[a-d]\.\s/.test(tr)) { els.push(optLine(tr)); continue; }
 
-` : `COVER PAGE FORMAT:
+      // Answer/Working
+      if (/^Answer:/i.test(tr) || /^Antwoord:/i.test(tr)) { els.push(ansLine()); continue; }
+      if (/^Working:/i.test(tr) || /^Werking:/i.test(tr)) { els.push(workLine()); continue; }
 
-${resourceType.toUpperCase()}
-${subject}
-Grade ${g}                                                          Term ${t}
-Name: ___________________________    Date: ___________________
-Surname: ________________________
-Examiner: ______________________     Time: ${timeAllocation}
+      // Blank lines
+      if (/^_{5,}$/.test(tr)) { els.push(blankLine()); continue; }
 
-Total: ${totalMarks}    |    %: _____    |    Code: _____
+      // Pipe tables
+      if (tr.includes('|') && tr.split('|').filter(c => c.trim()).length >= 2) {
+        const rows = [tr];
+        while (i + 1 < lines.length) {
+          const nx = lines[i + 1].trim();
+          if (/^[|\s\-:]+$/.test(nx)) { i++; continue; }
+          if (nx.includes('|') && nx.split('|').filter(c => c.trim()).length >= 2) { rows.push(nx); i++; }
+          else break;
+        }
+        const parsed = rows.map(r => r.split('|').map(c => c.trim()).filter(c => c));
+        if (parsed.length > 1) els.push(tbl(parsed[0], parsed.slice(1)));
+        else els.push(para(tr));
+        continue;
+      }
 
-Comments: _______________________________________________
+      // Default
+      els.push(para(tr));
+    }
+    return els;
+  }
 
-Instructions:
-• Read the questions properly.
-  o Answer ALL the questions.
-  o Show all working where required.
-  o Pay special attention to the mark allocation of each question.
+  // ═══════════════════════════════════════
+  // BUILD DOCUMENT
+  // ═══════════════════════════════════════
+  function buildDoc(qText, mText) {
+    const cover = isWorksheet
+      ? [para(subject + ' — Worksheet', { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 80 }),
+         para('Grade ' + g + '  |  Term ' + t + '  |  ' + language, { align: AlignmentType.CENTER, spaceAfter: 40 }),
+         para([txt('Name: ___________________________'), txt('     Date: ___________________')], { spaceAfter: 40 }),
+         para('Total: _____ / ' + totalMarks + ' marks', { bold: true, spaceAfter: 120 })]
+      : buildCover();
 
-`}
-═══════════════════════════════════════════════════════
+    return new Document({
+      styles: { default: { document: { run: { font: FONT, size: 22 } } } },
+      sections: [{
+        properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
+        headers: { default: new Header({ children: [para('THE RESOURCE ROOM', { size: 16, color: '999999', align: AlignmentType.RIGHT })] }) },
+        footers: { default: new Footer({ children: [para('© The Resource Room  |  CAPS Grade ' + g + ' Term ' + t + '  |  ' + subject, { size: 16, color: '999999', align: AlignmentType.CENTER })] }) },
+        children: [...cover, ...parseText(qText), ...parseText(mText)]
+      }]
+    });
+  }
 
-QUESTION PAPER FORMAT RULES:
-${isTest ? `- Do NOT use SECTION A / SECTION B headers for a topic test. Just use Question 1, Question 2, etc.
-- Each question can focus on a different ASPECT of the topic (e.g. Question 1: definitions, Question 2: calculations)` : ''}
-${(isExam || isFinalExam) ? `- USE SECTION A / SECTION B / SECTION C headers to organise the exam by question type.` : ''}
-- Number questions hierarchically: Question 1: [topic/heading] → 1.1 → 1.1.1
-- Marks in brackets at the END of each question line: (2)
-- Answer lines as underscores: _______________________________________________
-  • For 1-mark answers: one answer line
-  • For 2+ mark answers: two or more answer lines
-  • For calculations: add "Working:" line ONLY for calculation questions, then answer line below
-  • For multiple choice: list a. b. c. d. on separate lines — NO answer line needed, just "Answer: ___"
-  • For true/false: write the statement, then ___________ on the same line or next line
-  • For matching columns: present Column A and Column B in a clear table format
-- Do NOT write "Working:" for non-calculation questions — just put answer lines
-- Do NOT put any cognitive level labels in the question paper
-
-QUESTION TYPE MIX — use at least 3 different types:
-- Multiple choice (a, b, c, d) — for knowledge recall
-- True or False — for quick knowledge checks
-- Fill in the blank / Give the term — "Name two...", "What is the term for..."
-- Source-based — provide a short extract, table, data, or scenario, then ask questions about it
-- Explain / Describe — "Explain why...", "Describe how..." — for higher-order thinking
-- Match columns — Column A and Column B
-- Calculate / Show working — for Mathematics (show "Working:" and "Answer:" lines)
-- Order / Arrange — "Arrange the following from smallest to greatest"
-
-TOTAL: _____ / ${totalMarks} marks
-
-═══════════════════════════════════════════════════════
-MEMORANDUM
-═══════════════════════════════════════════════════════
-
-Format the memorandum as a clear table. Include the COGNITIVE LEVEL for each question in the memo — this is the ONLY place cognitive levels should appear:
-
-NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-
-Example rows:
-1.1 | B | | Knowledge | 1
-1.2 | Five hundred and six thousand and twenty-six | 1 mark per correct part | Knowledge | 2
-4.1 | (Any two): evaporation, condensation, precipitation | Accept any two from list | Comprehension | 2
-7.3 | 5h 45min | 1 mark for calculation, 1 mark for answer | Complex Procedures | 2
-
-Memo rules:
-- EVERY question must have a corresponding answer — no gaps
-- For multiple choice: just give the letter (A, B, C, or D)
-- For True/False: just give True or False
-- For short answers: give the expected answer
-- For longer answers: give the full model answer with marking guidance
-- Where multiple answers are acceptable: "(Any two)" or "(Any three)" + list all acceptable options
-- For calculations: show working AND answer, specify marks per step
-- The COGNITIVE LEVEL column shows which level each question belongs to — this is TEACHER INFORMATION
-- Marks in the memo must add up to EXACTLY ${totalMarks}
-
-TOTAL: ${totalMarks} marks
-
-${isWorksheet ? `
-═══════════════════════════════════════════════════════
-ANSWERS
-═══════════════════════════════════════════════════════
-[Numbered answers for all questions. For calculations show working.]
-` : `
-COGNITIVE LEVEL ANALYSIS TABLE:
-Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
-${cogLevels.levels.map((level, i) => {
-    const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
-    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks + ' | [actual] | [actual %]';
-  }).join('\n')}
-Total | 100% | ${totalMarks} | ${totalMarks} | 100%
-
-Then list which questions fall under each cognitive level:
-[Level name] ([X] marks): Q1.1 (1) + Q1.2 (1) + ... = [X]
-`}
-${!isWorksheet ? `
-═══════════════════════════════════════════════════════
-EXTENSION ACTIVITY
-═══════════════════════════════════════════════════════
-[One challenging higher-order question with model answer for fast finishers.]
-` : ''}
-${rubricNote}
-
-CRITICAL RULES (in order of priority):
-1. ${markGuidance}
-2. COMPLETENESS IS NON-NEGOTIABLE: The resource MUST include ALL sections — questions, TOTAL line, MEMORANDUM with every answer, COGNITIVE LEVEL ANALYSIS table${includeRubric ? ', and MARKING RUBRIC' : ''}. If you run out of space, keep questions shorter — NEVER cut off the memorandum.
-3. Keep questions concise and focused. Do NOT write overly long question stems.
-4. NO cognitive level labels anywhere in the learner question paper. They belong ONLY in the memorandum.
-5. ${isWorksheet ? 'Include 8-15 question items.' : 'Include at least 10 numbered question items (sub-questions count).'}
-6. Every question MUST have marks in brackets and answer lines.
-7. ${isWorksheet ? 'Include answers for every question.' : 'The MEMORANDUM must include answers for EVERY SINGLE question. No gaps. Marks must add up to EXACTLY ' + totalMarks + '.'}
-8. Use South African context, names, currency (rands), and scenarios throughout.
-9. Stay within CAPS ATP scope for Grade ${g} ${isFinalExam ? 'Terms 1-4' : 'Term ' + t} ${subject}.
-${isWorksheet ? '' : '10. Include the COGNITIVE LEVEL ANALYSIS table after the memorandum with question-level breakdown.'}
-${(isExam || isFinalExam) ? '11. EVERY topic listed above must have at least one question. Spread questions across ALL topics.' : ''}
-${includeRubric ? '12. Include the MARKING RUBRIC section at the end. This is required — do not skip it.' : ''}`;
-
-  const userText = `Create a ${resourceType} for ${subject}. Grade ${g}, Term ${t}, ${language}, ${duration || '1 hour'}, ${difficulty || 'on'} grade level. ${topicInstruction}${includeRubric ? ' Include a marking rubric.' : ''} Apply DoE cognitive level ratios. JSON only: {"content":"resource text"}`;
-
-  async function callAPI(system, user, maxTok) {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+  // ═══════════════════════════════════════
+  // CLAUDE API
+  // ═══════════════════════════════════════
+  async function callClaude(system, user, maxTok) {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: maxTok,
-        system,
-        messages: [{ role: 'user', content: user }]
-      })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, system, messages: [{ role: 'user', content: user }] })
     });
-    const text = await response.text();
-    if (!response.ok) {
-      let msg = 'API error ' + response.status;
-      try { msg = JSON.parse(text).error?.message || msg; } catch(e) {}
-      throw new Error(msg);
+    const text = await r.text();
+    if (!r.ok) throw new Error(JSON.parse(text).error?.message || 'API error ' + r.status);
+    let raw = JSON.parse(text).content?.map(c => c.text || '').join('') || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+    try { return JSON.parse(raw).content || raw; } catch(e) {
+      let c = raw.replace(/^\s*\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '');
+      return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
     }
-    let raw = '';
-    try { raw = JSON.parse(text).content?.map(c => c.text || '').join('') || ''; }
-    catch(e) { throw new Error('Parse error: ' + text.substring(0, 100)); }
-    return raw.replace(/```json|```/g, '').trim();
   }
 
-  try {
-    // ═══════════════════════════════════════════════════════════
-    // TWO-CALL STRATEGY for ALL resource types
-    // Call 1: Question paper only
-    // Call 2: Memo + cognitive table + extension + rubric
-    // This guarantees the memo NEVER gets cut off
-    // ═══════════════════════════════════════════════════════════
-
-    // Call 1: Questions only
-    const questionsSystem = `You are an expert South African CAPS ${phase} teacher creating a professional ${resourceType} question paper. Write entirely in ${language}. Use SA context (rands, SA names like Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, local places).
+  // ═══════════════════════════════════════
+  // PROMPTS
+  // ═══════════════════════════════════════
+  const qSys = `You are a South African CAPS ${phase} Phase teacher creating a ${resourceType} question paper in ${language}. Use SA context (rands, names: Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, SA places).
 
 DIFFICULTY: ${diffNote}
-
-DoE COGNITIVE LEVELS (distribute marks accordingly — but do NOT label cognitive levels in the learner paper):
-${cogLevelTable}
-Total: ${totalMarks} marks
-
+DoE COGNITIVE LEVELS (distribute marks accordingly — do NOT label levels in the learner paper):
+${cogTable}
 CAPS: Grade ${g} Term ${t} ${subject}
 ${topicInstruction}
-${markGuidance}
+TOTAL: EXACTLY ${totalMarks} marks. TIME: ${timeAllocation}.
 
-FORMATTING RULES:
-- NEVER use Unicode box-drawing characters (─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ═ ║). Use simple pipe | tables or plain text only.
-- For tables, use: Column A | Column B format with | separators.
-- For source-based questions with data tables, present them as simple pipe tables.
-
-Return JSON only: {"content":"question paper text"}
-
-${formatInstructions}
-
-${isWorksheet ? `WORKSHEET HEADER:
-${subject} — Worksheet
-Grade ${g} | Term ${t} | ${language}
-Name: ___________________________    Date: ___________________
-Total: ${totalMarks} marks
-` : `COVER PAGE:
-
-${resourceType.toUpperCase()}
-${subject}
-Grade ${g}                                                          Term ${t}
-Name: ___________________________    Date: ___________________
-Surname: ________________________
-Examiner: ______________________     Time: ${timeAllocation}
-
-Total: ${totalMarks}    |    %: _____    |    Code: _____
-
-Comments: _______________________________________________
-
-Instructions:
-* Read the questions properly.
-  o Answer ALL the questions.
-  o Show all working where required.
-  o Pay special attention to the mark allocation of each question.
-`}
-
-QUESTION PAPER RULES:
-${isTest ? '- Do NOT use SECTION A / SECTION B headers. Use Question 1, Question 2, etc.' : ''}
-${(isExam || isFinalExam) ? '- USE SECTION A / SECTION B / SECTION C headers.' : ''}
-- Number: Question 1: [heading] then 1.1, 1.2, 1.1.1 etc.
-- Marks in brackets at end: (2)
-- Answer lines: _______________________________________________ 
-- "Working:" and "Answer:" lines ONLY for calculation questions
-- Multiple choice: a. b. c. d. then Answer: ___
+RULES:
+- NEVER use Unicode box characters. Plain text only.
+- Question numbering: Question 1: [heading] then 1.1, 1.2, 1.1.1
+- Marks in brackets: (2)
+- Answer lines: _______________________________________________
+- Working:/Answer: lines ONLY for calculation questions
+- MCQ: a. b. c. d. then Answer: ___
 - True/False: statement then _______________
-- Match columns: use simple pipe | table format
-- NO cognitive level labels anywhere in the question paper
-- Use at least 3 different question types
-${(isExam || isFinalExam) ? '- Spread questions across ALL topics listed.' : ''}
+- Match columns: plain text list, NOT tables
+- NO cognitive level labels in the question paper
+- NO meta-commentary, notes, or AI reasoning
+${isTest ? '- NO SECTION headers. Use Question 1, 2, 3.' : ''}
+${(isExam || isFinalExam) ? '- USE SECTION A/B/C/D headers.' : ''}
+${(isExam || isFinalExam) ? '- Every topic must have at least one question.' : ''}
+- Minimum ${isWorksheet ? '8' : '10'} question items
+- Keep questions concise
 
-TOTAL: _____ / ${totalMarks} marks
+Return JSON: {"content":"question paper text — stop after TOTAL line"}`;
 
-Generate ONLY the question paper. Stop after the TOTAL line. Do NOT include a memorandum.`;
+  const qUsr = `Create the question paper ONLY for: ${subject} ${resourceType}, Grade ${g}, Term ${t}, ${language}, ${totalMarks} marks, ${timeAllocation}. ${topicInstruction}. Stop after TOTAL line.`;
 
-    const questionsUser = `Create the question paper ONLY for a ${resourceType}: ${subject}, Grade ${g}, Term ${t}, ${language}, ${timeAllocation}, ${difficulty || 'on'} grade. ${topicInstruction}${isWorksheet ? ' 8-15 questions.' : ' Minimum 10 question items.'} JSON only.`;
+  const mSys = `You are a South African CAPS teacher. Create a COMPLETE memorandum in ${language}. NEVER use Unicode box characters. Use pipe | tables only. No meta-commentary or AI reasoning. Return JSON: {"content":"memorandum text"}`;
 
-    const questionsTokens = isWorksheet ? 3000 : (isExam || isFinalExam) ? 5000 : 4000;
-    const raw1 = await callAPI(questionsSystem, questionsUser, questionsTokens);
+  const mUsr = (qp) => `Question paper:
 
-    let questionPaper = '';
-    try {
-      const parsed1 = JSON.parse(raw1);
-      questionPaper = parsed1.content || raw1;
-    } catch(e) {
-      let cleaned = raw1;
-      cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
-      cleaned = cleaned.replace(/"\s*\}\s*$/, '');
-      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-      questionPaper = cleaned;
-    }
+${qp}
 
-    // Call 2: Memo + cognitive table + extension + rubric
-    const memoSystem = `You are a South African CAPS ${phase} teacher. Create a COMPLETE memorandum and supporting sections for the question paper below. Write in ${language}.
+Create ALL sections using pipe | tables:
 
-FORMATTING RULES:
-- NEVER use Unicode box-drawing characters (─ │ ┌ ┐ └ ┘ ├ ┤ ┬ ┴ ┼ ═ ║). Use simple pipe | tables only.
-- Use this exact table format for the memo:
-  NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-
-DoE Cognitive Levels for ${subject}:
-${cogLevelTable}
-Total: ${totalMarks} marks
-
-Return JSON only: {"content":"memorandum text"}`;
-
-    const memoUser = `Here is the question paper:
-
-${questionPaper}
-
-Create ALL of the following:
-
-MEMORANDUM
-Format as a pipe-separated table (NO Unicode box characters):
+1. MEMORANDUM
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+Answer every question. Marks total EXACTLY ${totalMarks}.
 
-Rules:
-- Answer for EVERY question — no gaps
-- Multiple choice: just the letter
-- True/False: TRUE or FALSE + correction if false
-- Short answers: expected answer
-- Calculations: show working + answer, marks per step
-- Where multiple answers acceptable: "(Any two)" + list options
-- Marks must add up to EXACTLY ${totalMarks}
-
-TOTAL: ${totalMarks} marks
-
-${!isWorksheet ? `COGNITIVE LEVEL ANALYSIS TABLE (pipe format):
+2. COGNITIVE LEVEL ANALYSIS
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
-${cogLevels.levels.map((level, i) => {
-    const marks = Math.round(totalMarks * cogLevels.pcts[i] / 100);
-    return level + ' | ' + cogLevels.pcts[i] + '% | ' + marks;
-  }).join('\n')}
+${cog.levels.map((l,i) => l + ' | ' + cog.pcts[i] + '% | ' + Math.round(totalMarks*cog.pcts[i]/100)).join('\n')}
+Then: [Level] ([X] marks): Q1.1 (1) + Q2.1 (2) + ... = X
 
-Then list: [Level] ([X] marks): Q1.1 (1) + Q1.2 (1) + ... = X
+${!isWorksheet ? '3. EXTENSION ACTIVITY\nOne challenging question with model answer.\n' : ''}
+${includeRubric ? '4. MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good | Level 3 Satisfactory | Level 2 Needs Improvement | Level 1 Not Achieved\n3-4 rows for ' + subject + '. Mark ranges per level.' : ''}`;
 
-EXTENSION ACTIVITY
-One challenging higher-order question with model answer.
-` : `
-ANSWERS
-Numbered answers for all questions.
-`}
-${includeRubric ? `MARKING RUBRIC (pipe format table):
-CRITERIA | Level 5 Outstanding | Level 4 Good | Level 3 Satisfactory | Level 2 Needs Improvement | Level 1 Not Achieved
-Include 3-4 criteria rows relevant to ${subject}. Add mark ranges per level.` : ''}
+  // ═══════════════════════════════════════
+  // EXECUTE
+  // ═══════════════════════════════════════
+  try {
+    const qTok = isWorksheet ? 3000 : (isExam || isFinalExam) ? 5000 : 4000;
+    const questionPaper = await callClaude(qSys, qUsr, qTok);
+    const memoContent = await callClaude(mSys, mUsr(questionPaper), includeRubric ? 8192 : 6000);
 
-JSON only: {"content":"complete memorandum and all sections"}`;
+    const doc = buildDoc(questionPaper, memoContent);
+    const buffer = await Packer.toBuffer(doc);
+    const docxBase64 = buffer.toString('base64');
+    const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+    const preview = questionPaper + '\n\n' + memoContent;
 
-    const memoTokens = includeRubric ? 8192 : 6000;
-    const raw2 = await callAPI(memoSystem, memoUser, memoTokens);
-
-    let memoContent = '';
-    try {
-      const parsed2 = JSON.parse(raw2);
-      memoContent = parsed2.content || raw2;
-    } catch(e) {
-      let cleaned = raw2;
-      cleaned = cleaned.replace(/^\s*\{\s*"content"\s*:\s*"/, '');
-      cleaned = cleaned.replace(/"\s*\}\s*$/, '');
-      cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-      memoContent = cleaned;
-    }
-
-    // Combine question paper + memo
-    const fullResource = questionPaper + '\n\n' + memoContent;
-
-    return res.status(200).json({
-      content: fullResource,
-      diagrams: null
-    });
-
+    return res.status(200).json({ docxBase64, preview, filename });
   } catch (err) {
+    console.error('Generate error:', err);
     return res.status(500).json({ error: err.message || 'Server error' });
   }
 }
