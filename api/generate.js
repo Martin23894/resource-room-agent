@@ -29,7 +29,7 @@ export default async function handler(req, res) {
   function getCogLevels(subj, gr) {
     const s = (subj || '').toLowerCase();
     if (s.includes('math') || s.includes('wiskunde'))
-      return { levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'], pcts: gr <= 3 ? [25,45,20,10] : [25,45,25,10] };
+      return { levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'], pcts: gr <= 3 ? [25,45,20,10] : [25,45,20,10] };
     if (s.includes('home language') || s.includes('huistaal'))
       return { levels: ['Lower Order/Literal', 'Middle Order/Inferential', 'Higher Order/Critical'], pcts: [30,40,30] };
     if (s.includes('additional') || s.includes('addisionele'))
