@@ -275,61 +275,73 @@ CAPS: Grade ${g} Term ${t} ${subject}
 ${topicInstruction}
 
 MARKS: The paper must total EXACTLY ${totalMarks} marks. TIME: ${timeAllocation}.
-BEFORE WRITING: Plan your mark allocation first. Add up all marks mentally to confirm they equal ${totalMarks} before you start writing. If you have 8 questions worth 5+5+5+7+7+6+5+10 = 50, that works. Count carefully.
+BEFORE WRITING: Plan your question structure first.
+Example for 50 marks: Q1 MCQ (5) + Q2 T/F (5) + Q3 Match (5) + Q4 Short (6) + Q5 Calc (7) + Q6 Calc (7) + Q7 Order (5) + Q8 Word Problems (5) + Q9 Problem Solving (5) = 50. Plan like this FIRST, then write.
 
 DO NOT INCLUDE:
-- NO title, header, school name, cover page, name/date fields, or instructions block. The system adds these automatically. Start DIRECTLY with your first question.
-- NO cognitive level labels like [Knowledge] or [Routine Procedures]
-- NO notes, commentary, or explanations to the teacher
+- NO title, header, school name, cover page, name/date fields, or instructions. Start DIRECTLY with Question 1.
+- NO cognitive level labels
+- NO notes or commentary
 - NO Unicode box characters
+- NO Unicode fraction characters like ½ ¾ ²⁄₃ — write fractions as plain text: 1/2, 3/4, 2/3
 
 FORMAT RULES:
 - Question numbering: Question 1: [heading] then 1.1, 1.2, 1.1.1
-- Marks in brackets AT THE END of the question line: 1.1 What is 5 x 3? (1)
+- EVERY sub-question MUST show its mark in brackets at the end of the line. No exceptions.
+  Example: 1.1 What is 5 x 3? (1)
+  Example: 1.2 Explain why 3/4 is greater than 1/2. (2)
+  Even True/False: 2.1 The fraction 4/6 is equal to 2/3. _______________ (1)
+- Write fractions as: 3/4 not ¾, 2/3 not ²⁄₃, 1/2 not ½
 - Answer lines: _______________________________________________
-- Working:/Answer: ONLY for calculation questions that need working shown
-- MCQ: a. b. c. d. options then Answer: ___ (short line only)
-- True/False: statement then _______________ on same line
-- Match columns: list Column A items and Column B items as plain text
+- Working:/Answer: ONLY for calculation questions
+- MCQ: a. b. c. d. then Answer: ___ (short)
+- True/False: statement _______________ (1) — mark on same line
+- Match columns: plain text list
 - Question totals: [5] at end of each question block
 ${isTest ? '- NO SECTION A/B/C headers. Use Question 1, 2, 3.' : ''}
 ${(isExam || isFinalExam) ? '- USE SECTION A/B/C/D headers.' : ''}
 ${(isExam || isFinalExam) ? '- Every topic must have at least one question.' : ''}
 - Minimum ${isWorksheet ? '8' : '10'} question items
-- Keep questions concise — short stems, clear language
+- Keep questions concise
 
 End with: TOTAL: _____ / ${totalMarks} marks
 
+FINAL CHECK: Before returning, mentally add every (X) mark in your paper. The sum MUST equal ${totalMarks}. If it doesn't, adjust question marks until it does.
+
 Return JSON: {"content":"questions only — no cover page, no memo"}`;
 
-  const qUsr = `Create ONLY the questions for: ${subject} ${resourceType}, Grade ${g}, Term ${t}, ${language}, EXACTLY ${totalMarks} marks, ${timeAllocation}. ${topicInstruction}. No cover page. No memo. Start with Question 1. End with TOTAL line.`;
+  const qUsr = `Create ONLY the questions for: ${subject} ${resourceType}, Grade ${g}, Term ${t}, ${language}, EXACTLY ${totalMarks} marks, ${timeAllocation}. ${topicInstruction}. No cover page. No memo. Start with Question 1. Every sub-question must show (marks). Use plain text fractions like 3/4 not ¾.`;
 
-  const mSys = `You are a South African CAPS teacher creating a memorandum in ${language}.
+  const mSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum in ${language}.
 
 CRITICAL RULES:
-- NEVER use Unicode box characters. Use pipe | tables only.
-- NEVER include notes, adjustments, commentary, discrepancy notices, or reasoning. Just the answers.
-- NEVER repeat the same table twice. Generate each table ONCE only.
-- NEVER question or discuss the mark allocation. Accept the marks as given and provide answers.
-- If marks in the paper add up to more or less than ${totalMarks}, just answer every question with the marks shown. Do NOT comment on it.
+- Use pipe | tables only. No Unicode box characters.
+- No notes, adjustments, commentary, or reasoning. Just answers.
+- Generate each table ONCE. Never repeat.
+- Write fractions as plain text: 3/4 not ¾
+- Do NOT question the mark allocation.
 
 Return JSON: {"content":"memorandum text"}`;
 
-  const mUsr = (qp) => `Question paper:
+  const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
+
+Question paper:
 
 ${qp}
 
-Create these sections using pipe | tables. ONE table per section. No commentary.
+The marks in this paper add up to ${actualTotal}.
+
+Create these sections. ONE table per section. No commentary.
 
 MEMORANDUM
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-(Answer every question exactly as it appears in the paper. Use the marks shown in the paper.)
+Answer every question. Use the marks shown in the paper.
 
-TOTAL: ${totalMarks} marks
+TOTAL: ${actualTotal} marks
 
 COGNITIVE LEVEL ANALYSIS
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
-${cog.levels.map((l,i) => l + ' | ' + cog.pcts[i] + '% | ' + Math.round(totalMarks*cog.pcts[i]/100)).join('\n')}
+${cog.levels.map((l,i) => l + ' | ' + cog.pcts[i] + '% | ' + Math.round(actualTotal*cog.pcts[i]/100)).join('\n')}
 Then ONE line per level: [Level] ([X] marks): Q1.1 (1) + Q2.1 (2) + ... = X
 
 ${!isWorksheet ? 'EXTENSION ACTIVITY\nOne challenging question with model answer.\n' : ''}
@@ -351,6 +363,26 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good
   }
 
   // ═══════════════════════════════════════
+  // MARK COUNTER — parse (X) marks from question paper
+  // ═══════════════════════════════════════
+  function countMarks(text) {
+    let total = 0;
+    const markPattern = /\((\d+)\)\s*$/gm;
+    let match;
+    while ((match = markPattern.exec(text)) !== null) {
+      total += parseInt(match[1]);
+    }
+    // Also check [X] subtotals if no individual marks found
+    if (total === 0) {
+      const blockPattern = /\[(\d+)\]/g;
+      while ((match = blockPattern.exec(text)) !== null) {
+        total += parseInt(match[1]);
+      }
+    }
+    return total;
+  }
+
+  // ═══════════════════════════════════════
   // EXECUTE
   // ═══════════════════════════════════════
   try {
@@ -358,12 +390,25 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good
     let questionPaper = await callClaude(qSys, qUsr, qTok);
     questionPaper = cleanOutput(questionPaper);
 
-    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper), includeRubric ? 8192 : 6000));
+    // Count actual marks in the question paper
+    const actualMarks = countMarks(questionPaper);
+    const markTotal = actualMarks > 0 ? actualMarks : totalMarks;
+    console.log(`Mark count: requested=${totalMarks}, actual=${actualMarks}, using=${markTotal}`);
 
-    const doc = buildDoc(questionPaper, memoContent);
-    const buffer = await Packer.toBuffer(doc);
-    const docxBase64 = buffer.toString('base64');
-    const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), includeRubric ? 8192 : 6000));
+
+    let docxBase64 = null;
+    let filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+
+    try {
+      const doc = buildDoc(questionPaper, memoContent);
+      const buffer = await Packer.toBuffer(doc);
+      docxBase64 = buffer.toString('base64');
+    } catch (docxErr) {
+      console.error('DOCX build error:', docxErr.message);
+      // Fall back to text-only if docx build fails
+    }
+
     const preview = questionPaper + '\n\n' + memoContent;
 
     return res.status(200).json({ docxBase64, preview, filename });
