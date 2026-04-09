@@ -52,7 +52,13 @@ The product title should be compelling and searchable. The description should be
     const data = await response.json();
     const raw = data.content?.map(c => c.text || '').join('') || '{}';
     const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch(parseErr) {
+      console.error('Cover JSON parse error:', parseErr.message);
+      return res.status(500).json({ error: 'AI returned malformed data. Please try again.' });
+    }
     return res.status(200).json(parsed);
   } catch (err) {
     return res.status(500).json({ error: err.message || 'Server error' });
