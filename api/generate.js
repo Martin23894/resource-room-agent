@@ -347,7 +347,7 @@ export default async function handler(req, res) {
   // ═══════════════════════════════════════
   async function callClaude(system, user, maxTok) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
+    const timeout = setTimeout(() => controller.abort(), 120000); // 120s timeout per call
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -364,7 +364,7 @@ export default async function handler(req, res) {
         return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
       }
     } catch(err) {
-      if (err.name === 'AbortError') throw new Error('Generation timed out after 55 seconds. Please try again.');
+      if (err.name === 'AbortError') throw new Error('Generation is taking longer than usual. Please try again — complex resources can take up to 2 minutes.');
       throw err;
     } finally {
       clearTimeout(timeout);
