@@ -128,41 +128,139 @@ export default async function handler(req, res) {
   }
 
   function tbl(headers, rows) {
-    const hRow = new TableRow({ children: headers.map(h => cell(h, { bold: true, color: 'FFFFFF', fill: GREEN })) });
+    const hRow = new TableRow({
+      children: headers.map(h => new TableCell({
+        children: [new Paragraph({ children: [txt(String(h), { size: 18, bold: true, color: 'FFFFFF' })], alignment: AlignmentType.LEFT })],
+        shading: { fill: GREEN, type: ShadingType.SOLID },
+        borders: cellBorders,
+        margins: { top: 60, bottom: 60, left: 120, right: 120 }
+      }))
+    });
     const dRows = rows.map(r => new TableRow({ children: r.map(c => cell(c)) }));
-    return new Table({ rows: [hRow, ...dRows], width: { size: 100, type: WidthType.PERCENTAGE } });
+    return new Table({ rows: [hRow, ...dRows], width: { size: 9026, type: WidthType.DXA } });
   }
 
   // ═══════════════════════════════════════
   // COVER PAGE
   // ═══════════════════════════════════════
-  function buildCover() {
+  function buildCover(actualMarks) {
+    const displayMarks = actualMarks || totalMarks;
     const els = [];
-    els.push(para('THE RESOURCE ROOM', { bold: true, size: 28, color: GREEN, align: AlignmentType.CENTER, spaceAfter: 200 }));
-    els.push(para(resourceType.toUpperCase(), { bold: true, size: 36, align: AlignmentType.CENTER, spaceAfter: 80 }));
-    els.push(para(subject, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 200 }));
-    els.push(para([txt('Grade ' + g, { size: 24 }), txt('                                                                    Term ' + t, { size: 24 })], { spaceAfter: 80 }));
-    els.push(para([txt('Name: ___________________________', {}), txt('          Date: ___________________', {})], { spaceAfter: 40 }));
-    els.push(para('Surname: ________________________', { spaceAfter: 40 }));
-    if (!isWorksheet) {
-      els.push(para([txt('Examiner: ______________________', {}), txt('     Time: ' + timeAllocation, {})], { spaceAfter: 120 }));
-    }
+
+    // Brand header
+    els.push(para('THE RESOURCE ROOM', { bold: true, size: 28, color: GREEN, align: AlignmentType.CENTER, spaceAfter: 60 }));
+    els.push(para(resourceType.toUpperCase(), { bold: true, size: 36, align: AlignmentType.CENTER, spaceAfter: 60 }));
+    els.push(para(subject, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 160 }));
+
+    // Borderless table helpers
+    const noBorder = { style: BorderStyle.NIL, size: 0, color: 'FFFFFF' };
+    const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
+
+    // Grade | Term
     els.push(new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: [4513, 4513],
       rows: [new TableRow({
         children: [
-          cell('Total', { bold: true }), cell(String(totalMarks), { bold: true, align: AlignmentType.CENTER }),
-          cell('%', { bold: true, align: AlignmentType.CENTER }), cell('Code', { bold: true, align: AlignmentType.CENTER })
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+            children: [new Paragraph({ children: [txt('Grade ' + g, { size: 24, bold: true })] })] }),
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+            children: [new Paragraph({ children: [txt('Term ' + t, { size: 24, bold: true })], alignment: AlignmentType.RIGHT })] })
         ]
-      })],
-      width: { size: 100, type: WidthType.PERCENTAGE }
+      })]
     }));
-    els.push(para(''));
-    els.push(para([txt('Comments: ', { bold: true, size: 20 }), txt('_______________________________________________', { size: 20 })], { spaceAfter: 120 }));
-    els.push(para('Instructions:', { bold: true, spaceAfter: 40 }));
-    els.push(para('•   Read the questions properly.', { indent: { left: 360 }, spaceAfter: 20 }));
-    els.push(para('○   Answer ALL the questions.', { indent: { left: 720 }, spaceAfter: 20 }));
-    els.push(para('○   Show all working where required.', { indent: { left: 720 }, spaceAfter: 20 }));
-    els.push(para('○   Pay special attention to the mark allocation of each question.', { indent: { left: 720 }, spaceAfter: 200 }));
+    els.push(para('', { spaceAfter: 60 }));
+
+    // Name | Date + Surname row
+    els.push(new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: [4513, 4513],
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+              children: [new Paragraph({ children: [txt('Name: ___________________________', { size: 22 })] })] }),
+            new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+              children: [new Paragraph({ children: [txt('Date: ___________________', { size: 22 })], alignment: AlignmentType.RIGHT })] })
+          ]
+        }),
+        new TableRow({
+          children: [
+            new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+              children: [new Paragraph({ children: [txt('Surname: ________________________', { size: 22 })] })] }),
+            new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+              children: [new Paragraph({ children: [txt('', { size: 22 })] })] })
+          ]
+        })
+      ]
+    }));
+    els.push(para('', { spaceAfter: 40 }));
+
+    // Examiner | Time (not for worksheets)
+    if (!isWorksheet) {
+      els.push(new Table({
+        width: { size: 9026, type: WidthType.DXA },
+        columnWidths: [4513, 4513],
+        rows: [new TableRow({
+          children: [
+            new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+              children: [new Paragraph({ children: [txt('Examiner: ______________________', { size: 22 })] })] }),
+            new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA },
+              children: [new Paragraph({ children: [txt('Time: ' + timeAllocation, { size: 22, bold: true })], alignment: AlignmentType.RIGHT })] })
+          ]
+        })]
+      }));
+      els.push(para('', { spaceAfter: 80 }));
+    }
+
+    // Total / % / Code score table with Comments row
+    const scoreBdr = { style: BorderStyle.SINGLE, size: 4, color: '085041' };
+    const scoreBorders = { top: scoreBdr, bottom: scoreBdr, left: scoreBdr, right: scoreBdr };
+    const colW = [3611, 1805, 1805, 1805];
+    const cm = (w, children, align) => new TableCell({
+      borders: scoreBorders, width: { size: w, type: WidthType.DXA },
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: [new Paragraph({ children, alignment: align || AlignmentType.LEFT })]
+    });
+    els.push(new Table({
+      width: { size: 9026, type: WidthType.DXA },
+      columnWidths: colW,
+      rows: [
+        new TableRow({ children: [
+          cm(colW[0], [txt('Total', { bold: true, size: 20 })]),
+          cm(colW[1], [txt(String(displayMarks), { bold: true, size: 20 })], AlignmentType.CENTER),
+          cm(colW[2], [txt('%', { bold: true, size: 20 })], AlignmentType.CENTER),
+          cm(colW[3], [txt('Code', { bold: true, size: 20 })], AlignmentType.CENTER)
+        ]}),
+        new TableRow({ children: [
+          cm(colW[0], [txt('Comments:', { bold: true, size: 18 })]),
+          new TableCell({
+            borders: scoreBorders,
+            columnSpan: 3,
+            width: { size: colW[1] + colW[2] + colW[3], type: WidthType.DXA },
+            margins: { top: 80, bottom: 80, left: 120, right: 120 },
+            children: [new Paragraph({ children: [txt('', { size: 18 })] })]
+          })
+        ]})
+      ]
+    }));
+    els.push(para('', { spaceAfter: 120 }));
+
+    // Instructions
+    els.push(new Paragraph({ children: [txt('Instructions:', { bold: true, size: 22 })], spacing: { before: 0, after: 60 } }));
+    for (const item of [
+      'Read the questions properly.',
+      'Answer ALL the questions.',
+      'Show all working where required.',
+      'Pay special attention to the mark allocation of each question.'
+    ]) {
+      els.push(new Paragraph({
+        children: [txt('•  ' + item, { size: 22 })],
+        indent: { left: 360 },
+        spacing: { before: 0, after: 40 }
+      }));
+    }
+    els.push(para('', { spaceAfter: 160 }));
     return els;
   }
 
@@ -225,13 +323,13 @@ export default async function handler(req, res) {
   // ═══════════════════════════════════════
   // BUILD DOCUMENT
   // ═══════════════════════════════════════
-  function buildDoc(qText, mText) {
+  function buildDoc(qText, mText, actualMarks) {
     const cover = isWorksheet
       ? [para(subject + ' — Worksheet', { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 80 }),
          para('Grade ' + g + '  |  Term ' + t + '  |  ' + language, { align: AlignmentType.CENTER, spaceAfter: 40 }),
          para([txt('Name: ___________________________'), txt('     Date: ___________________')], { spaceAfter: 40 }),
          para('Total: _____ / ' + totalMarks + ' marks', { bold: true, spaceAfter: 120 })]
-      : buildCover();
+      : buildCover(actualMarks);
 
     return new Document({
       styles: { default: { document: { run: { font: FONT, size: 22 } } } },
@@ -248,18 +346,28 @@ export default async function handler(req, res) {
   // CLAUDE API
   // ═══════════════════════════════════════
   async function callClaude(system, user, maxTok) {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, system, messages: [{ role: 'user', content: user }] })
-    });
-    const text = await r.text();
-    if (!r.ok) throw new Error(JSON.parse(text).error?.message || 'API error ' + r.status);
-    let raw = JSON.parse(text).content?.map(c => c.text || '').join('') || '';
-    raw = raw.replace(/```json|```/g, '').trim();
-    try { return JSON.parse(raw).content || raw; } catch(e) {
-      let c = raw.replace(/^\s*\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '');
-      return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 55000); // 55s timeout
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, system, messages: [{ role: 'user', content: user }] })
+      });
+      const text = await r.text();
+      if (!r.ok) throw new Error(JSON.parse(text).error?.message || 'API error ' + r.status);
+      let raw = JSON.parse(text).content?.map(c => c.text || '').join('') || '';
+      raw = raw.replace(/```json|```/g, '').trim();
+      try { return JSON.parse(raw).content || raw; } catch(e) {
+        let c = raw.replace(/^\s*\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '');
+        return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      }
+    } catch(err) {
+      if (err.name === 'AbortError') throw new Error('Generation timed out after 55 seconds. Please try again.');
+      throw err;
+    } finally {
+      clearTimeout(timeout);
     }
   }
 
@@ -401,7 +509,7 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good
     let filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
 
     try {
-      const doc = buildDoc(questionPaper, memoContent);
+      const doc = buildDoc(questionPaper, memoContent, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
