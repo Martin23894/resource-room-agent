@@ -1059,7 +1059,7 @@ async function sendRefinement(){
     refinedContent = refinedContent.replace(/\\n/g,'\n');
     window._cur=refinedContent;
     const packBody=document.getElementById('pack-body')||document.querySelector('.pack-body');
-    if(packBody) packBody.textContent=d.content;
+    if(packBody) packBody.textContent = refinedContent;
     // Show agent response
     const summary=d.changesSummary||'Resource updated successfully.';
     histEl.innerHTML+=`<div class="refine-msg agent"><div class="msg-label">Agent</div>✓ ${esc(summary)}</div>`;
