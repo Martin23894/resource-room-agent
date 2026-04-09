@@ -1,4 +1,10 @@
 export default async function handler(req, res) {
+  // Security: require secret param to prevent public probing
+  const secret = process.env.TEST_SECRET || 'rr-test';
+  if (req.query.secret !== secret) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+
   // Check 1: Is API key set?
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
