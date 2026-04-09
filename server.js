@@ -19,7 +19,7 @@ app.use(express.json({ limit: '5mb' }));
 
 // Request timeout — prevents Railway hanging on slow Anthropic responses
 app.use((req, res, next) => {
-  res.setTimeout(90000, () => {
+  res.setTimeout(270000, () => {
     res.status(503).json({ error: 'Request timed out. Please try again.' });
   });
   next();
