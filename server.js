@@ -2,11 +2,11 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Import route handlers — files are in root, not /api/
-import generateHandler from './generate.js';
-import refineHandler from './refine.js';
-import coverHandler from './cover.js';
-import testHandler from './test.js';
+// Import route handlers
+import generateHandler from './api/generate.js';
+import refineHandler from './api/refine.js';
+import coverHandler from './api/cover.js';
+import testHandler from './api/test.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
