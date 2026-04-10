@@ -18,9 +18,22 @@ export default async function handler(req, res) {
   const isWorksheet = resourceType === 'Worksheet';
   const isTest = resourceType === 'Test';
 
-  const durParts = (duration || '50 marks, 1 hour').split(',').map(s => s.trim());
-  const totalMarks = parseInt(durParts[0]) || 50;
-  const timeAllocation = durParts[1] || '1 hour';
+  const totalMarks = parseInt(duration) || 50;
+
+  // Auto-calculate time from marks — no longer sent from UI
+  function marksToTime(m) {
+    if (m <= 10)  return '15 minutes';
+    if (m <= 20)  return '30 minutes';
+    if (m <= 25)  return '45 minutes';
+    if (m <= 30)  return '45 minutes';
+    if (m <= 50)  return '1 hour';
+    if (m <= 60)  return '1 hour 30 minutes';
+    if (m <= 70)  return '1 hour 45 minutes';
+    if (m <= 75)  return '2 hours';
+    if (m <= 100) return '2 hours 30 minutes';
+    return Math.round(m * 1.5 / 60) + ' hours';
+  }
+  const timeAllocation = marksToTime(totalMarks);
   const diffNote = difficulty === 'below' ? 'Below grade level' : difficulty === 'above' ? 'Above grade level' : 'On grade level';
 
   // ═══════════════════════════════════════
@@ -48,7 +61,23 @@ export default async function handler(req, res) {
   }
 
   const cog = getCogLevels(subject, g);
-  const cogTable = cog.levels.map((l, i) => l + ' ' + cog.pcts[i] + '% = ' + Math.round(totalMarks * cog.pcts[i] / 100) + ' marks').join('\n');
+
+  // ─── Largest Remainder Method — guarantees marks sum exactly to total ───
+  function largestRemainder(total, pcts) {
+    const raw = pcts.map(p => total * p / 100);
+    const floored = raw.map(Math.floor);
+    const remainders = raw.map((v, i) => ({ i, r: v - floored[i] }));
+    let deficit = total - floored.reduce((a, b) => a + b, 0);
+    remainders.sort((a, b) => b.r - a.r);
+    for (let k = 0; k < deficit; k++) floored[remainders[k].i]++;
+    return floored;
+  }
+
+  const cogMarks = largestRemainder(totalMarks, cog.pcts);
+  // Tolerance check (±2% of total) — used in plan validation
+  const cogTolerance = Math.max(1, Math.round(totalMarks * 0.02));
+
+  const cogTable = cog.levels.map((l, i) => l + ' ' + cog.pcts[i] + '% = ' + cogMarks[i] + ' marks').join('\n');
 
   let topicInstruction = '';
   if (isFinalExam && allTopics) topicInstruction = 'FINAL EXAM — cover ALL topics from the entire year:\n' + allTopics;
@@ -372,90 +401,6 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════
-  // PROMPTS
-  // ═══════════════════════════════════════
-  const qSys = `You are a South African CAPS ${phase} Phase teacher creating a ${resourceType} question paper in ${language}. Use SA context (rands, names: Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, SA places).
-
-DIFFICULTY: ${diffNote}
-DoE COGNITIVE LEVELS (distribute marks — do NOT label levels in the learner paper):
-${cogTable}
-CAPS: Grade ${g} Term ${t} ${subject}
-${topicInstruction}
-
-MARKS: The paper must total EXACTLY ${totalMarks} marks. TIME: ${timeAllocation}.
-BEFORE WRITING: Plan your question structure first.
-Example for 50 marks: Q1 MCQ (5) + Q2 T/F (5) + Q3 Match (5) + Q4 Short (6) + Q5 Calc (7) + Q6 Calc (7) + Q7 Order (5) + Q8 Word Problems (5) + Q9 Problem Solving (5) = 50. Plan like this FIRST, then write.
-
-DO NOT INCLUDE:
-- NO title, header, school name, cover page, name/date fields, or instructions. Start DIRECTLY with Question 1.
-- NO cognitive level labels
-- NO notes or commentary
-- NO Unicode box characters
-- NO Unicode fraction characters like ½ ¾ ²⁄₃ — write fractions as plain text: 1/2, 3/4, 2/3
-
-FORMAT RULES:
-- Question numbering: Question 1: [heading] then 1.1, 1.2, 1.1.1
-- EVERY sub-question MUST show its mark in brackets at the end of the line. No exceptions.
-  Example: 1.1 What is 5 x 3? (1)
-  Example: 1.2 Explain why 3/4 is greater than 1/2. (2)
-  Even True/False: 2.1 The fraction 4/6 is equal to 2/3. _______________ (1)
-- Write fractions as: 3/4 not ¾, 2/3 not ²⁄₃, 1/2 not ½
-- Answer lines: _______________________________________________
-- Working:/Answer: ONLY for calculation questions
-- MCQ: a. b. c. d. then Answer: ___ (short)
-- True/False: statement _______________ (1) — mark on same line
-- Match columns: plain text list
-- Question totals: [5] at end of each question block
-${isTest ? '- NO SECTION A/B/C headers. Use Question 1, 2, 3.' : ''}
-${(isExam || isFinalExam) ? '- USE SECTION A/B/C/D headers.' : ''}
-${(isExam || isFinalExam) ? '- Every topic must have at least one question.' : ''}
-- Minimum ${isWorksheet ? '8' : '10'} question items
-- Keep questions concise
-
-End with: TOTAL: _____ / ${totalMarks} marks
-
-FINAL CHECK: Before returning, mentally add every (X) mark in your paper. The sum MUST equal ${totalMarks}. If it doesn't, adjust question marks until it does.
-
-Return JSON: {"content":"questions only — no cover page, no memo"}`;
-
-  const qUsr = `Create ONLY the questions for: ${subject} ${resourceType}, Grade ${g}, Term ${t}, ${language}, EXACTLY ${totalMarks} marks, ${timeAllocation}. ${topicInstruction}. No cover page. No memo. Start with Question 1. Every sub-question must show (marks). Use plain text fractions like 3/4 not ¾.`;
-
-  const mSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum in ${language}.
-
-CRITICAL RULES:
-- Use pipe | tables only. No Unicode box characters.
-- No notes, adjustments, commentary, or reasoning. Just answers.
-- Generate each table ONCE. Never repeat.
-- Write fractions as plain text: 3/4 not ¾
-- Do NOT question the mark allocation.
-
-Return JSON: {"content":"memorandum text"}`;
-
-  const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
-
-Question paper:
-
-${qp}
-
-The marks in this paper add up to ${actualTotal}.
-
-Create these sections. ONE table per section. No commentary.
-
-MEMORANDUM
-NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-Answer every question. Use the marks shown in the paper.
-
-TOTAL: ${actualTotal} marks
-
-COGNITIVE LEVEL ANALYSIS
-Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
-${cog.levels.map((l,i) => l + ' | ' + cog.pcts[i] + '% | ' + Math.round(actualTotal*cog.pcts[i]/100)).join('\n')}
-Then ONE line per level: [Level] ([X] marks): Q1.1 (1) + Q2.1 (2) + ... = X
-
-${!isWorksheet ? 'EXTENSION ACTIVITY\nOne challenging question with model answer.\n' : ''}
-${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good | Level 3 Satisfactory | Level 2 Needs Improvement | Level 1 Not Achieved\n3-4 rows for ' + subject + '. Mark ranges per level.' : ''}`;
-
-  // ═══════════════════════════════════════
   // CLEANUP — remove AI meta-commentary
   // ═══════════════════════════════════════
   function cleanOutput(text) {
@@ -480,7 +425,6 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good
     while ((match = markPattern.exec(text)) !== null) {
       total += parseInt(match[1]);
     }
-    // Also check [X] subtotals if no individual marks found
     if (total === 0) {
       const blockPattern = /\[(\d+)\]/g;
       while ((match = blockPattern.exec(text)) !== null) {
@@ -491,22 +435,256 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good
   }
 
   // ═══════════════════════════════════════
-  // EXECUTE
+  // PHASE 1 — PLAN VALIDATOR
+  // Returns validated cogMarks array or null if invalid
+  // ═══════════════════════════════════════
+  function validatePlan(plan) {
+    if (!plan || !Array.isArray(plan.questions) || plan.questions.length === 0) return null;
+
+    // Check total marks
+    const planTotal = plan.questions.reduce((s, q) => s + (parseInt(q.marks) || 0), 0);
+    if (planTotal !== totalMarks) {
+      console.log(`Plan total ${planTotal} !== requested ${totalMarks} — rejecting`);
+      return null;
+    }
+
+    // Check each cognitive level is within ±2% tolerance
+    const cogActual = {};
+    cog.levels.forEach(l => cogActual[l] = 0);
+    for (const q of plan.questions) {
+      const lvl = q.cogLevel;
+      if (cogActual[lvl] !== undefined) cogActual[lvl] += parseInt(q.marks) || 0;
+    }
+    for (let i = 0; i < cog.levels.length; i++) {
+      const actual = cogActual[cog.levels[i]] || 0;
+      const target = cogMarks[i];
+      if (Math.abs(actual - target) > cogTolerance) {
+        console.log(`Cog level "${cog.levels[i]}" has ${actual} marks, target ${target} ±${cogTolerance} — rejecting`);
+        return null;
+      }
+    }
+    return plan;
+  }
+
+  // ═══════════════════════════════════════
+  // PROMPTS
+  // ═══════════════════════════════════════
+
+  // Plan prompt — Phase 1 (cheap, fast, validated before writing)
+  const planSys = `You are a South African CAPS ${phase} Phase assessment designer.
+Return ONLY valid JSON — no markdown, no explanation.
+Schema: {"questions":[{"number":"Q1","type":"MCQ","topic":"string","marks":5,"cogLevel":"${cog.levels[0]}"},...]}
+cogLevel must be one of: ${cog.levels.join(', ')}`;
+
+  const planUsr = `Design a ${totalMarks}-mark ${resourceType} plan for: Grade ${g} ${subject} Term ${t} in ${language}.
+${topicInstruction}
+
+CAPS DoE cognitive level targets (marks must hit these within ±${cogTolerance} marks):
+${cog.levels.map((l, i) => `${l}: exactly ${cogMarks[i]} marks (${cog.pcts[i]}%)`).join('\n')}
+
+Rules:
+- questions must sum to EXACTLY ${totalMarks} marks
+- each question has a number (Q1, Q2...), type (MCQ/True-False/Short Answer/Calculations/Word Problems/Problem Solving), topic, marks (integer), cogLevel
+- spread marks across ${cog.levels.length} cognitive levels as shown above
+- minimum ${isWorksheet ? '4' : '6'} questions
+${isTest ? '- no section headers' : '- group questions into sections'}
+Return only the JSON object.`;
+
+  // Question writing prompt — Phase 2 (writes from validated blueprint)
+  const qSys = (plan) => `You are a South African CAPS ${phase} Phase teacher writing a ${resourceType} question paper in ${language}.
+Use SA context (rands, names: Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, SA places).
+DIFFICULTY: ${diffNote}
+CAPS: Grade ${g} Term ${t} ${subject}
+
+CRITICAL: Follow the question plan EXACTLY. Do not change any mark values. Do not add or remove questions.
+The plan guarantees CAPS cognitive level compliance — trust it and write accordingly.
+
+DO NOT INCLUDE:
+- NO cover page, title, header, name/date fields, or instructions — start DIRECTLY with Question 1
+- NO cognitive level labels in the paper
+- NO notes, commentary, or meta-text
+- NO Unicode box characters or Unicode fraction symbols — write fractions as plain text: 1/2, 3/4, 2/3
+
+FORMAT RULES:
+- Numbering: Question 1: [heading] then 1.1, 1.2, 1.2.1 etc
+- EVERY sub-question MUST show its mark in brackets on the SAME LINE as the question text, even when Working:/Answer: lines follow
+  CORRECT:   1.1  Calculate the area of the rectangle. (2)
+             Working: _______________________________________________
+             Answer:  _______________________________________________
+  INCORRECT: 1.1  Calculate the area of the rectangle.
+             Working: _______________________________________________ (2)
+- MCQ options: a. b. c. d. then "Answer: ___" on a short line
+- True/False: statement then blank then (marks) all on ONE line: "2.1 The mode is the middle value. _______________ (1)"
+- Answer lines: _______________________________________________
+- Working:/Answer: lines only for calculation questions
+- Question block totals: [X] right-aligned at end of each question
+${isTest ? '- NO SECTION headers. Use Question 1, Question 2 etc.' : ''}
+${(isExam || isFinalExam) ? '- USE SECTION A / B / C / D headers' : ''}
+- Write fractions as plain text: 3/4 not ¾, 2/3 not ²⁄₃
+
+End with: TOTAL: _____ / ${totalMarks} marks
+
+Return JSON: {"content":"question paper text only — no cover page, no memo"}`;
+
+  const qUsr = (plan) => `Write the question paper following this EXACT plan — do not change any marks:
+${JSON.stringify(plan.questions, null, 2)}
+
+Subject: ${subject} | Grade: ${g} | Term: ${t} | Language: ${language}
+${topicInstruction}
+Total must be: ${totalMarks} marks`;
+
+  // Memo prompt — Phase 3
+  const mSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum in ${language}.
+
+CRITICAL RULES:
+- Use pipe | tables only. No Unicode box characters.
+- No notes, adjustments, commentary, or reasoning outside tables. Just answers.
+- Generate each table ONCE. Never repeat a table.
+- Write fractions as plain text: 3/4 not ¾
+- Do NOT question or adjust the mark allocation — use marks exactly as shown in the paper.
+- Cognitive level breakdown: count marks BY READING each question's (X) mark label. Do NOT estimate or fabricate.
+
+Return JSON: {"content":"memorandum text"}`;
+
+  const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
+
+Question paper (read every (X) mark carefully before writing the memo):
+
+${qp}
+
+The marks in this paper total ${actualTotal}.
+
+Write these sections. ONE pipe table per section. No commentary outside tables.
+
+MEMORANDUM
+NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+List every sub-question. Use the (X) mark value shown next to each question in the paper above.
+
+TOTAL: ${actualTotal} marks
+
+COGNITIVE LEVEL ANALYSIS
+Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
+${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
+For each row: count Actual Marks by adding the MARK column values from the memorandum above where cogLevel matches. Calculate Actual % = Actual Marks / ${actualTotal} * 100.
+Then ONE summary line per level showing which questions contribute: Knowledge (X marks): Q1.1 (1) + Q1.2 (1) + ... = X marks
+
+${!isWorksheet ? 'EXTENSION ACTIVITY\nOne challenging question beyond the paper, with full model answer.\n' : ''}
+${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\n3-4 assessment criteria rows for ' + subject + '.' : ''}`;
+
+  // ═══════════════════════════════════════
+  // EXECUTE — 3-phase generation
   // ═══════════════════════════════════════
   try {
-    const qTok = isWorksheet ? 3000 : (isExam || isFinalExam) ? 5000 : 4000;
-    let questionPaper = await callClaude(qSys, qUsr, qTok);
+    // ── Phase 1: Generate & validate question plan ──
+    let plan = null;
+    let planAttempts = 0;
+    while (!plan && planAttempts < 2) {
+      planAttempts++;
+      try {
+        const rawPlan = await callClaude(planSys, planUsr, 1500);
+        let parsedPlan;
+        try {
+          parsedPlan = typeof rawPlan === 'object' ? rawPlan : JSON.parse(rawPlan);
+        } catch(e) {
+          console.log(`Plan attempt ${planAttempts}: JSON parse failed`);
+          continue;
+        }
+        plan = validatePlan(parsedPlan);
+        if (!plan) console.log(`Plan attempt ${planAttempts}: validation failed`);
+      } catch(e) {
+        console.log(`Plan attempt ${planAttempts}: error — ${e.message}`);
+      }
+    }
+
+    // If plan fails validation twice, build a safe fallback plan in JS
+    if (!plan) {
+      console.log('Plan validation failed — using JS fallback plan');
+      const fallbackQuestions = [];
+      let remaining = totalMarks;
+      const typeMap = isWorksheet
+        ? ['Short Answer', 'Calculations', 'Short Answer', 'Problem Solving']
+        : ['MCQ', 'True/False', 'Short Answer', 'Calculations', 'Calculations', 'Word Problems', 'Problem Solving'];
+      cog.levels.forEach((lvl, li) => {
+        let lvlMarks = cogMarks[li];
+        const qType = typeMap[li % typeMap.length];
+        // Split into sensible question chunks (max 15 marks each)
+        while (lvlMarks > 0) {
+          const chunk = Math.min(lvlMarks, li === 0 ? 5 : 10);
+          fallbackQuestions.push({
+            number: 'Q' + (fallbackQuestions.length + 1),
+            type: qType,
+            topic: topic || subject,
+            marks: chunk,
+            cogLevel: lvl
+          });
+          lvlMarks -= chunk;
+        }
+      });
+      plan = { questions: fallbackQuestions };
+    }
+
+    console.log(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
+
+    // ── Phase 2: Write questions from validated plan ──
+    const qTok = isWorksheet ? 3000 : (isExam || isFinalExam) ? 5500 : 4500;
+    let questionPaper = await callClaude(qSys(plan), qUsr(plan), qTok);
     questionPaper = cleanOutput(questionPaper);
 
-    // Count actual marks in the question paper
-    const actualMarks = countMarks(questionPaper);
-    const markTotal = actualMarks > 0 ? actualMarks : totalMarks;
-    console.log(`Mark count: requested=${totalMarks}, actual=${actualMarks}, using=${markTotal}`);
+    // ── Phase 2a: Correction step — fix mark drift if Claude deviated ──
+    const countedAfterP2 = countMarks(questionPaper);
+    const drift = countedAfterP2 - totalMarks;
+    if (countedAfterP2 > 0 && drift !== 0) {
+      console.log(`Mark drift detected: counted=${countedAfterP2}, target=${totalMarks}, drift=${drift > 0 ? '+' : ''}${drift} — running correction`);
 
-    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), includeRubric ? 8192 : 6000));
+      // Find which question block has the discrepancy by comparing plan vs paper
+      const planByQ = {};
+      plan.questions.forEach(q => { planByQ[q.number] = q.marks; });
 
+      const corrSys = `You are correcting a ${subject} ${resourceType} question paper. The paper currently totals ${countedAfterP2} marks but must total EXACTLY ${totalMarks} marks. You need to ${drift > 0 ? 'reduce' : 'increase'} the total by ${Math.abs(drift)} mark${Math.abs(drift) > 1 ? 's' : ''}.
+
+RULES:
+- Change the minimum number of sub-question mark values needed to fix the total
+- Only change the (X) mark numbers — do not rewrite questions or change content
+- Keep all Working:/Answer: lines exactly as they are
+- The corrected paper must total EXACTLY ${totalMarks} marks
+- Return the complete corrected paper
+Return JSON: {"content":"complete corrected question paper"}`;
+
+      const corrUsr = `This question paper totals ${countedAfterP2} marks but must be EXACTLY ${totalMarks} marks.
+Difference: ${drift > 0 ? 'reduce by' : 'increase by'} ${Math.abs(drift)} mark${Math.abs(drift) > 1 ? 's' : ''}.
+
+PAPER:
+${questionPaper}
+
+Return the complete corrected paper with the mark values adjusted. Every sub-question mark in brackets (X) must be correct. Do not change any question content — only the (X) numbers.`;
+
+      try {
+        const corrected = cleanOutput(await callClaude(corrSys, corrUsr, qTok));
+        const countedAfterCorr = countMarks(corrected);
+        if (countedAfterCorr === totalMarks) {
+          questionPaper = corrected;
+          console.log(`Correction successful: paper now totals ${countedAfterCorr} marks ✓`);
+        } else {
+          console.log(`Correction attempt resulted in ${countedAfterCorr} marks — keeping Phase 2 paper`);
+        }
+      } catch(corrErr) {
+        console.log(`Correction step failed: ${corrErr.message} — keeping Phase 2 paper`);
+      }
+    } else if (countedAfterP2 === totalMarks) {
+      console.log(`Phase 2 exact: ${countedAfterP2} marks ✓`);
+    }
+
+    // Final mark count — after correction attempt
+    const finalCount = countMarks(questionPaper);
+    const markTotal = finalCount > 0 ? finalCount : totalMarks;
+    console.log(`Final mark total: ${markTotal}`);
+
+    // ── Phase 3: Generate memorandum ──
+    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), includeRubric ? 8192 : 6500));
+
+    // ── Build DOCX ──
     let docxBase64 = null;
-    let filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+    const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
 
     try {
       const doc = buildDoc(questionPaper, memoContent, markTotal);
@@ -514,12 +692,11 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding | Level 4 Good
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
       console.error('DOCX build error:', docxErr.message);
-      // Fall back to text-only if docx build fails
     }
 
     const preview = questionPaper + '\n\n' + memoContent;
-
     return res.status(200).json({ docxBase64, preview, filename });
+
   } catch (err) {
     console.error('Generate error:', err);
     return res.status(500).json({ error: err.message || 'Server error' });
