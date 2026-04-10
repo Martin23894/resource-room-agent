@@ -265,22 +265,22 @@ select:focus{outline:none;border-color:var(--t4);}
           <button class="dbtn above" data-d="above" onclick="setDiff(this)">Above<br>grade</button>
         </div>
       </div>
-      <!-- Duration / Marks -->
+      <!-- Marks -->
       <div style="margin-bottom:10px;">
-        <div class="flabel">Duration / marks</div>
+        <div class="flabel">Mark total</div>
         <div class="sw">
-          <select id="dur">
-            <option value="50 marks, 1 hour">Standard test — 50 marks (1 hour)</option>
-            <option value="30 marks, 45 minutes">Quick test — 30 marks (45 min)</option>
-            <option value="60 marks, 1 hour 30 minutes">Full FAT — 60 marks (1hr 30min)</option>
+          <select id="dur" onchange="updateCogDisplay()">
+            <option value="50">Standard test — 50 marks</option>
+            <option value="30">Quick test — 30 marks</option>
+            <option value="60">Full FAT — 60 marks</option>
           </select>
         </div>
       </div>
-      <!-- DoE Cognitive Levels -->
+      <!-- Cognitive Level Breakdown -->
       <div style="margin-bottom:10px;">
-        <div class="flabel">DoE cognitive levels <span style="font-size:10px;color:var(--ink4);font-weight:400;">(auto-applied per subject)</span></div>
-        <div id="doe-display" style="background:var(--sur);border:1.5px solid var(--bdr2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--ink3);line-height:1.6;">
-          Select a subject to see prescribed cognitive level ratios
+        <div class="flabel">CAPS cognitive levels <span style="font-size:10px;color:var(--ink4);font-weight:400;">(prescribed mark split)</span></div>
+        <div id="cog-display" style="background:var(--sur);border:1.5px solid var(--bdr2);border-radius:8px;padding:8px 10px;font-size:10px;color:var(--ink3);line-height:1.8;">
+          Select a subject to see cognitive level breakdown
         </div>
       </div>
       <!-- Toggles -->
@@ -750,14 +750,79 @@ function setType(el){document.querySelectorAll('.tbtn').forEach(b=>b.classList.r
 function updateDurationForType(){
   const durEl=document.getElementById('dur');
   if(rtype==='Test'){
-    durEl.innerHTML='<option value="50 marks, 1 hour">Standard test — 50 marks (1 hour)</option><option value="30 marks, 45 minutes">Quick test — 30 marks (45 min)</option><option value="60 marks, 1 hour 30 minutes">Full FAT — 60 marks (1hr 30min)</option>';
+    durEl.innerHTML='<option value="50">Standard test — 50 marks</option><option value="30">Quick test — 30 marks</option><option value="60">Full FAT — 60 marks</option>';
   } else if(rtype==='Exam'){
-    durEl.innerHTML='<option value="60 marks, 1 hour 30 minutes">Term exam — 60 marks (1hr 30min)</option><option value="75 marks, 2 hours">Term exam — 75 marks (2 hours)</option>';
+    durEl.innerHTML='<option value="60">Term exam — 60 marks</option><option value="70">Term exam — 70 marks</option>';
   } else if(rtype==='Final Exam'){
-    durEl.innerHTML='<option value="75 marks, 2 hours">Final exam — 75 marks (2 hours)</option><option value="100 marks, 2 hours 30 minutes">Final exam — 100 marks (2hr 30min)</option>';
+    durEl.innerHTML='<option value="75">Final exam — 75 marks</option><option value="100">Final exam — 100 marks</option>';
   } else if(rtype==='Worksheet'){
-    durEl.innerHTML='<option value="20 marks, 30 minutes">Classwork — 20 marks (30 min)</option><option value="10 marks, 15 minutes">Quick practice — 10 marks (15 min)</option><option value="25 marks, 45 minutes">Homework — 25 marks (45 min)</option>';
+    durEl.innerHTML='<option value="20">Classwork — 20 marks</option><option value="10">Quick practice — 10 marks</option><option value="25">Homework — 25 marks</option>';
   }
+  updateCogDisplay();
+}
+
+// Largest Remainder Method — mirrors generate.js exactly
+function largestRemainderUI(total, pcts) {
+  const raw = pcts.map(p => total * p / 100);
+  const floored = raw.map(Math.floor);
+  const remainders = raw.map((v, i) => ({ i, r: v - floored[i] }));
+  let deficit = total - floored.reduce((a, b) => a + b, 0);
+  remainders.sort((a, b) => b.r - a.r);
+  for (let k = 0; k < deficit; k++) floored[remainders[k].i]++;
+  return floored;
+}
+
+function getCogLevelsUI(subj) {
+  const s = (subj || '').toLowerCase();
+  if (s.includes('math') || s.includes('wiskunde'))
+    return { levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'], pcts: [25,45,20,10] };
+  if (s.includes('home language') || s.includes('huistaal'))
+    return { levels: ['Lower Order/Literal', 'Middle Order/Inferential', 'Higher Order/Critical'], pcts: [30,40,30] };
+  if (s.includes('additional') || s.includes('addisionele'))
+    return { levels: ['Lower Order/Literal', 'Middle Order/Inferential', 'Higher Order/Critical'], pcts: [40,35,25] };
+  if (s.includes('natural') || s.includes('natuur'))
+    return { levels: ['Recall', 'Comprehension', 'Application/Analysis', 'Synthesis/Evaluation'], pcts: [25,30,30,15] };
+  if (s.includes('social') || s.includes('sosiale'))
+    return { levels: ['Knowledge/Recall', 'Comprehension', 'Application/Analysis', 'Synthesis/Evaluation'], pcts: [30,30,25,15] };
+  if (s.includes('technolog') || s.includes('tegnol'))
+    return { levels: ['Knowledge', 'Comprehension', 'Application', 'Analysis/Evaluation'], pcts: [20,30,35,15] };
+  if (s.includes('economic') || s.includes('ekonom'))
+    return { levels: ['Knowledge', 'Application', 'Analysis/Synthesis'], pcts: [25,45,30] };
+  if (s.includes('life') || s.includes('lewens'))
+    return { levels: ['Knowledge', 'Understanding', 'Application'], pcts: [30,40,30] };
+  return { levels: ['Lower Order', 'Middle Order', 'Higher Order'], pcts: [30,40,30] };
+}
+
+function updateCogDisplay() {
+  const raw = document.getElementById('subj').value;
+  const subj = raw.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
+  const total = parseInt(document.getElementById('dur').value) || 50;
+  const el = document.getElementById('cog-display');
+  if (!subj) { el.innerHTML = 'Select a subject to see cognitive level breakdown'; return; }
+  const cog = getCogLevelsUI(subj);
+  const marks = largestRemainderUI(total, cog.pcts);
+  const tolerance = Math.max(1, Math.round(total * 0.02));
+  const colors = ['var(--t8)','var(--t6)','var(--amber)','var(--blue)'];
+  el.innerHTML = cog.levels.map((l, i) =>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid var(--bdr);">` +
+    `<span style="color:var(--ink2);font-weight:600;">${l}</span>` +
+    `<span style="color:${colors[i%colors.length]};font-weight:700;">${marks[i]} marks <span style="color:var(--ink4);font-weight:400;">(${cog.pcts[i]}% ±${tolerance})</span></span>` +
+    `</div>`
+  ).join('') +
+  `<div style="margin-top:4px;font-size:9px;color:var(--ink4);">Total: ${total} marks · Time: ${marksToTimeUI(total)}</div>`;
+}
+
+function marksToTimeUI(m) {
+  if (m <= 10)  return '15 minutes';
+  if (m <= 20)  return '30 minutes';
+  if (m <= 25)  return '45 minutes';
+  if (m <= 30)  return '45 minutes';
+  if (m <= 50)  return '1 hour';
+  if (m <= 60)  return '1 hour 30 minutes';
+  if (m <= 70)  return '1 hour 45 minutes';
+  if (m <= 75)  return '2 hours';
+  if (m <= 100) return '2 hours 30 minutes';
+  return Math.round(m * 1.5 / 60) + ' hours';
 }
 function updateTopicsForType(){
   const topicEl=document.getElementById('topic');
@@ -799,10 +864,13 @@ function setBloomsMode(el){}
 function toggleBloom(el){}
 function getBloomsLevels(){return [];}
 function updateDoeDisplay(){
+  updateCogDisplay();
+}
+function _updateDoeDisplayLegacy(){
   const raw=document.getElementById('subj').value;
   const subj=raw.replace(/&amp;/g,'&').replace(/&quot;/g,'"');
   const g=parseInt(document.getElementById('grade').value)||6;
-  const el=document.getElementById('doe-display');
+  const el=document.getElementById('cog-display');
   if(!subj){el.innerHTML='Select a subject to see prescribed cognitive level ratios';return;}
   const s=subj.toLowerCase();
   let levels=[];
@@ -916,7 +984,7 @@ async function doGenerate(){
     const r=await fetch('/api/generate',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,grade,term,allTopics})
+      body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,duration:dur,difficulty:diff,includeRubric,grade,term,allTopics})  // dur is now marks-only integer string
     });
     clearInterval(iv);
     const rawText=await r.text();
@@ -1186,9 +1254,9 @@ async function downloadODT(){downloadDocx();}
 
 // Init — runs after all functions are defined
 loadSubjects();
-document.getElementById('subj').addEventListener('change',function(){loadTopics();updateDoeDisplay();});
-document.getElementById('grade').addEventListener('change',function(){loadSubjects();loadTopics();updateDoeDisplay();});
-document.getElementById('term').addEventListener('change',loadTopics);
+document.getElementById('subj').addEventListener('change',function(){loadTopics();updateCogDisplay();});
+document.getElementById('grade').addEventListener('change',function(){loadSubjects();loadTopics();updateCogDisplay();});
+document.getElementById('term').addEventListener('change',function(){loadTopics();updateCogDisplay();});
 
 </script>
 </body>
