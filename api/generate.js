@@ -596,7 +596,7 @@ COGNITIVE LEVEL TABLE RULE (strictly follow this):
 - THEN fill the COGNITIVE LEVEL ANALYSIS table by mechanically adding up the MARK values
   from the memorandum table above — grouped by their COGNITIVE LEVEL column
 - The Actual Marks for each level MUST equal the sum of MARK values in that level's rows
-- The four Actual Marks values MUST sum to exactly ${actualTotal}
+- The four Actual Marks values MUST sum to exactly the paper total
 - Do NOT copy prescribed marks into the actual marks column
 - Do NOT estimate or guess — count from the table above
 
