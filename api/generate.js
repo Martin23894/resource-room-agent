@@ -404,15 +404,66 @@ export default async function handler(req, res) {
   // CLEANUP — remove AI meta-commentary
   // ═══════════════════════════════════════
   function cleanOutput(text) {
-    return text.split('\n').filter(line => {
+    // Remove leaked prompt instructions and AI meta-commentary line by line
+    const lines = text.split('\n').filter(line => {
       const t = line.trim().toUpperCase();
+      const tr = line.trim();
+
+      // Strip prompt step headings that leaked into output
+      if (/^STEP\s+\d+\s*[—\-–]?/i.test(tr)) return false;
+      if (/^STEP\s+\d+$/i.test(tr)) return false;
+
+      // Strip corrected/updated table headers
+      if (t.startsWith('CORRECTED ') || t.startsWith('UPDATED ')) return false;
+      if (t.includes('CORRECTED MEMORANDUM') || t.includes('CORRECTED COGNITIVE')) return false;
+      if (t.includes('CORRECTED COGNITIVE LEVEL')) return false;
+
+      // Strip AI meta-commentary and reasoning
       if (t.startsWith('NOTE:') || t.startsWith('NOTE ') || t.startsWith('NOTE TO')) return false;
-      if (t.includes('DISCREPANCY') || t.includes('ADJUSTMENT') || t.includes('RECONCILIATION')) return false;
+      if (t.includes('DISCREPANCY') || t.includes('RECONCILIATION')) return false;
       if (t.startsWith('REVISED ') || t.startsWith('FINAL INSTRUCTION') || t.startsWith('FINAL CONFIRMED')) return false;
       if (t.startsWith('THE QUESTION PAPER AS') || t.startsWith('THE PAPER AS')) return false;
       if (t.startsWith('RECOMMENDED ADJUSTMENT') || t.startsWith('TEACHERS SHOULD')) return false;
+      if (t.startsWith('RECOUNT:') || t.startsWith('RE-EXAMINE') || t.startsWith('RE-COUNT')) return false;
+      if (t.startsWith('VERIFY:') || t.startsWith('VERIFY ALL') || t.startsWith('CHECK:')) return false;
+      if (t.startsWith('REMOVE ') || t.startsWith('MOVE ') || t.startsWith('PLACE ')) return false;
+      if (t.includes('ALREADY COUNTED') || t.includes('ALREADY IN ')) return false;
+      if (t.startsWith('CUMULATIVE') || t.includes('CUMULATIVE ')) return false;
+      if (t.startsWith('THAT GIVES') || t.startsWith('THIS GIVES')) return false;
+      if (t.startsWith('SO ROUTINE') || t.startsWith('SO COMPLEX') || t.startsWith('SO KNOWLEDGE')) return false;
+      if (t.startsWith('WITHOUT ') && t.includes(' RECOUNT')) return false;
+      if (t.startsWith('ALL OTHER COGNITIVE') || t.startsWith('ALL OTHER LEVEL')) return false;
+      if (/^(KNOWLEDGE|ROUTINE|COMPLEX|PROBLEM)\s+ROWS?:/i.test(tr)) return false;
+
       return true;
-    }).join('\n');
+    });
+
+    // Also strip multi-line AI reasoning blocks:
+    // Any line longer than 300 chars that contains both calculation notation
+    // and meta-words is likely a leaked reasoning paragraph — truncate to empty
+    const cleaned = lines.map(line => {
+      if (line.length > 300 &&
+          /recount|already counted|cumulative|verify|reconcil/i.test(line) &&
+          /\d+\s*\+\s*\d+/.test(line)) {
+        return '';
+      }
+      return line;
+    });
+
+    // Collapse multiple consecutive blank lines into one
+    const result = [];
+    let blanks = 0;
+    for (const line of cleaned) {
+      if (line.trim() === '') {
+        blanks++;
+        if (blanks <= 1) result.push(line);
+      } else {
+        blanks = 0;
+        result.push(line);
+      }
+    }
+
+    return result.join('\n');
   }
 
   // ═══════════════════════════════════════
@@ -577,10 +628,12 @@ Total must be: ${totalMarks} marks`;
 
 CRITICAL RULES:
 - Use pipe | tables only. No Unicode box characters.
+- Output ONLY the memorandum content — no headings like "STEP 1", "STEP 2", "CORRECTED", "Updated" etc.
 - No notes, adjustments, commentary, or reasoning outside tables. Just answers.
-- Generate each table ONCE. Never repeat a table.
+- Generate each cognitive level table ONCE. Never repeat it or add a "corrected" version.
 - Write fractions as plain text: 3/4 not ¾
 - Do NOT question or adjust the mark allocation — use marks exactly as shown in the paper.
+- Do NOT show your working or reasoning anywhere in the output — only final answers in tables.
 
 MEDIAN RULE (strictly follow this):
 - Sort ALL data values from smallest to largest first
@@ -612,15 +665,16 @@ This paper totals ${actualTotal} marks.
 
 Follow these steps IN ORDER. Do not skip ahead.
 
-STEP 1 — Write the MEMORANDUM table:
+Write the MEMORANDUM section:
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
 - List EVERY sub-question number from the paper above
 - Use the EXACT (X) mark shown on each question line — never change it
 - Assign the correct COGNITIVE LEVEL to each row
+- Do not write "STEP 1" or any step heading in your output
 
-STEP 2 — Write: TOTAL: ${actualTotal} marks
+Then write: TOTAL: ${actualTotal} marks
 
-STEP 3 — Write the COGNITIVE LEVEL ANALYSIS table:
+Then write the COGNITIVE LEVEL ANALYSIS section:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
 For EACH level row:
@@ -631,10 +685,9 @@ Then write ONE summary line per level:
 [Level name] ([total] marks): Q1.1 (1) + Q2.3 (2) + ... = [total] marks
 The sum at the end of each line MUST match the Actual Marks in the table above.
 
-STEP 4 — Write: EXTENSION ACTIVITY
-${!isWorksheet ? 'One challenging question that goes beyond the paper, with a complete step-by-step model answer.' : '(skip for worksheets)'}
+${!isWorksheet ? 'Then write: EXTENSION ACTIVITY\nOne challenging question that goes beyond the paper, with a complete step-by-step model answer. Do not write "STEP 4" in your output.' : ''}
 
-${includeRubric ? 'STEP 5 — Write: MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\nWrite 3-4 subject-relevant criteria rows for ' + subject + '.' : ''}`;
+${includeRubric ? 'Then write: MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\nWrite 3-4 subject-relevant criteria rows for ' + subject + '. Do not write "STEP 5" in your output.' : ''}`;
 
   // ═══════════════════════════════════════
   // EXECUTE — 3-phase generation
