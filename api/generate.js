@@ -590,34 +590,62 @@ CRITICAL RULES:
 - Generate each table ONCE. Never repeat a table.
 - Write fractions as plain text: 3/4 not ¾
 - Do NOT question or adjust the mark allocation — use marks exactly as shown in the paper.
-- Cognitive level breakdown: count marks BY READING each question's (X) mark label. Do NOT estimate or fabricate.
+
+MEDIAN RULE (strictly follow this):
+- Sort ALL data values from smallest to largest first
+- Count the total number of values (n)
+- If n is odd: median = the middle value at position (n+1)/2
+- If n is even: median = the average of the values at positions n/2 and (n/2)+1
+- Count position by position through the sorted list — do not skip repeated values
+- Example: sorted data 23,27,29,31,31,31,35,35,38,42 has n=10
+  Position 5 = 31, Position 6 = 31, Median = (31+31)/2 = 31 (NOT 33)
+
+COGNITIVE LEVEL TABLE RULE (strictly follow this):
+- Write the MEMORANDUM table first with every sub-question's MARK column filled in
+- THEN fill the COGNITIVE LEVEL ANALYSIS table by mechanically adding up the MARK values
+  from the memorandum table above — grouped by their COGNITIVE LEVEL column
+- The Actual Marks for each level MUST equal the sum of MARK values in that level's rows
+- The four Actual Marks values MUST sum to exactly ${actualTotal}
+- Do NOT copy prescribed marks into the actual marks column
+- Do NOT estimate or guess — count from the table above
 
 Return JSON: {"content":"memorandum text"}`;
 
   const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
 
-Question paper (read every (X) mark carefully before writing the memo):
+Question paper — read every (X) mark carefully before writing anything:
 
 ${qp}
 
-The marks in this paper total ${actualTotal}.
+This paper totals ${actualTotal} marks.
 
-Write these sections. ONE pipe table per section. No commentary outside tables.
+Follow these steps IN ORDER. Do not skip ahead.
 
-MEMORANDUM
+STEP 1 — Write the MEMORANDUM table:
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-List every sub-question. Use the (X) mark value shown next to each question in the paper above.
+- List EVERY sub-question number from the paper above
+- Use the EXACT (X) mark shown on each question line — never change it
+- Assign the correct COGNITIVE LEVEL to each row
 
-TOTAL: ${actualTotal} marks
+STEP 2 — Write: TOTAL: ${actualTotal} marks
 
-COGNITIVE LEVEL ANALYSIS
+STEP 3 — Write the COGNITIVE LEVEL ANALYSIS table:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
-For each row: count Actual Marks by adding the MARK column values from the memorandum above where cogLevel matches. Calculate Actual % = Actual Marks / ${actualTotal} * 100.
-Then ONE summary line per level showing which questions contribute: Knowledge (X marks): Q1.1 (1) + Q1.2 (1) + ... = X marks
+For EACH level row:
+- Actual Marks = add up ONLY the MARK column values from the STEP 1 table where COGNITIVE LEVEL matches this row
+- Actual % = (Actual Marks / ${actualTotal}) × 100, rounded to 1 decimal place
+- The four Actual Marks values MUST sum to ${actualTotal} — if they do not, recount
+Then write ONE summary line per level:
+[Level name] ([total] marks): Q1.1 (1) + Q2.3 (2) + ... = [total] marks
+The sum at the end of each line MUST match the Actual Marks in the table above.
 
-${!isWorksheet ? 'EXTENSION ACTIVITY\nOne challenging question beyond the paper, with full model answer.\n' : ''}
-${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\n3-4 assessment criteria rows for ' + subject + '.' : ''}`;
+STEP 4 — Write: EXTENSION ACTIVITY
+${!isWorksheet ? 'One challenging question that goes beyond the paper, with a complete step-by-step model answer.' : '(skip for worksheets)'}
+
+${includeRubric ? `STEP 5 — Write: MARKING RUBRIC
+CRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)
+Write 3-4 subject-relevant criteria rows for ${subject}.` : ''}`;
 
   // ═══════════════════════════════════════
   // EXECUTE — 3-phase generation
