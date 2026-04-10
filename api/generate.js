@@ -463,7 +463,20 @@ export default async function handler(req, res) {
       }
     }
 
-    return result.join('\n');
+    // Fix 3 — Remove everything from the SECOND occurrence of the cognitive level table heading.
+    // This prevents a duplicate COGNITIVE LEVEL ANALYSIS table appearing in the memo output.
+    const cogHeadingPattern = /COGNITIVE LEVEL/i;
+    let cogCount = 0;
+    const deduped = [];
+    for (const line of result) {
+      if (cogHeadingPattern.test(line)) {
+        cogCount++;
+        if (cogCount === 2) break; // Drop the second heading and everything after it
+      }
+      deduped.push(line);
+    }
+
+    return deduped.join('\n');
   }
 
   // ═══════════════════════════════════════
@@ -612,6 +625,17 @@ ${isTest ? '- NO SECTION headers. Use Question 1, Question 2 etc.' : ''}
 ${(isExam || isFinalExam) ? '- USE SECTION A / B / C / D headers' : ''}
 - Write fractions as plain text: 3/4 not ¾, 2/3 not ²⁄₃
 
+MCQ VERIFICATION RULE (CRITICAL — Fix 1):
+For any MCQ where a specific value is given (e.g. "if n = 6", "calculate the cost if..."):
+1. Calculate the correct answer yourself FIRST before writing the options.
+2. Write 3 distractors that are plausible but provably wrong.
+3. Verify by substituting the given value into every option — exactly ONE option must give the correct result.
+4. Do NOT write the question until all four options have been checked and only one is correct.
+
+GEOMETRY / ANGLE RULE (Fix 4):
+Do NOT write any question that requires the learner to measure an angle drawn on paper (no protractor questions).
+Instead: provide the angle value in the question stem, then ask the learner to classify the angle (acute / obtuse / reflex / right angle / straight angle / revolution) OR use it in a calculation (e.g. "find the missing angle in a triangle if two angles are 47° and 63°").
+
 End with: TOTAL: _____ / ${totalMarks} marks
 
 Return JSON: {"content":"question paper text only — no cover page, no memo"}`;
@@ -634,6 +658,12 @@ CRITICAL RULES:
 - Write fractions as plain text: 3/4 not ¾
 - Do NOT question or adjust the mark allocation — use marks exactly as shown in the paper.
 - Do NOT show your working or reasoning anywhere in the output — only final answers in tables.
+
+ANSWER FIELD RULE (CRITICAL — Fix 2):
+For every question that involves calculation steps, before writing the ANSWER field:
+1. Re-read your own working steps from top to bottom.
+2. The ANSWER field must contain the same final number that appears at the end of those working steps.
+3. Do not write an answer that differs from your own working. Check every row before moving on.
 
 MEDIAN RULE (strictly follow this):
 - Sort ALL data values from smallest to largest first
