@@ -435,20 +435,33 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════
+  // QUESTION TYPE → COGNITIVE LEVEL RULES
+  // Low-demand types cap at Knowledge/Recall level
+  // These rules are subject-agnostic and scale with any pcts array
+  // ═══════════════════════════════════════
+  const LOW_DEMAND_TYPES = ['MCQ', 'True/False', 'True-False', 'Matching', 'True or False'];
+  const HIGH_DEMAND_TYPES = ['Multi-step', 'Word Problem', 'Extended Response', 'Essay', 'Investigation', 'Analysis'];
+
+  // First level in any subject's cog array is always the lowest (Knowledge/Recall/Lower Order)
+  const maxLowDemandMarks = cogMarks[0];
+  // Last two levels are always the highest (Complex + Problem Solving, or equivalent)
+  const highDemandLevels = cog.levels.slice(Math.max(0, cog.levels.length - 2));
+
+  // ═══════════════════════════════════════
   // PHASE 1 — PLAN VALIDATOR
-  // Returns validated cogMarks array or null if invalid
+  // Returns validated plan or null if invalid
   // ═══════════════════════════════════════
   function validatePlan(plan) {
     if (!plan || !Array.isArray(plan.questions) || plan.questions.length === 0) return null;
 
-    // Check total marks
+    // Rule 1: Total marks must be exact
     const planTotal = plan.questions.reduce((s, q) => s + (parseInt(q.marks) || 0), 0);
     if (planTotal !== totalMarks) {
       console.log(`Plan total ${planTotal} !== requested ${totalMarks} — rejecting`);
       return null;
     }
 
-    // Check each cognitive level is within ±2% tolerance
+    // Rule 2: Cognitive level marks within ±2% tolerance
     const cogActual = {};
     cog.levels.forEach(l => cogActual[l] = 0);
     for (const q of plan.questions) {
@@ -463,6 +476,28 @@ export default async function handler(req, res) {
         return null;
       }
     }
+
+    // Rule 3: MCQ + True/False total marks must not exceed the lowest cognitive level allocation
+    // (You cannot fulfil Routine/Complex/Problem Solving with recall-type questions)
+    const lowDemandTotal = plan.questions
+      .filter(q => LOW_DEMAND_TYPES.some(t => (q.type || '').toLowerCase().includes(t.toLowerCase())))
+      .reduce((s, q) => s + (parseInt(q.marks) || 0), 0);
+    if (lowDemandTotal > maxLowDemandMarks) {
+      console.log(`Low-demand question types (MCQ/T/F) total ${lowDemandTotal} marks, max allowed ${maxLowDemandMarks} — rejecting`);
+      return null;
+    }
+
+    // Rule 4: High cognitive level questions must use appropriate question types
+    // Complex Procedures and Problem Solving cannot be MCQ or True/False
+    for (const q of plan.questions) {
+      const isHighLevel = highDemandLevels.includes(q.cogLevel);
+      const isLowType = LOW_DEMAND_TYPES.some(t => (q.type || '').toLowerCase().includes(t.toLowerCase()));
+      if (isHighLevel && isLowType) {
+        console.log(`Question ${q.number} is ${q.cogLevel} but uses ${q.type} — MCQ/T/F cannot serve high cognitive levels — rejecting`);
+        return null;
+      }
+    }
+
     return plan;
   }
 
@@ -474,21 +509,34 @@ export default async function handler(req, res) {
   const planSys = `You are a South African CAPS ${phase} Phase assessment designer.
 Return ONLY valid JSON — no markdown, no explanation.
 Schema: {"questions":[{"number":"Q1","type":"MCQ","topic":"string","marks":5,"cogLevel":"${cog.levels[0]}"},...]}
-cogLevel must be one of: ${cog.levels.join(', ')}`;
+cogLevel must be exactly one of: ${cog.levels.join(' | ')}`;
 
-  const planUsr = `Design a ${totalMarks}-mark ${resourceType} plan for: Grade ${g} ${subject} Term ${t} in ${language}.
+  const planUsr = `Design a ${totalMarks}-mark ${resourceType} question plan for: Grade ${g} ${subject} Term ${t} in ${language}.
 ${topicInstruction}
 
-CAPS DoE cognitive level targets (marks must hit these within ±${cogTolerance} marks):
-${cog.levels.map((l, i) => `${l}: exactly ${cogMarks[i]} marks (${cog.pcts[i]}%)`).join('\n')}
+CAPS DoE cognitive level targets — marks must hit each level within ±${cogTolerance} marks:
+${cog.levels.map((l, i) => `  ${l}: ${cogMarks[i]} marks (${cog.pcts[i]}%)`).join('\n')}
 
-Rules:
-- questions must sum to EXACTLY ${totalMarks} marks
-- each question has a number (Q1, Q2...), type (MCQ/True-False/Short Answer/Calculations/Word Problems/Problem Solving), topic, marks (integer), cogLevel
-- spread marks across ${cog.levels.length} cognitive levels as shown above
-- minimum ${isWorksheet ? '4' : '6'} questions
-${isTest ? '- no section headers' : '- group questions into sections'}
-Return only the JSON object.`;
+QUESTION TYPE RULES — these are strict and non-negotiable:
+1. MCQ and True/False questions are LOW DEMAND — they address recall only.
+   Total marks from MCQ + True/False combined must NOT exceed ${cogMarks[0]} marks.
+   MCQ and True/False can ONLY serve the "${cog.levels[0]}" level.
+
+2. The following levels MUST use higher-order question types:
+${cog.levels.slice(1).map((l, i) => {
+  const types = i === 0 
+    ? 'Short Answer, Calculations, Structured Question, Fill in the blank'
+    : i === cog.levels.length - 2
+    ? 'Multi-step Calculations, Structured Question, Analysis'
+    : 'Word Problem, Extended Response, Essay, Investigation, Multi-step';
+  return `   "${l}": use ${types}`;
+}).join('\n')}
+
+3. Every question must have: number (Q1, Q2...), type, topic, marks (whole number ≥ 1), cogLevel
+4. Questions must sum to EXACTLY ${totalMarks} marks
+5. Minimum ${isWorksheet ? '4' : '6'} questions — spread topics across the ${subject} curriculum
+
+Return only the JSON object, nothing else.`;
 
   // Question writing prompt — Phase 2 (writes from validated blueprint)
   const qSys = (plan) => `You are a South African CAPS ${phase} Phase teacher writing a ${resourceType} question paper in ${language}.
@@ -596,20 +644,31 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Le
       }
     }
 
-    // If plan fails validation twice, build a safe fallback plan in JS
+    // If plan fails validation twice, build a guaranteed-correct fallback plan in JS
+    // This plan always passes validation because we build it from the rules directly
     if (!plan) {
       console.log('Plan validation failed — using JS fallback plan');
       const fallbackQuestions = [];
-      let remaining = totalMarks;
-      const typeMap = isWorksheet
-        ? ['Short Answer', 'Calculations', 'Short Answer', 'Problem Solving']
-        : ['MCQ', 'True/False', 'Short Answer', 'Calculations', 'Calculations', 'Word Problems', 'Problem Solving'];
+
+      // Type map per cognitive level index — respects the type rules
+      // Index 0 = Knowledge/Recall/Lower Order → MCQ allowed
+      // Index 1 = Routine/Comprehension/Middle → Short Answer/Calculations
+      // Index 2 = Complex/Application/Higher   → Multi-step/Structured
+      // Index 3 = Problem Solving/Synthesis    → Word Problem/Essay
+      const typeByLevel = [
+        'MCQ',                  // level 0: Knowledge/Recall/Lower Order
+        'Short Answer',         // level 1: Routine/Middle Order
+        'Multi-step',           // level 2: Complex/Application
+        'Word Problem',         // level 3: Problem Solving/Synthesis
+      ];
+
       cog.levels.forEach((lvl, li) => {
         let lvlMarks = cogMarks[li];
-        const qType = typeMap[li % typeMap.length];
-        // Split into sensible question chunks (max 15 marks each)
+        const qType = typeByLevel[Math.min(li, typeByLevel.length - 1)];
+        // Chunk size: Knowledge questions small (5 max), others larger
+        const chunkSize = li === 0 ? 5 : 10;
         while (lvlMarks > 0) {
-          const chunk = Math.min(lvlMarks, li === 0 ? 5 : 10);
+          const chunk = Math.min(lvlMarks, chunkSize);
           fallbackQuestions.push({
             number: 'Q' + (fallbackQuestions.length + 1),
             type: qType,
@@ -620,7 +679,9 @@ ${includeRubric ? 'MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Le
           lvlMarks -= chunk;
         }
       });
+
       plan = { questions: fallbackQuestions };
+      console.log(`Fallback plan: ${fallbackQuestions.length} questions, ${fallbackQuestions.reduce((s,q)=>s+q.marks,0)} marks`);
     }
 
     console.log(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
