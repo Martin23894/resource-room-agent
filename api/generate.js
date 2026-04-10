@@ -435,6 +435,14 @@ export default async function handler(req, res) {
       if (t.startsWith('ALL OTHER COGNITIVE') || t.startsWith('ALL OTHER LEVEL')) return false;
       if (/^(KNOWLEDGE|ROUTINE|COMPLEX|PROBLEM)\s+ROWS?:/i.test(tr)) return false;
 
+      // Strip mid-stream self-correction reasoning that leaks into output
+      if (/^WAIT\s*[—\-–]/i.test(tr) || /^WAIT —/i.test(tr)) return false;
+      if (t.startsWith('WAIT ') || tr.toLowerCase().startsWith('wait —') || tr.toLowerCase().startsWith('wait-')) return false;
+      if (/^I MUST RECHECK/i.test(tr) || /^LET ME RECHECK/i.test(tr)) return false;
+      if (/^RECHECK:/i.test(tr) || /^CHECKING:/i.test(tr)) return false;
+      if (/^COST\s*=/i.test(tr) || /^INCOME\s*=/i.test(tr)) return false;
+      if (/^SINCE\s+R\d/i.test(tr)) return false;
+
       return true;
     });
 
@@ -463,20 +471,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fix 3 — Remove everything from the SECOND occurrence of the cognitive level table heading.
-    // This prevents a duplicate COGNITIVE LEVEL ANALYSIS table appearing in the memo output.
-    const cogHeadingPattern = /COGNITIVE LEVEL/i;
-    let cogCount = 0;
-    const deduped = [];
-    for (const line of result) {
-      if (cogHeadingPattern.test(line)) {
-        cogCount++;
-        if (cogCount === 2) break; // Drop the second heading and everything after it
-      }
-      deduped.push(line);
-    }
-
-    return deduped.join('\n');
+    return result.join('\n');
   }
 
   // ═══════════════════════════════════════
@@ -625,17 +620,6 @@ ${isTest ? '- NO SECTION headers. Use Question 1, Question 2 etc.' : ''}
 ${(isExam || isFinalExam) ? '- USE SECTION A / B / C / D headers' : ''}
 - Write fractions as plain text: 3/4 not ¾, 2/3 not ²⁄₃
 
-MCQ VERIFICATION RULE (CRITICAL — Fix 1):
-For any MCQ where a specific value is given (e.g. "if n = 6", "calculate the cost if..."):
-1. Calculate the correct answer yourself FIRST before writing the options.
-2. Write 3 distractors that are plausible but provably wrong.
-3. Verify by substituting the given value into every option — exactly ONE option must give the correct result.
-4. Do NOT write the question until all four options have been checked and only one is correct.
-
-GEOMETRY / ANGLE RULE (Fix 4):
-Do NOT write any question that requires the learner to measure an angle drawn on paper (no protractor questions).
-Instead: provide the angle value in the question stem, then ask the learner to classify the angle (acute / obtuse / reflex / right angle / straight angle / revolution) OR use it in a calculation (e.g. "find the missing angle in a triangle if two angles are 47° and 63°").
-
 End with: TOTAL: _____ / ${totalMarks} marks
 
 Return JSON: {"content":"question paper text only — no cover page, no memo"}`;
@@ -659,12 +643,6 @@ CRITICAL RULES:
 - Do NOT question or adjust the mark allocation — use marks exactly as shown in the paper.
 - Do NOT show your working or reasoning anywhere in the output — only final answers in tables.
 
-ANSWER FIELD RULE (CRITICAL — Fix 2):
-For every question that involves calculation steps, before writing the ANSWER field:
-1. Re-read your own working steps from top to bottom.
-2. The ANSWER field must contain the same final number that appears at the end of those working steps.
-3. Do not write an answer that differs from your own working. Check every row before moving on.
-
 MEDIAN RULE (strictly follow this):
 - Sort ALL data values from smallest to largest first
 - Count the total number of values (n)
@@ -674,8 +652,25 @@ MEDIAN RULE (strictly follow this):
 - Example: sorted data 23,27,29,31,31,31,35,35,38,42 has n=10
   Position 5 = 31, Position 6 = 31, Median = (31+31)/2 = 31 (NOT 33)
 
+PROFIT / LOSS RULE (strictly follow this — no exceptions):
+- Profit means income is GREATER than cost: Profit = Income − Cost (positive result)
+- Loss means cost is GREATER than income: Loss = Cost − Income (positive result)
+- BEFORE writing the ANSWER cell for any financial question:
+  1. Write the income value and the cost value
+  2. Compare them: which is larger?
+  3. If income > cost → answer is PROFIT of R[income − cost]
+  4. If cost > income → answer is LOSS of R[cost − income]
+- Never write "Loss" when income exceeds cost. Never write "Profit" when cost exceeds income.
+
+ANSWER VERIFICATION RULE (strictly follow this):
+- After writing the MARKING GUIDANCE for each row, re-read the final number in that guidance
+- The ANSWER cell must contain that exact final number and the correct profit/loss label
+- Do NOT move to the next row until the ANSWER cell matches the MARKING GUIDANCE
+
 COGNITIVE LEVEL TABLE RULE (strictly follow this):
-- Write the MEMORANDUM table first with every sub-question's MARK column filled in
+- You will receive a COGNITIVE LEVEL REFERENCE TABLE in the user message
+- Copy the cogLevel value from that table for each question number — do not reassign levels yourself
+- Write the MEMORANDUM table first using those assigned levels
 - THEN fill the COGNITIVE LEVEL ANALYSIS table by mechanically adding up the MARK values
   from the memorandum table above — grouped by their COGNITIVE LEVEL column
 - The Actual Marks for each level MUST equal the sum of MARK values in that level's rows
@@ -685,7 +680,7 @@ COGNITIVE LEVEL TABLE RULE (strictly follow this):
 
 Return JSON: {"content":"memorandum text"}`;
 
-  const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
+  const mUsr = (qp, actualTotal, cogLevelRef) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
 
 Question paper — read every (X) mark carefully before writing anything:
 
@@ -693,13 +688,17 @@ ${qp}
 
 This paper totals ${actualTotal} marks.
 
+COGNITIVE LEVEL REFERENCE TABLE — use these assignments exactly, do not change them:
+${cogLevelRef}
+
 Follow these steps IN ORDER. Do not skip ahead.
 
 Write the MEMORANDUM section:
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
 - List EVERY sub-question number from the paper above
 - Use the EXACT (X) mark shown on each question line — never change it
-- Assign the correct COGNITIVE LEVEL to each row
+- Copy the COGNITIVE LEVEL from the REFERENCE TABLE above for each question block — do not reassign
+- For financial questions: check income vs cost before writing the answer — see PROFIT/LOSS RULE
 - Do not write "STEP 1" or any step heading in your output
 
 Then write: TOTAL: ${actualTotal} marks
@@ -708,9 +707,9 @@ Then write the COGNITIVE LEVEL ANALYSIS section:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
 For EACH level row:
-- Actual Marks = add up ONLY the MARK column values from the STEP 1 table where COGNITIVE LEVEL matches this row
+- Actual Marks = add up ONLY the MARK column values from the memorandum table where COGNITIVE LEVEL matches this row
 - Actual % = (Actual Marks / ${actualTotal}) × 100, rounded to 1 decimal place
-- The four Actual Marks values MUST sum to ${actualTotal} — if they do not, recount
+- The Actual Marks values MUST sum to ${actualTotal} — if they do not, recount
 Then write ONE summary line per level:
 [Level name] ([total] marks): Q1.1 (1) + Q2.3 (2) + ... = [total] marks
 The sum at the end of each line MUST match the Actual Marks in the table above.
@@ -841,7 +840,13 @@ Return the complete corrected paper with the mark values adjusted. Every sub-que
     console.log(`Final mark total: ${markTotal}`);
 
     // ── Phase 3: Generate memorandum ──
-    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), includeRubric ? 8192 : 6500));
+    // Build cognitive level reference from the validated plan so the memo
+    // copies assignments directly rather than guessing them independently
+    const cogLevelRef = plan.questions
+      .map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`)
+      .join('\n');
+
+    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal, cogLevelRef), includeRubric ? 8192 : 6500));
 
     // ── Build DOCX ──
     let docxBase64 = null;
