@@ -522,16 +522,7 @@ QUESTION TYPE RULES — these are strict and non-negotiable:
    Total marks from MCQ + True/False combined must NOT exceed ${cogMarks[0]} marks.
    MCQ and True/False can ONLY serve the "${cog.levels[0]}" level.
 
-2. The following levels MUST use higher-order question types:
-${cog.levels.slice(1).map((l, i) => {
-  const types = i === 0 
-    ? 'Short Answer, Calculations, Structured Question, Fill in the blank'
-    : i === cog.levels.length - 2
-    ? 'Multi-step Calculations, Structured Question, Analysis'
-    : 'Word Problem, Extended Response, Essay, Investigation, Multi-step';
-  return `   "${l}": use ${types}`;
-}).join('\n')}
-
+2. The following levels MUST use higher-order question types:\n${cog.levels.slice(1).map((l, i) => '   "' + l + '": use ' + (i === 0 ? 'Short Answer, Calculations, Structured Question, Fill in the blank' : i === cog.levels.length - 2 ? 'Multi-step Calculations, Structured Question, Analysis' : 'Word Problem, Extended Response, Essay, Investigation, Multi-step')).join('\n')}
 3. Every question must have: number (Q1, Q2...), type, topic, marks (whole number ≥ 1), cogLevel
 4. Questions must sum to EXACTLY ${totalMarks} marks
 5. Minimum ${isWorksheet ? '4' : '6'} questions — spread topics across the ${subject} curriculum
@@ -643,9 +634,7 @@ The sum at the end of each line MUST match the Actual Marks in the table above.
 STEP 4 — Write: EXTENSION ACTIVITY
 ${!isWorksheet ? 'One challenging question that goes beyond the paper, with a complete step-by-step model answer.' : '(skip for worksheets)'}
 
-${includeRubric ? `STEP 5 — Write: MARKING RUBRIC
-CRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)
-Write 3-4 subject-relevant criteria rows for ${subject}.` : ''}`;
+${includeRubric ? 'STEP 5 — Write: MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\nWrite 3-4 subject-relevant criteria rows for ' + subject + '.' : ''}`;
 
   // ═══════════════════════════════════════
   // EXECUTE — 3-phase generation
