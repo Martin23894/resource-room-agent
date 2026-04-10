@@ -435,14 +435,6 @@ export default async function handler(req, res) {
       if (t.startsWith('ALL OTHER COGNITIVE') || t.startsWith('ALL OTHER LEVEL')) return false;
       if (/^(KNOWLEDGE|ROUTINE|COMPLEX|PROBLEM)\s+ROWS?:/i.test(tr)) return false;
 
-      // Strip mid-stream self-correction reasoning that leaks into output
-      if (/^WAIT\s*[—\-–]/i.test(tr) || /^WAIT —/i.test(tr)) return false;
-      if (t.startsWith('WAIT ') || tr.toLowerCase().startsWith('wait —') || tr.toLowerCase().startsWith('wait-')) return false;
-      if (/^I MUST RECHECK/i.test(tr) || /^LET ME RECHECK/i.test(tr)) return false;
-      if (/^RECHECK:/i.test(tr) || /^CHECKING:/i.test(tr)) return false;
-      if (/^COST\s*=/i.test(tr) || /^INCOME\s*=/i.test(tr)) return false;
-      if (/^SINCE\s+R\d/i.test(tr)) return false;
-
       return true;
     });
 
@@ -620,6 +612,12 @@ ${isTest ? '- NO SECTION headers. Use Question 1, Question 2 etc.' : ''}
 ${(isExam || isFinalExam) ? '- USE SECTION A / B / C / D headers' : ''}
 - Write fractions as plain text: 3/4 not ¾, 2/3 not ²⁄₃
 
+ORDERING/ASCENDING/DESCENDING QUESTION RULE:
+- Never include two values that are mathematically equal in an ordering question
+- Before writing, convert ALL values to decimals to check they are all distinct
+- INVALID example: "Order 0.6 ; 1/4 ; 0.3 ; 3/5" — 0.6 = 3/5 = 0.60, they are equal
+- VALID example: "Order 0.4 ; 1/4 ; 0.3 ; 3/5" — all distinct: 0.40, 0.25, 0.30, 0.60
+
 End with: TOTAL: _____ / ${totalMarks} marks
 
 Return JSON: {"content":"question paper text only — no cover page, no memo"}`;
@@ -652,25 +650,19 @@ MEDIAN RULE (strictly follow this):
 - Example: sorted data 23,27,29,31,31,31,35,35,38,42 has n=10
   Position 5 = 31, Position 6 = 31, Median = (31+31)/2 = 31 (NOT 33)
 
-PROFIT / LOSS RULE (strictly follow this — no exceptions):
-- Profit means income is GREATER than cost: Profit = Income − Cost (positive result)
-- Loss means cost is GREATER than income: Loss = Cost − Income (positive result)
-- BEFORE writing the ANSWER cell for any financial question:
-  1. Write the income value and the cost value
-  2. Compare them: which is larger?
-  3. If income > cost → answer is PROFIT of R[income − cost]
-  4. If cost > income → answer is LOSS of R[cost − income]
-- Never write "Loss" when income exceeds cost. Never write "Profit" when cost exceeds income.
+STEM-AND-LEAF COUNT RULE (strictly follow this):
+- To count values in a stem-and-leaf plot: count every individual leaf digit — do NOT estimate
+- Write out the count per stem row first, then add them: stem1=4, stem2=5, stem3=2, stem4=2 → total=13
+- Write your count in the ANSWER cell. Do not second-guess it or "correct" it after writing.
 
-ANSWER VERIFICATION RULE (strictly follow this):
-- After writing the MARKING GUIDANCE for each row, re-read the final number in that guidance
-- The ANSWER cell must contain that exact final number and the correct profit/loss label
-- Do NOT move to the next row until the ANSWER cell matches the MARKING GUIDANCE
+DECIMAL ROUNDING RULE (strictly follow this):
+- When a calculation produces a non-terminating decimal (e.g. 333÷13=25.615...), round to 1 decimal place
+- The ANSWER cell MUST use the same rounded value shown at the end of your MARKING GUIDANCE
+- If guidance says "≈ 25.6" then answer must be "25.6" — never write "25.7" if guidance shows "25.6"
+- Round once, use that value everywhere
 
 COGNITIVE LEVEL TABLE RULE (strictly follow this):
-- You will receive a COGNITIVE LEVEL REFERENCE TABLE in the user message
-- Copy the cogLevel value from that table for each question number — do not reassign levels yourself
-- Write the MEMORANDUM table first using those assigned levels
+- Write the MEMORANDUM table first with every sub-question's MARK column filled in
 - THEN fill the COGNITIVE LEVEL ANALYSIS table by mechanically adding up the MARK values
   from the memorandum table above — grouped by their COGNITIVE LEVEL column
 - The Actual Marks for each level MUST equal the sum of MARK values in that level's rows
@@ -680,7 +672,7 @@ COGNITIVE LEVEL TABLE RULE (strictly follow this):
 
 Return JSON: {"content":"memorandum text"}`;
 
-  const mUsr = (qp, actualTotal, cogLevelRef) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
+  const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
 
 Question paper — read every (X) mark carefully before writing anything:
 
@@ -688,17 +680,13 @@ ${qp}
 
 This paper totals ${actualTotal} marks.
 
-COGNITIVE LEVEL REFERENCE TABLE — use these assignments exactly, do not change them:
-${cogLevelRef}
-
 Follow these steps IN ORDER. Do not skip ahead.
 
 Write the MEMORANDUM section:
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
 - List EVERY sub-question number from the paper above
 - Use the EXACT (X) mark shown on each question line — never change it
-- Copy the COGNITIVE LEVEL from the REFERENCE TABLE above for each question block — do not reassign
-- For financial questions: check income vs cost before writing the answer — see PROFIT/LOSS RULE
+- Assign the correct COGNITIVE LEVEL to each row
 - Do not write "STEP 1" or any step heading in your output
 
 Then write: TOTAL: ${actualTotal} marks
@@ -707,9 +695,9 @@ Then write the COGNITIVE LEVEL ANALYSIS section:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
 For EACH level row:
-- Actual Marks = add up ONLY the MARK column values from the memorandum table where COGNITIVE LEVEL matches this row
+- Actual Marks = add up ONLY the MARK column values from the STEP 1 table where COGNITIVE LEVEL matches this row
 - Actual % = (Actual Marks / ${actualTotal}) × 100, rounded to 1 decimal place
-- The Actual Marks values MUST sum to ${actualTotal} — if they do not, recount
+- The four Actual Marks values MUST sum to ${actualTotal} — if they do not, recount
 Then write ONE summary line per level:
 [Level name] ([total] marks): Q1.1 (1) + Q2.3 (2) + ... = [total] marks
 The sum at the end of each line MUST match the Actual Marks in the table above.
@@ -839,28 +827,194 @@ Return the complete corrected paper with the mark values adjusted. Every sub-que
     const markTotal = finalCount > 0 ? finalCount : totalMarks;
     console.log(`Final mark total: ${markTotal}`);
 
-    // ── Phase 3: Generate memorandum ──
-    // Build cognitive level reference from the validated plan so the memo
-    // copies assignments directly rather than guessing them independently
-    const cogLevelRef = plan.questions
-      .map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`)
-      .join('\n');
 
-    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal, cogLevelRef), includeRubric ? 8192 : 6500));
+    // ── Phase 2b: Question Quality Check ──
+    // Catches design flaws BEFORE the memo is written so the memo never has to
+    // answer a broken question. Runs fast — analytical only, small output.
+    const qQualitySys = `You are a South African CAPS examiner reviewing a question paper for design flaws.
+Return ONLY valid JSON — no markdown, no explanation outside the JSON.
+
+Check every question for these flaws:
+1. ORDERING_EQUAL_VALUES — any ordering/ascending/descending question where two or more values are mathematically equal (e.g. 0.6 and 3/5 are both 0.60). Flag with suggested replacement value.
+2. MCQ_MULTIPLE_CORRECT — any MCQ where more than one option gives the correct answer when calculated.
+3. MCQ_NO_CORRECT — any MCQ where no option is the correct answer.
+4. DATA_AMBIGUOUS — any data set question where the data is ambiguous (e.g. multiple modes when question says "the mode").
+5. QUESTION_IMPOSSIBLE — any question that cannot be answered with the information given.
+
+Return schema:
+{"flaws":[{"question":"4.3","type":"ORDERING_EQUAL_VALUES","detail":"0.6 and 3/5 are both 0.60 — ordering is ambiguous","fix":"Replace 3/5 with 2/5 to make all values distinct"}],"clean":false}
+If no flaws: {"flaws":[],"clean":true}`;
+
+    const qQualityUsr = `Review this question paper for the specific design flaws listed above:
+
+${questionPaper}`;
+
+    try {
+      const rawQuality = await callClaude(qQualitySys, qQualityUsr, 1200);
+      let qualityResult;
+      try {
+        qualityResult = typeof rawQuality === 'object' ? rawQuality : JSON.parse(rawQuality);
+      } catch(e) { qualityResult = { flaws: [], clean: true }; }
+
+      if (qualityResult.flaws && qualityResult.flaws.length > 0) {
+        console.log(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected:`);
+        qualityResult.flaws.forEach(f => console.log(`  Q${f.question} [${f.type}]: ${f.detail}`));
+
+        const fixSys = `You are correcting specific design flaws in a ${subject} question paper.
+Rewrite ONLY the flagged questions — do not touch anything else.
+Preserve every (X) mark value exactly. Return JSON: {"content":"complete corrected question paper"}`;
+
+        const flawList = qualityResult.flaws.map(f =>
+          `Q${f.question}: [${f.type}] ${f.detail} — Fix: ${f.fix}`
+        ).join('\n');
+
+        const fixUsr = `Fix ONLY these flagged flaws. Leave all other questions unchanged.\n\nFLAWS:\n${flawList}\n\nPAPER:\n${questionPaper}`;
+
+        try {
+          const fixedPaper = cleanOutput(await callClaude(fixSys, fixUsr, qTok));
+          const fixedCount = countMarks(fixedPaper);
+          if (fixedCount === markTotal) {
+            questionPaper = fixedPaper;
+            console.log(`Phase 2b: fixed — mark total preserved at ${fixedCount} marks ✓`);
+          } else {
+            console.log(`Phase 2b: fix shifted mark total (${fixedCount}≠${markTotal}) — keeping original`);
+          }
+        } catch(fixErr) {
+          console.log(`Phase 2b: fix failed (${fixErr.message}) — keeping original`);
+        }
+      } else {
+        console.log(`Phase 2b: no design flaws detected ✓`);
+      }
+    } catch(qErr) {
+      console.log(`Phase 2b: quality check skipped (${qErr.message})`);
+    }
+
+    // ── Phase 3: Generate memorandum ──
+    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), includeRubric ? 8192 : 6500));
+
+
+    // ── Phase 4: Memo Verification + Auto-Correction ──
+    // Reads the finished memo and verifies every answer independently.
+    // Catches arithmetic errors, wrong profit/loss labels, wrong counts,
+    // rounding mismatches, and cognitive level total errors — regardless
+    // of subject, grade, or resource type.
+    const verSys = `You are a senior South African mathematics examiner performing a final accuracy check on a memorandum.
+You will receive the question paper and the completed memorandum.
+Your job is to find errors — be thorough and precise.
+
+Check EVERY row of the memorandum table:
+
+1. ARITHMETIC — recalculate the answer from scratch using only the question data.
+   Does your calculation match the ANSWER cell? Flag any mismatch.
+
+2. PROFIT_LOSS — for any question involving profit, loss, income, cost, or savings:
+   - Calculate: income/selling price vs cost/expenses
+   - If income > cost → PROFIT of (income − cost)
+   - If cost > income → LOSS of (cost − income)
+   - Flag if the ANSWER cell uses the wrong label or wrong amount.
+
+3. COUNT — for any question asking "how many" from a stem-and-leaf plot or data set:
+   - Count every individual leaf/value in the plot
+   - Flag if ANSWER cell does not match your count.
+
+4. ROUNDING — if MARKING GUIDANCE shows a decimal calculation:
+   - Check the rounded value in the guidance
+   - Flag if ANSWER cell uses a different rounded value.
+
+5. COG_LEVEL_TOTAL — add up all MARK values per cognitive level from the memo table.
+   Compare to the COGNITIVE LEVEL ANALYSIS table's Actual Marks column.
+   Flag any mismatch.
+
+Return ONLY valid JSON — no markdown, no explanation outside the JSON:
+{
+  "errors": [
+    {
+      "question": "7.1a",
+      "check": "COUNT",
+      "found": "15",
+      "correct": "13",
+      "fix": "Change answer from '15 visitors' to '13 visitors'. Stem 1: 4 leaves, Stem 2: 5 leaves, Stem 3: 2 leaves, Stem 4: 2 leaves = 13 total."
+    }
+  ],
+  "cogLevelErrors": [
+    {
+      "level": "Knowledge",
+      "foundInTable": "16",
+      "foundInAnalysis": "15",
+      "fix": "Actual Marks for Knowledge should be 16, not 15"
+    }
+  ],
+  "clean": true
+}
+If no errors found, return {"errors":[],"cogLevelErrors":[],"clean":true}`;
+
+    const verUsr = `QUESTION PAPER:
+${questionPaper}
+
+MEMORANDUM TO VERIFY:
+${memoContent}
+
+Check every memo row against the question paper. Report ALL errors.`;
+
+    let verifiedMemo = memoContent;
+    try {
+      const rawVer = await callClaude(verSys, verUsr, 3000);
+      let verResult;
+      try {
+        verResult = typeof rawVer === 'object' ? rawVer : JSON.parse(rawVer);
+      } catch(e) { verResult = { errors: [], cogLevelErrors: [], clean: true }; }
+
+      const totalErrors = (verResult.errors || []).length + (verResult.cogLevelErrors || []).length;
+
+      if (totalErrors > 0) {
+        console.log(`Phase 4: ${totalErrors} memo error(s) detected:`);
+        (verResult.errors || []).forEach(e => console.log(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
+        (verResult.cogLevelErrors || []).forEach(e => console.log(`  CogLevel [${e.level}]: table=${e.foundInTable} analysis=${e.foundInAnalysis}`));
+
+        // Phase 4b: Auto-correct the memo
+        const corrMemoSys = `You are correcting specific verified errors in a memorandum.
+Fix ONLY the rows and cells listed in the error report.
+Do not change anything that is not listed as an error.
+Return the complete corrected memorandum as JSON: {"content":"complete corrected memorandum"}`;
+
+        const allErrors = [
+          ...(verResult.errors || []).map(e => `Q${e.question} [${e.check}]: Answer should be "${e.correct}". ${e.fix}`),
+          ...(verResult.cogLevelErrors || []).map(e => `Cognitive Level table — ${e.level}: ${e.fix}`)
+        ].join('\n');
+
+        const corrMemoUsr = `Correct ONLY these verified errors in the memorandum. Do not change anything else.\n\nERRORS TO FIX:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
+
+        try {
+          const correctedMemo = cleanOutput(await callClaude(corrMemoSys, corrMemoUsr, 6500));
+          if (correctedMemo && correctedMemo.length > 500) {
+            verifiedMemo = correctedMemo;
+            console.log(`Phase 4: memo corrected successfully ✓`);
+          } else {
+            console.log(`Phase 4: correction returned too short — keeping original memo`);
+          }
+        } catch(corrErr) {
+          console.log(`Phase 4: correction failed (${corrErr.message}) — keeping original memo`);
+        }
+      } else {
+        console.log(`Phase 4: memo verified — no errors found ✓`);
+      }
+    } catch(verErr) {
+      console.log(`Phase 4: verification skipped (${verErr.message})`);
+    }
 
     // ── Build DOCX ──
     let docxBase64 = null;
     const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
 
     try {
-      const doc = buildDoc(questionPaper, memoContent, markTotal);
+      const doc = buildDoc(questionPaper, verifiedMemo, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
       console.error('DOCX build error:', docxErr.message);
     }
 
-    const preview = questionPaper + '\n\n' + memoContent;
+    const preview = questionPaper + '\n\n' + verifiedMemo;
     return res.status(200).json({ docxBase64, preview, filename });
 
   } catch (err) {
