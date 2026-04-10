@@ -3,10 +3,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 // Import route handlers
-import generateHandler from './api/generate.js';
-import refineHandler from './api/refine.js';
-import coverHandler from './api/cover.js';
-import testHandler from './api/test.js';
+import generateHandler from './generate.js';
+import refineHandler from './refine.js';
+import coverHandler from './cover.js';
+import testHandler from './test.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,14 +16,6 @@ const PORT = process.env.PORT || 3000;
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(express.json({ limit: '5mb' }));
-
-// Request timeout — prevents Railway hanging on slow Anthropic responses
-app.use((req, res, next) => {
-  res.setTimeout(270000, () => {
-    res.status(503).json({ error: 'Request timed out. Please try again.' });
-  });
-  next();
-});
 
 // CORS — allow all origins for now (lock down later when you add auth)
 app.use((req, res, next) => {
