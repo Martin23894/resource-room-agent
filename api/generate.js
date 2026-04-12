@@ -401,6 +401,52 @@ export default async function handler(req, res) {
   }
 
   // ═══════════════════════════════════════
+  // SAFE CONTENT EXTRACTOR
+  // Strips JSON wrappers, reasoning preambles, and any text before
+  // the actual content. Used for all phase outputs to prevent leaks.
+  // ═══════════════════════════════════════
+  function safeExtractContent(raw) {
+    if (!raw || typeof raw !== 'string') return raw;
+    let text = raw.trim();
+
+    // Remove JSON wrapper variations
+    text = text.replace(/^```json\s*/i, '').replace(/```\s*$/g, '').trim();
+    text = text.replace(/^\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '').trim();
+
+    // If it looks like the whole thing is still JSON, try to parse it
+    if (text.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(text);
+        if (parsed.content) return parsed.content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      } catch(e) {}
+    }
+
+    // Strip any leading lines that look like reasoning preambles
+    // (before the actual question paper content starts)
+    const lines = text.split('\n');
+    let startIdx = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i].trim();
+      // Question paper content starts with SECTION, Question, or a numbered item
+      if (/^(SECTION|Question\s+\d|\d+\.\d|TOTAL:|MEMORANDUM)/i.test(l)) {
+        startIdx = i;
+        break;
+      }
+      // If we find JSON content wrapper mid-text, skip everything before it
+      if (l.startsWith('{"content"')) {
+        // Extract from here
+        const remainder = lines.slice(i).join('\n');
+        return safeExtractContent(remainder);
+      }
+    }
+    if (startIdx > 0) {
+      text = lines.slice(startIdx).join('\n');
+    }
+
+    return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+  }
+
+  // ═══════════════════════════════════════
   // CLEANUP — remove AI meta-commentary
   // ═══════════════════════════════════════
   function cleanOutput(text) {
@@ -435,6 +481,9 @@ export default async function handler(req, res) {
       if (t.startsWith('ALL OTHER COGNITIVE') || t.startsWith('ALL OTHER LEVEL')) return false;
       if (/^(KNOWLEDGE|ROUTINE|COMPLEX|PROBLEM)\s+ROWS?:/i.test(tr)) return false;
 
+      // Strip standalone "THE RESOURCE ROOM" lines that duplicate the cover page
+      if (/^THE RESOURCE ROOM\s*$/i.test(tr)) return false;
+
       // Strip mark-reasoning lines that leak into question paper
       // e.g. "Marks: (1) + (1) = but written as one question: (3)"
       if (/^MARKS?:/i.test(tr) && /written as|include also|one question/i.test(tr)) return false;
@@ -443,6 +492,15 @@ export default async function handler(req, res) {
       // Strip "[Diagram..." placeholder notes that leaked into learner paper
       if (/^\[diagram/i.test(tr) || /^\[figure/i.test(tr) || /^\[image/i.test(tr)) return false;
       if (/^\[an angle/i.test(tr) || /^\[a shape/i.test(tr) || /^\[the shape/i.test(tr)) return false;
+      // Strip Phase 2b self-correction reasoning that leaks into paper
+      if (/^TRY\s+/i.test(tr) || /^USE\s+\*\*/i.test(tr)) return false;
+      if (/^NEW DATA SET/i.test(tr) || /^CHECKING CONSISTENCY/i.test(tr)) return false;
+      if (/^LET ME TRY/i.test(tr) || /^LET'S TRY/i.test(tr)) return false;
+      if (/^WAIT\s*[—\-–]/i.test(tr) || t.startsWith('WAIT ')) return false;
+      if (/^I MUST RECHECK/i.test(tr) || /^LET ME RECHECK/i.test(tr)) return false;
+      if (/^RECHECK:/i.test(tr) || /^CHECKING:/i.test(tr)) return false;
+      if (/^COST\s*=/i.test(tr) || /^INCOME\s*=/i.test(tr)) return false;
+      if (/^SINCE\s+R\d/i.test(tr)) return false;
 
       return true;
     });
@@ -921,17 +979,24 @@ ${questionPaper}`;
         qualityResult.flaws.forEach(f => console.log(`  Q${f.question} [${f.type}]: ${f.detail}`));
 
         const fixSys = `You are correcting specific design flaws in a ${subject} question paper.
-Rewrite ONLY the flagged questions — do not touch anything else.
-Preserve every (X) mark value exactly. Return JSON: {"content":"complete corrected question paper"}`;
+OUTPUT RULES — strictly follow these or the output will be rejected:
+- Output the complete corrected question paper ONLY
+- Start your output IMMEDIATELY with the first line of the paper (e.g. "SECTION A" or "Question 1")
+- Do NOT write any explanation, reasoning, preamble, or notes before or after the paper
+- Do NOT wrap in JSON — output the raw paper text directly
+- Do NOT write "Here is the corrected paper" or similar
+- Rewrite ONLY the flagged questions — leave everything else character-for-character identical
+- Preserve every (X) mark value exactly`;
 
         const flawList = qualityResult.flaws.map(f =>
           `Q${f.question}: [${f.type}] ${f.detail} — Fix: ${f.fix}`
         ).join('\n');
 
-        const fixUsr = `Fix ONLY these flagged flaws. Leave all other questions unchanged.\n\nFLAWS:\n${flawList}\n\nPAPER:\n${questionPaper}`;
+        const fixUsr = `Fix ONLY these specific flaws. Output the complete corrected paper with NO preamble.\n\nFLAWS TO FIX:\n${flawList}\n\nCOMPLETE PAPER (copy everything, fix only flagged questions):\n${questionPaper}`;
 
         try {
-          const fixedPaper = cleanOutput(await callClaude(fixSys, fixUsr, qTok));
+          const rawFixed = await callClaude(fixSys, fixUsr, qTok);
+          const fixedPaper = cleanOutput(safeExtractContent(rawFixed));
           const fixedCount = countMarks(fixedPaper);
           if (fixedCount === markTotal) {
             questionPaper = fixedPaper;
@@ -1045,15 +1110,18 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
         const corrMemoUsr = `Correct ONLY these verified errors in the memorandum. Do not change anything else.\n\nERRORS TO FIX:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
 
         try {
-          const correctedMemo = cleanOutput(await callClaude(corrMemoSys, corrMemoUsr, 6500));
+          const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 8192);
+          const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
           if (correctedMemo && correctedMemo.length > 500) {
             verifiedMemo = correctedMemo;
             console.log(`Phase 4: memo corrected successfully ✓`);
           } else {
             console.log(`Phase 4: correction returned too short — keeping original memo`);
+            verifiedMemo = memoContent; // explicit fallback to uncorrected memo
           }
         } catch(corrErr) {
           console.log(`Phase 4: correction failed (${corrErr.message}) — keeping original memo`);
+          verifiedMemo = memoContent; // explicit fallback
         }
       } else {
         console.log(`Phase 4: memo verified — no errors found ✓`);
