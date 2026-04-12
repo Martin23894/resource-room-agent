@@ -352,7 +352,20 @@ export default async function handler(req, res) {
   // ═══════════════════════════════════════
   // BUILD DOCUMENT
   // ═══════════════════════════════════════
+  // Strips brand header lines that appear at the top of AI-generated content.
+  // The cover page already renders THE RESOURCE ROOM — any occurrence in the
+  // content string is a duplicate that must be removed before parseText runs.
+  function stripBrandHeader(text) {
+    return text.split('\n').filter(line => {
+      const t = line.trim().replace(/\*+/g, '').trim();
+      return !/^THE RESOURCE ROOM\s*$/i.test(t);
+    }).join('\n');
+  }
+
   function buildDoc(qText, mText, actualMarks) {
+    const cleanQ = stripBrandHeader(qText);
+    const cleanM = stripBrandHeader(mText);
+
     const cover = isWorksheet
       ? [para(subject + ' — Worksheet', { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 80 }),
          para('Grade ' + g + '  |  Term ' + t + '  |  ' + language, { align: AlignmentType.CENTER, spaceAfter: 40 }),
@@ -366,7 +379,7 @@ export default async function handler(req, res) {
         properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
         headers: { default: new Header({ children: [para('THE RESOURCE ROOM', { size: 16, color: '999999', align: AlignmentType.RIGHT })] }) },
         footers: { default: new Footer({ children: [para('© The Resource Room  |  CAPS Grade ' + g + ' Term ' + t + '  |  ' + subject, { size: 16, color: '999999', align: AlignmentType.CENTER })] }) },
-        children: [...cover, ...parseText(qText), ...parseText(mText)]
+        children: [...cover, ...parseText(cleanQ), ...parseText(cleanM)]
       }]
     });
   }
@@ -791,40 +804,71 @@ COGNITIVE LEVEL TABLE RULE (strictly follow this):
 
 Return JSON: {"content":"memorandum text"}`;
 
-  const mUsr = (qp, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
+  // Phase 3A prompt — generates ONLY the memo table
+  // Focused task: list every question with answer, guidance, cog level, mark
+  // Returns the complete pipe table + TOTAL line. Nothing else.
+  const mUsrA = (qp, actualTotal, cogLevelRef) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
 
-Question paper — read every (X) mark carefully before writing anything:
+Question paper — read every (X) mark carefully:
 
 ${qp}
 
 This paper totals ${actualTotal} marks.
 
-Write the following sections IN THIS EXACT ORDER. Complete each section FULLY before starting the next. Never skip a question.
+COGNITIVE LEVEL REFERENCE (use these assignments — do not change them):
+${cogLevelRef}
 
-SECTION 1 — MEMORANDUM TABLE (write this first and completely — do not stop until every sub-question is listed):
+YOUR ONLY TASK: Write the MEMORANDUM TABLE.
+
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-- List EVERY SINGLE sub-question from the question paper — scan through every Question block and list every numbered sub-question including sub-parts like 5.1a, 5.1b
-- Do NOT skip any question — if you finish the table and the mark total does not equal ${actualTotal}, you have missed questions
+- List EVERY SINGLE sub-question from the paper above — scan every question block
+- Include ALL sub-parts (e.g. 5.1a, 5.1b, 6.1, 6.2, 6.3)
+- Do NOT skip any question
 - Use the EXACT (X) mark shown on each question line — never change it
-- Copy the COGNITIVE LEVEL from the REFERENCE TABLE above — do not reassign
-- For financial questions: apply PROFIT/LOSS RULE before writing the answer
-- Do not write any step headings in your output
+- Copy COGNITIVE LEVEL from the REFERENCE TABLE above — do not reassign
+- For financial questions: apply PROFIT/LOSS RULE (income > cost = profit, cost > income = loss)
+- For stem-and-leaf counts: count every leaf individually
 
-Then write: TOTAL: ${actualTotal} marks
+After the table write: TOTAL: ${actualTotal} marks
 
-SECTION 2 — COGNITIVE LEVEL ANALYSIS (write this second, completely):
+Do NOT write the cognitive level analysis table, extension activity, or rubric here.
+Return JSON: {"content":"memorandum table and TOTAL line only"}`;
+
+  // Phase 3B prompt — generates cog analysis + extension + rubric
+  // Receives the completed memo table from Phase 3A as input.
+  const mUsrB = (memoTable, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
+
+This is the completed memorandum table (${actualTotal} marks total):
+
+${memoTable}
+
+YOUR TASK: Write the following sections based on the table above.
+
+SECTION: COGNITIVE LEVEL ANALYSIS
+Write this pipe table:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
-For EACH level row:
-- Actual Marks = sum of MARK column values from Section 1 table where COGNITIVE LEVEL matches
-- Actual % = (Actual Marks / ${actualTotal}) × 100, rounded to 1 decimal place
-- All Actual Marks values MUST sum to ${actualTotal}
+
+For EACH row:
+- Actual Marks = add up the MARK column from the table above for all rows where COGNITIVE LEVEL matches
+- Actual % = (Actual Marks ÷ ${actualTotal}) × 100, rounded to 1 decimal place
+- All Actual Marks MUST sum to ${actualTotal} — if not, recount the table above
+
 Then write ONE summary line per level:
-[Level name] ([total] marks): Q1.1 (1) + Q2.3 (2) + ... = [total] marks
+[Level] ([X] marks): Q1.1 (1) + Q2.3 (2) + ... = [X] marks
 
-${!isWorksheet ? 'SECTION 3 — EXTENSION ACTIVITY (write this third):\nOne challenging question with a complete model answer.' : ''}
+${!isWorksheet ? `SECTION: EXTENSION ACTIVITY
+Write one challenging question that goes beyond the paper scope.
+Include a complete step-by-step model answer.` : ''}
 
-${includeRubric ? 'SECTION 4 — MARKING RUBRIC (write this last):\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\nWrite 3-4 subject-relevant criteria rows for ' + subject + '.' : ''}`;
+${includeRubric ? `SECTION: MARKING RUBRIC
+CRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)
+Write 3-4 subject-relevant criteria rows for ${subject}.` : ''}
+
+Return JSON: {"content":"cognitive level analysis + extension + rubric"}`;
+
+  // Keep mUsr as an alias for backwards compatibility with Phase 4 verifier
+  const mUsr = mUsrA;
 
   // ═══════════════════════════════════════
   // EXECUTE — 3-phase generation
@@ -1016,8 +1060,22 @@ OUTPUT RULES — strictly follow these or the output will be rejected:
       console.log(`Phase 2b: quality check skipped (${qErr.message})`);
     }
 
-    // ── Phase 3: Generate memorandum ──
-    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), 8192));
+    // ── Phase 3A: Generate memo table (all questions, answers, marks, cog levels) ──
+    // Focused call — table only, no analysis. Gives 8192 tokens to complete every row.
+    const cogLevelRef = plan.questions
+      .map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`)
+      .join('\n');
+
+    const memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
+    console.log(`Phase 3A: memo table generated (${memoTableRaw.length} chars)`);
+
+    // ── Phase 3B: Generate cog analysis + extension + rubric from the completed table ──
+    // Second focused call — uses the table from 3A as its only input.
+    const memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
+    console.log(`Phase 3B: cog analysis + extension generated (${memoAnalysisRaw.length} chars)`);
+
+    // Combine: table (from 3A) + analysis/extension (from 3B)
+    const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
 
 
     // ── Phase 4: Memo Verification + Auto-Correction ──
