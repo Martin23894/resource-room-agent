@@ -482,7 +482,8 @@ export default async function handler(req, res) {
       if (/^(KNOWLEDGE|ROUTINE|COMPLEX|PROBLEM)\s+ROWS?:/i.test(tr)) return false;
 
       // Strip standalone "THE RESOURCE ROOM" lines that duplicate the cover page
-      if (/^THE RESOURCE ROOM\s*$/i.test(tr)) return false;
+      // Match with or without markdown bold markers
+      if (/^(\*{0,2})THE RESOURCE ROOM(\*{0,2})\s*$/i.test(tr)) return false;
 
       // Strip mark-reasoning lines that leak into question paper
       // e.g. "Marks: (1) + (1) = but written as one question: (3)"
@@ -798,31 +799,32 @@ ${qp}
 
 This paper totals ${actualTotal} marks.
 
-Follow these steps IN ORDER. Do not skip ahead.
+Write the following sections IN THIS EXACT ORDER. Complete each section FULLY before starting the next. Never skip a question.
 
-Write the MEMORANDUM section:
+SECTION 1 — MEMORANDUM TABLE (write this first and completely — do not stop until every sub-question is listed):
 NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-- List EVERY sub-question number from the paper above
+- List EVERY SINGLE sub-question from the question paper — scan through every Question block and list every numbered sub-question including sub-parts like 5.1a, 5.1b
+- Do NOT skip any question — if you finish the table and the mark total does not equal ${actualTotal}, you have missed questions
 - Use the EXACT (X) mark shown on each question line — never change it
-- Assign the correct COGNITIVE LEVEL to each row
-- Do not write "STEP 1" or any step heading in your output
+- Copy the COGNITIVE LEVEL from the REFERENCE TABLE above — do not reassign
+- For financial questions: apply PROFIT/LOSS RULE before writing the answer
+- Do not write any step headings in your output
 
 Then write: TOTAL: ${actualTotal} marks
 
-Then write the COGNITIVE LEVEL ANALYSIS section:
+SECTION 2 — COGNITIVE LEVEL ANALYSIS (write this second, completely):
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
 For EACH level row:
-- Actual Marks = add up ONLY the MARK column values from the STEP 1 table where COGNITIVE LEVEL matches this row
+- Actual Marks = sum of MARK column values from Section 1 table where COGNITIVE LEVEL matches
 - Actual % = (Actual Marks / ${actualTotal}) × 100, rounded to 1 decimal place
-- The four Actual Marks values MUST sum to ${actualTotal} — if they do not, recount
+- All Actual Marks values MUST sum to ${actualTotal}
 Then write ONE summary line per level:
 [Level name] ([total] marks): Q1.1 (1) + Q2.3 (2) + ... = [total] marks
-The sum at the end of each line MUST match the Actual Marks in the table above.
 
-${!isWorksheet ? 'Then write: EXTENSION ACTIVITY\nOne challenging question that goes beyond the paper, with a complete step-by-step model answer. Do not write "STEP 4" in your output.' : ''}
+${!isWorksheet ? 'SECTION 3 — EXTENSION ACTIVITY (write this third):\nOne challenging question with a complete model answer.' : ''}
 
-${includeRubric ? 'Then write: MARKING RUBRIC\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\nWrite 3-4 subject-relevant criteria rows for ' + subject + '. Do not write "STEP 5" in your output.' : ''}`;
+${includeRubric ? 'SECTION 4 — MARKING RUBRIC (write this last):\nCRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)\nWrite 3-4 subject-relevant criteria rows for ' + subject + '.' : ''}`;
 
   // ═══════════════════════════════════════
   // EXECUTE — 3-phase generation
@@ -1015,7 +1017,7 @@ OUTPUT RULES — strictly follow these or the output will be rejected:
     }
 
     // ── Phase 3: Generate memorandum ──
-    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), includeRubric ? 8192 : 6500));
+    const memoContent = cleanOutput(await callClaude(mSys, mUsr(questionPaper, markTotal), 8192));
 
 
     // ── Phase 4: Memo Verification + Auto-Correction ──
