@@ -435,6 +435,15 @@ export default async function handler(req, res) {
       if (t.startsWith('ALL OTHER COGNITIVE') || t.startsWith('ALL OTHER LEVEL')) return false;
       if (/^(KNOWLEDGE|ROUTINE|COMPLEX|PROBLEM)\s+ROWS?:/i.test(tr)) return false;
 
+      // Strip mark-reasoning lines that leak into question paper
+      // e.g. "Marks: (1) + (1) = but written as one question: (3)"
+      if (/^MARKS?:/i.test(tr) && /written as|include also|one question/i.test(tr)) return false;
+      // Strip any line that is purely an internal note about mark splits
+      if (/^\(\d+\)\s*\+\s*\(\d+\)/.test(tr)) return false;
+      // Strip "[Diagram..." placeholder notes that leaked into learner paper
+      if (/^\[diagram/i.test(tr) || /^\[figure/i.test(tr) || /^\[image/i.test(tr)) return false;
+      if (/^\[an angle/i.test(tr) || /^\[a shape/i.test(tr) || /^\[the shape/i.test(tr)) return false;
+
       return true;
     });
 
@@ -463,7 +472,23 @@ export default async function handler(req, res) {
       }
     }
 
-    return result.join('\n');
+    // Fix 3 (strengthened) — Remove everything from the SECOND occurrence of the
+    // cognitive level table. Detects BOTH the section heading AND the pipe table
+    // header row ("Prescribed %") so it catches duplicates even when the second
+    // table appears without a heading — which is what caused the Test 12 failure.
+    const cogHeadingRx = /COGNITIVE LEVEL/i;
+    const cogTableRowRx = /Prescribed\s*%/i;
+    let cogCount = 0;
+    const deduped = [];
+    for (const line of result) {
+      if (cogHeadingRx.test(line) || cogTableRowRx.test(line)) {
+        cogCount++;
+        if (cogCount === 2) break; // Drop the second table and everything after it
+      }
+      deduped.push(line);
+    }
+
+    return deduped.join('\n');
   }
 
   // ═══════════════════════════════════════
@@ -592,8 +617,38 @@ The plan guarantees CAPS cognitive level compliance — trust it and write accor
 DO NOT INCLUDE:
 - NO cover page, title, header, name/date fields, or instructions — start DIRECTLY with Question 1
 - NO cognitive level labels in the paper
-- NO notes, commentary, or meta-text
+- NO notes, commentary, or meta-text — this includes notes about mark allocation, instructions to the teacher, or explanations of how marks are split
 - NO Unicode box characters or Unicode fraction symbols — write fractions as plain text: 1/2, 3/4, 2/3
+
+NO DIAGRAMS RULE (applies to ALL subjects — non-negotiable):
+This system cannot render or print diagrams, graphs, drawings, or images of any kind.
+Therefore you MUST NOT write any question that requires the learner to:
+- Look at, read from, or interpret a drawn diagram, shape, graph, map, or image
+- Measure anything from a drawing (angles, lengths, distances)
+- Identify features of a drawn figure
+- Use a protractor, ruler, or any measuring tool on a printed diagram
+- Complete or label a drawn figure
+
+INSTEAD, for every question type, use text-only alternatives:
+- Angles: provide the angle value in the question → ask learner to classify or calculate
+  ✓ CORRECT: "An angle measures 65°. Classify this angle as acute, obtuse, reflex or right."
+  ✗ WRONG:   "Measure the angle below using a protractor."
+  ✗ WRONG:   "Use a protractor to measure the angle in the diagram."
+- Shapes: describe dimensions in words → ask learner to calculate area/perimeter
+  ✓ CORRECT: "A rectangle has a length of 10 cm and a width of 4 cm. Calculate its area."
+  ✗ WRONG:   "Calculate the area of the shape shown below."
+- Compound shapes: describe each component in words with measurements
+  ✓ CORRECT: "A shape is made of two rectangles: Rectangle A (10 cm × 4 cm) and Rectangle B (6 cm × 3 cm)."
+  ✗ WRONG:   "Calculate the area of the L-shaped figure below."
+- Graphs/charts: describe the data in words or a table → ask questions from that
+  ✓ CORRECT: Provide a stem-and-leaf table in text/pipe format
+  ✗ WRONG:   "Study the bar graph below and answer the questions."
+- Maps/diagrams: describe the scenario in words
+  ✓ CORRECT: "A garden is 14 m long and 9 m wide."
+  ✗ WRONG:   "Study the map below."
+
+This rule applies to EVERY subject: Mathematics, Natural Sciences, Social Sciences,
+English, Afrikaans, Technology, and all others. No exceptions.
 
 FORMAT RULES:
 - Numbering: Question 1: [heading] then 1.1, 1.2, 1.2.1 etc
@@ -603,7 +658,12 @@ FORMAT RULES:
              Answer:  _______________________________________________
   INCORRECT: 1.1  Calculate the area of the rectangle.
              Working: _______________________________________________ (2)
-- MCQ options: a. b. c. d. then "Answer: ___" on a short line
+- MCQ options: EVERY MCQ sub-question MUST show (1) on the question line BEFORE the options
+  CORRECT:   1.1  Which fraction equals 3/4? (1)
+             a. 6/8   b. 9/12   c. 6/9   d. 4/8
+             Answer: ___
+  INCORRECT: 1.1  Which fraction equals 3/4?
+             a. 6/8   b. 9/12   c. 6/9   d. 4/8   (1)
 - True/False: statement then blank then (marks) all on ONE line: "2.1 The mode is the middle value. _______________ (1)"
 - Answer lines: _______________________________________________
 - Working:/Answer: lines only for calculation questions
