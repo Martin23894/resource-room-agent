@@ -976,6 +976,7 @@ let rtype='Test', lang='English', diff='on', hist=[], activeTab='generator';
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getPhase(g){ return g<=6?'intermediate':'senior'; }
 function escAttr(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function decodeSubj(raw){return raw.replace(/&amp;/g,'&').replace(/&quot;/g,'"');}
 
 // ── ATP lookup helpers ────────────────────────────────────────────────────────
