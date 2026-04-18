@@ -1239,31 +1239,98 @@ Return JSON: {"content":"Section D text only"}`;
 
     console.log(`RTT Pipeline: paper assembled (${questionPaper.length} chars)`);
 
-    // Build a combined memo for all 4 sections
+    // ── RTT Memo Phase 1: Section A (Comprehension) answers + Barrett's ──
+    // Deliberately separate from the question paper generation to stay within token limits
     const rttMemoSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum for a Response to Text exam in ${lang}.
-Use pipe | tables. No Unicode box characters.
-
-COGNITIVE FRAMEWORK: Barrett's Taxonomy
-Levels: Literal | Reorganisation | Inferential | Evaluation and Appreciation
-
-The paper has 4 sections with SEPARATE Barrett's analysis required for each:
-- ${secLabel[0]}: Comprehension — ${sm.a} marks
-- ${secLabel[1]}: Visual Text — ${sm.b} marks
-- ${secLabel[2]}: Summary — ${sm.c} marks
-- ${secLabel[3]}: Language — ${sm.d} marks
-
+Use pipe | tables only. No Unicode box characters. No markdown headings with #.
 Return JSON: {"content":"memorandum text"}`;
 
-    const rttMemoUsr = `QUESTION PAPER:\n${questionPaper}\n\nWrite the complete memorandum with:
-1. Memo answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-2. After EACH section's answers, a Barrett's Taxonomy table for THAT SECTION ONLY
-3. A final combined Barrett's table for the whole paper
+    const rttMemoUsrA = `${secLabel[0]} QUESTIONS (${sm.a} marks):
+${secA}
 
-The combined Barrett's should total ${totalMarks} marks.
-Return JSON: {"content":"memorandum"}`;
+Write the memo for ${secLabel[0]} ONLY:
+1. Answer table with columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+   - List every sub-question (1.1, 1.2 … etc)
+   - COGNITIVE LEVEL must be one of: Literal | Reorganisation | Inferential | Evaluation and Appreciation
+   - Use the MARK shown in brackets on each question line
+2. After the table, write a Barrett's Taxonomy summary for ${secLabel[0]} ONLY:
+   | Barrett's Level | Questions | Marks Allocated | Marks as % of Section |
+   All rows must sum to exactly ${sm.a} marks. Target: Literal 20%, Reorganisation 20%, Inferential 40%, Evaluation 20%.
+3. End with: ${secLabel[0]} TOTAL: ${sm.a} marks
 
-    let memoContent = cleanOutput(await callClaude(rttMemoSys, rttMemoUsr, 8192));
-    console.log(`RTT Pipeline: memo generated (${memoContent.length} chars)`);
+Return JSON: {"content":"Section A memo"}`;
+
+    // ── RTT Memo Phase 2: Section B (Visual Text) + Section C (Summary) answers + Barrett's ──
+    const rttMemoUsrB = `${secLabel[1]} QUESTIONS (${sm.b} marks):
+${secB}
+
+${secLabel[2]} QUESTION (${sm.c} marks):
+${secC}
+
+Write the memo for ${secLabel[1]} AND ${secLabel[2]}:
+
+PART 1 — ${secLabel[1]} answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+List every sub-question (2.1, 2.2 … etc). Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
+Then write Barrett's Taxonomy summary for ${secLabel[1]} ONLY (must sum to ${sm.b} marks).
+End with: ${secLabel[1]} TOTAL: ${sm.b} marks
+
+PART 2 — ${secLabel[2]} answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+This section is a summary task. Award marks for: content points included (award per bullet point met) + language/structure.
+Cognitive level for summary = Reorganisation.
+Then write Barrett's Taxonomy summary for ${secLabel[2]} ONLY (must sum to ${sm.c} marks — all Reorganisation).
+End with: ${secLabel[2]} TOTAL: ${sm.c} marks
+
+Return JSON: {"content":"Section B and C memo"}`;
+
+    // ── RTT Memo Phase 3: Section D (Language) answers + Barrett's + combined paper table ──
+    const rttMemoUsrD = `${secLabel[3]} QUESTIONS (${sm.d} marks):
+${secD}
+
+Write the memo for ${secLabel[3]}:
+1. Answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+   List every sub-question (4.1, 4.2 … etc). Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
+2. Barrett's Taxonomy summary for ${secLabel[3]} ONLY (must sum to ${sm.d} marks).
+3. End with: ${secLabel[3]} TOTAL: ${sm.d} marks
+
+Then write the COMBINED PAPER BARRETT'S ANALYSIS:
+Heading: COMBINED BARRETT'S TAXONOMY ANALYSIS — FULL PAPER (${totalMarks} marks)
+Write this pipe table:
+| Barrett's Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |
+| Literal | 20% | ${largestRemainder(totalMarks,[20,20,40,20])[0]} | [sum from all sections] | [%] |
+| Reorganisation | 20% | ${largestRemainder(totalMarks,[20,20,40,20])[1]} | [sum from all sections] | [%] |
+| Inferential | 40% | ${largestRemainder(totalMarks,[20,20,40,20])[2]} | [sum from all sections] | [%] |
+| Evaluation and Appreciation | 20% | ${largestRemainder(totalMarks,[20,20,40,20])[3]} | [sum from all sections] | [%] |
+| TOTAL | 100% | ${totalMarks} | [must equal ${totalMarks}] | 100% |
+
+Actual Marks per level = sum across ALL four sections. All Actual Marks must total exactly ${totalMarks}.
+
+Return JSON: {"content":"Section D memo and combined Barrett's"}`;
+
+    console.log(`RTT Memo: generating in 3 phases (A / B+C / D+combined)`);
+    const [memoARaw, memoBCRaw, memoDRaw] = await Promise.all([
+      callClaude(rttMemoSys, rttMemoUsrA, 4000),
+      callClaude(rttMemoSys, rttMemoUsrB, 4000),
+      callClaude(rttMemoSys, rttMemoUsrD, 4000)
+    ]);
+
+    const memoA  = cleanOutput(safeExtractContent(memoARaw));
+    const memoBC = cleanOutput(safeExtractContent(memoBCRaw));
+    const memoD  = cleanOutput(safeExtractContent(memoDRaw));
+
+    const memoContent = [
+      'MEMORANDUM',
+      '',
+      `Grade ${g} ${subject} — Response to Text — Term ${t}`,
+      `CAPS Aligned | Barrett\'s Taxonomy Framework`,
+      '',
+      memoA,
+      '',
+      memoBC,
+      '',
+      memoD
+    ].join('\n');
+
+    console.log(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} BC:${memoBCRaw.length} D:${memoDRaw.length})`);
 
     const markTotal = totalMarks; // RTT papers use fixed mark total
 
