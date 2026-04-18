@@ -3,7 +3,7 @@ import {
   AlignmentType, BorderStyle, WidthType, TabStopType,
   ShadingType, Header, Footer
 } from 'docx';
-
+ 
 // ============================================================
 // ATP TOPIC DATABASE — sourced from official DBE ATP documents
 // Grades 4–7, all subjects, all 4 terms
@@ -35,7 +35,7 @@ const ATP = {
       4: ['Area and perimeter: perimeter of regular and irregular polygons; formulae for squares, rectangles and triangles', 'Area and perimeter: conversions between mm², cm² and m²', 'Surface area and volume: formulae for cubes and rectangular prisms; conversions mm³/cm³/m³; 1 cm³ = 1 ml', 'Data handling: collecting, organising and representing data (tally marks, tables, stem-and-leaf, grouped data)', 'Data: mean, median, mode, range', 'Graphs: bar graphs, double bar graphs, histograms with given intervals, pie charts', 'Data: critically analysing and interpreting; drawing conclusions; identifying sources of error and bias'],
     },
   },
-
+ 
   'Natural Sciences and Technology': {
     4: {
       1: ['Life and Living — Living and non-living things: seven life processes, parts of plants and animals', 'Life and Living — Structure of plants: roots, stems, leaves, flowers, fruits, seeds', 'Life and Living — Structure of animals: head, tail, body, limbs, sense organs', 'Life and Living — What plants need to grow: germination, conditions for growth (light, water, air)', 'Life and Living — Habitats of animals: different habitats (grassland, forest, river, sea), needs of animals', 'Life and Living — Structures for animal shelters: natural and human-made shelters, frame and shell structures'],
@@ -56,7 +56,7 @@ const ATP = {
       4: ['Earth and Beyond — Stars and galaxies: constellations, galaxies, the universe', 'Life and Living — Adaptation: how living things are suited to their environments', 'Life and Living — Biomes of South Africa: grassland, forest, desert, fynbos, savanna'],
     },
   },
-
+ 
   'Natural Sciences': {
     7: {
       1: ['Life and Living — The biosphere: lithosphere, hydrosphere, atmosphere; all living organisms', 'Life and Living — Biodiversity: classification of living things, five Kingdoms (Bacteria, Protista, Fungi, Plants, Animals)', 'Life and Living — Diversity of animals: vertebrates (fish, amphibians, reptiles, birds, mammals), invertebrates (Arthropoda, Mollusca)', 'Life and Living — Diversity of plants: Angiosperms (flowering), Gymnosperms (cone bearing), ferns, mosses', 'Life and Living — Photosynthesis: water + carbon dioxide + sunlight → food + oxygen'],
@@ -65,7 +65,7 @@ const ATP = {
       4: ['Earth and Beyond — Earth\'s place in the Solar System: Sun, planets, asteroid belt', 'Life and Living — Human reproduction: puberty changes, reproductive organs, fertilisation, pregnancy', 'Life and Living — Diseases: infectious and non-infectious diseases, prevention and vaccines'],
     },
   },
-
+ 
   'Technology': {
     7: {
       1: ['Structures: investigating and strengthening structures; frame and shell structures; struts and triangles', 'Structures: design, make and evaluate a structure that can carry a load (bridge)', 'Mechanisms: levers (first, second and third class); mechanical advantage', 'Design process: investigate, design, make, evaluate and communicate (PAT 1 — Investigate)'],
@@ -74,7 +74,7 @@ const ATP = {
       4: ['Structures: evaluate and improve structures; strengthening and stiffening techniques', 'Electrical systems: electromagnets (switch + light + iron core + copper wire), control systems', 'Design: combined mechanical and electrical system — crane with electromagnet that sorts ferrous metals', 'Design process: communicate design solutions using drawings and models'],
     },
   },
-
+ 
   'Social Sciences — History': {
     4: {
       1: ['Local history: finding out about the history of a local area', 'Information sources: pictures, writing, stories, interviews, objects', 'How to research and collate a history project; change and continuity'],
@@ -101,7 +101,7 @@ const ATP = {
       4: ['Civil society protests in South Africa: 1970s–1980s resistance to apartheid; the role of youth', '1976 Soweto Uprising: causes, events and legacy', 'Civil society protests worldwide: anti-Vietnam War protests; civil rights movement in the USA'],
     },
   },
-
+ 
   'Social Sciences — Geography': {
     4: {
       1: ['Map skills: compass directions (N, S, E, W, NE, NW, SE, SW); eight compass points from a fixed point on a world map', 'The globe: equator, north and south poles, the seven continents, four oceans'],
@@ -128,7 +128,7 @@ const ATP = {
       4: ['Resources: global distribution of natural resources; exploitation and conservation', 'Energy resources: renewable and non-renewable; global energy crisis and solutions', 'Water: global water distribution; water scarcity; water management strategies', 'Population: global population growth; population pyramids; demographic transition model'],
     },
   },
-
+ 
   'English Home Language': {
     4: {
       1: ['Reading and Viewing: information text with visuals (charts, tables, diagrams, mind maps, posters)', 'Reading and Viewing: novelette — extracts and character work', 'Writing: advertisement; character sketch (3 paragraphs)', 'Language: nouns (common, abstract, adjectives, verbs); similes, metaphors, idioms; simple sentences, statements, questions; simple present and past tense', 'Literature genres Semester 1: novelette (Term 1); poetry and folklore/short story (Term 2)'],
@@ -155,7 +155,7 @@ const ATP = {
       4: ['Reading and Viewing: revision of all genres (novel, short story, folklore, drama, poetry)', 'Writing: transactional writing (10 marks); essay', 'Language: revision of all structures', 'Oral: Read Aloud (20 marks)', 'Year-end exam (60 marks): literary/non-literary text, visual text, summary, language'],
     },
   },
-
+ 
   'English First Additional Language': {
     4: {
       1: ['Reading and Viewing: information text with visuals (charts, tables, diagrams, mind maps, maps, pictures)', 'Reading and Viewing: novelette — extracts', 'Writing: advertisement; poster advertising an event', 'Language: articles, plurals, common nouns, abstract nouns, adjectives, verbs; similes, metaphors, idioms; simple sentences, statements, questions; question mark, exclamation mark, dictionary use'],
@@ -182,7 +182,7 @@ const ATP = {
       4: ['Reading and Viewing: revision of all genres', 'Writing: transactional writing (10 marks); narrative essay', 'Language: revision of all structures', 'Year-end exam (60 marks): literary/non-literary text (20), visual text (10), summary (10), language (20)'],
     },
   },
-
+ 
   'Afrikaans Home Language': {
     4: {
       1: ['Lees en Kyk: inligtingsteks met visuele prikkels (grafieke, tabelle, diagramme, breinkaarte)', 'Lees en Kyk: novelle (uittreksels)', 'Skryf en Aanbied: koerantberig; advertensie', 'Taalstrukture: vokale, konsonante, alfabetiese rangskikking, lettergrepe, klankgrepe; meervoude, verkleinwoorde; spelling en punktuasie (vraagtekens, uitroeptekens)', 'Letterkunde Semester 1: novelle (Kwartaal 1); poësie en volksverhaal/kortverhaal (Kwartaal 2)'],
@@ -209,7 +209,7 @@ const ATP = {
       4: ['Lees en Kyk: hersiening van alle genres (roman, kortverhaal, volksverhaal, drama, gedigte, visuele teks)', 'Skryf en Aanbied: transaksionele skryf (10 punte); opstel', 'Taalstrukture: hersiening — versamelname, betreklike voornaamwoorde, basisvorme, sinonieme, antonieme, letterlike en figuurlike betekenis', 'Eindeksamen Vraestel 2 — Respons op Tekste (60 punte): literêre/nie-literêre teks (20), visuele teks (10), opsomming (10), taalstrukture (20)'],
     },
   },
-
+ 
   'Afrikaans First Additional Language': {
     4: {
       1: ['Lees en Kyk: inligtingsteks met visuele prikkels (grafieke, tabelle, diagramme, breinkaarte, kaarte)', 'Lees en Kyk: novelle (uittreksels)', 'Skryf en Aanbied: inligtingsteks soos \'n verslag; plakkaat wat \'n geleentheid adverteer', 'Taalstrukture: lidwoorde, soortnaamwoorde, abstrakte selfstandige naamwoorde, byvoeglike naamwoorde, alfabetiese rangskikking; enkelvoudige sin, stelsin, vraagsin, bevelsin, uitroepsin; vergelykings, metafore, idiome; vraagtekens, uitroeptekens, spelling en spelpatrone'],
@@ -236,7 +236,7 @@ const ATP = {
       4: ['Lees en Kyk: hersiening van alle genres (roman, kortverhaal, volksverhaal, drama, gedigte, visuele teks)', 'Skryf en Aanbied: transaksionele skryf (10 punte); opstel', 'Taalstrukture: hersiening — versamelname, betreklike voornaamwoorde, basisvorme, sinonieme, antonieme, letterlike en figuurlike betekenis', 'Eindeksamen Vraestel 2 — Respons op Tekste (60 punte): literêre/nie-literêre teks (20), visuele teks (10), opsomming (10), taalstrukture (20)'],
     },
   },
-
+ 
   'Life Skills — Personal and Social Wellbeing': {
     4: {
       1: ['Development of the self: personal strengths, identifying own strengths and strengths of others', 'Development of the self: converting less successful experiences into positive learning; achievements', 'Development of the self: respect for own and others\' bodies; privacy and bodily integrity; how to care for own body', 'Development of the self: dealing with conflict; examples of conflict situations at home and school; strategies to avoid conflict'],
@@ -257,13 +257,13 @@ const ATP = {
       4: ['Development of the self: careers and future planning; importance of subject choices for Grade 7 and high school', 'Development of the self: study skills — exam preparation, time management, study plans', 'Social responsibility: responsible citizenship; contributing to community well-being and the democracy'],
     },
   },
-
+ 
   'Life Skills — Physical Education': {
     4: { 1: ['Locomotor, rotation, elevation and balancing activities; safety measures relating to these activities'], 2: ['Striking and fielding games; movement performances in striking and fielding games; safety during striking and fielding'], 3: ['Target games; participation and movement performance in target games'], 4: ['Net/wall games; participation and movement performance in net/wall games'] },
     5: { 1: ['Locomotor movements; coordination and control; safety measures relating to locomotor activities'], 2: ['Striking and fielding games; tactical skills in striking and fielding games'], 3: ['Target games; accuracy and technique in target games'], 4: ['Net/wall games; movement performances in net/wall games'] },
     6: { 1: ['Participation in striking and fielding games; movement performances in striking and fielding games'], 2: ['Striking and fielding games; tactical skills and movement performance'], 3: ['Target games; participation and movement performance in target games'], 4: ['Net/wall games; participation and movement performance in net/wall games'] },
   },
-
+ 
   'Life Skills — Creative Arts': {
     4: {
       1: ['Visual Art: observe and identify art elements (contrast) in images; Create in 2D — family and friends using secondary colour and contrast; Create in 3D — self and others using clay, texture, shape, contrast', 'Performing Arts (Dance and Music): physical warm-up; locomotor and non-locomotor movements; rhythm patterns using body percussion/instruments (crotchets, minims, rests)'],
@@ -284,7 +284,7 @@ const ATP = {
       4: ['Visual Art: buildings, architecture and the environment; all art elements and design principles; Create in 3D — relief of buildings and architecture', 'Performing Arts (Music and Drama): singing warm-ups; musical phrases in pairs; sound pictures for puppet performance; create puppets; perform a puppet play'],
     },
   },
-
+ 
   'Life Orientation': {
     7: {
       1: ['Development of the self in society: self-image; positive personal qualities; strategies to enhance self-image; respect for self and others', 'Development of the self in society: puberty and gender constructs; physical and emotional changes; respect for own and others\' body changes', 'Development of the self in society: peer pressure — effects; appropriate responses; assertiveness, coping skills and negotiation skills', 'Development of the self in society: importance of reading and studying; skills to develop memory and recall', 'World of work: career exploration; importance of education for career options', 'Physical Education: participation in a fitness programme; safety issues relating to fitness activities'],
@@ -293,7 +293,7 @@ const ATP = {
       4: ['Development of the self in society: career guidance — interests, abilities and career options; subject choices for Grade 8 and high school', 'Development of the self in society: study skills — time management; exam preparation; managing stress and anxiety', 'Social and environmental responsibility: global issues affecting communities; South Africa\'s role in the world', 'Physical Education: participation in a fitness programme; movement performance'],
     },
   },
-
+ 
   'Economic and Management Sciences': {
     7: {
       1: ['The economy: history of money — traditional societies; comparison of traditional and modern monetary systems; paper money; electronic banking', 'The economy: needs and wants — differentiating between primary and secondary needs; characteristics; unlimited wants vs limited resources', 'The economy: goods and services — differentiating, examples; role of producers and consumers; recycling goods', 'The economy: inequality and poverty — causes of socio-economic imbalances; inequality in South Africa; education, skills and sustainable job opportunities'],
@@ -303,27 +303,27 @@ const ATP = {
     },
   },
 };
-
+ 
 // ── Exam scope rule ──
 // Term 1 → only T1 | Term 2 → T1+T2 | Term 3 → only T3 | Term 4 → T3+T4
 const EXAM_SCOPE = { 1: [1], 2: [1, 2], 3: [3], 4: [3, 4] };
-
+ 
 // ── Get topics for a given grade/subject/term (respects exam scope) ──
 function getATPTopics(subject, grade, term, isExamType) {
   const scope = isExamType ? EXAM_SCOPE[term] : [term];
   const allTopics = scope.flatMap(t => (ATP[subject]?.[grade]?.[t]) || []);
   return allTopics;
 }
-
+ 
 // ============================================================
 // MAIN HANDLER
 // ============================================================
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
+ 
   const { subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term } = req.body;
   if (!subject || !resourceType || !language) return res.status(400).json({ error: 'Missing required fields' });
-
+ 
   const g = parseInt(grade) || 6;
   const t = parseInt(term) || 3;
   const phase = g <= 3 ? 'Foundation' : g <= 6 ? 'Intermediate' : 'Senior';
@@ -332,23 +332,23 @@ export default async function handler(req, res) {
   const isWorksheet = resourceType === 'Worksheet';
   const isTest = resourceType === 'Test';
   const isExamType = isExam || isFinalExam;
-
+ 
   const totalMarks = parseInt(duration) || 50;
-
+ 
   // ── ATP topic lookup — replaces allTopics from UI ──
   // Always use the database; topic field is now just a focus hint
   const atpTopics = isFinalExam
     ? [1, 2, 3, 4].flatMap(tm => (ATP[subject]?.[g]?.[tm]) || [])
     : getATPTopics(subject, g, t, isExamType);
-
+ 
   const atpTopicList = atpTopics.length > 0
     ? atpTopics.join('\n- ')
     : (topic || subject);
-
+ 
   const focusHint = topic && topic !== subject
     ? `\nFOCUS: The teacher has requested emphasis on: ${topic}\n(This is a specific focus within the above topic list — do not limit to only this topic)`
     : '';
-
+ 
   // Auto-calculate time from marks
   function marksToTime(m) {
     if (m <= 10)  return '15 minutes';
@@ -364,7 +364,7 @@ export default async function handler(req, res) {
   }
   const timeAllocation = marksToTime(totalMarks);
   const diffNote = difficulty === 'below' ? 'Below grade level' : difficulty === 'above' ? 'Above grade level' : 'On grade level';
-
+ 
   // ═══════════════════════════════════════
   // DoE COGNITIVE LEVELS
   // Bloom's for: Maths, NST, SS, LS/LO, EMS, Technology
@@ -392,12 +392,12 @@ export default async function handler(req, res) {
       return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30] };
     return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30] };
   }
-
+ 
   const cog = getCogLevels(subject, g);
-
+ 
   // Detect if this subject uses Barrett's taxonomy
   const isBarretts = cog.levels[0] === 'Literal';
-
+ 
   // ─── Largest Remainder Method — guarantees marks sum exactly to total ───
   function largestRemainder(total, pcts) {
     const raw = pcts.map(p => total * p / 100);
@@ -408,21 +408,59 @@ export default async function handler(req, res) {
     for (let k = 0; k < deficit; k++) floored[remainders[k].i]++;
     return floored;
   }
-
+ 
   const cogMarks = largestRemainder(totalMarks, cog.pcts);
   const cogTolerance = Math.max(1, Math.round(totalMarks * 0.02));
   const cogTable = cog.levels.map((l, i) => l + ' ' + cog.pcts[i] + '% = ' + cogMarks[i] + ' marks').join('\n');
-
+ 
   // Build topic instruction using ATP database
   let topicInstruction = '';
+  // Build separate T1 and T2 topic lists for exam terms so the split is explicit
+  const examTerm1Topics = isExam && t === 2 ? (ATP[subject]?.[g]?.[1] || []) : [];
+  const examTerm2Topics = isExam && t === 2 ? (ATP[subject]?.[g]?.[2] || []) : [];
+  const examTerm3Topics = isExam && t === 4 ? (ATP[subject]?.[g]?.[3] || []) : [];
+  const examTerm4Topics = isExam && t === 4 ? (ATP[subject]?.[g]?.[4] || []) : [];
+
   if (isFinalExam) {
     topicInstruction = `FINAL EXAM — covers ALL topics from the entire year (Terms 1, 2, 3 and 4).\nEnsure questions are spread across these topics:\n- ${atpTopicList}${focusHint}`;
-  } else if (isExam) {
-    topicInstruction = `TERM ${t} EXAM — covers Terms ${EXAM_SCOPE[t].join(' and ')} topics (CAPS rule: Term 2 exams cover T1+T2; Term 4 exams cover T3+T4).\nQuestions MUST be drawn only from these CAPS-prescribed topics for Grade ${g} ${subject}:\n- ${atpTopicList}${focusHint}`;
+  } else if (isExam && t === 2) {
+    const t1List = examTerm1Topics.join('\n  - ');
+    const t2List = examTerm2Topics.join('\n  - ');
+    topicInstruction = `TERM 2 EXAM — THIS IS AN EXAM TERM. CAPS requires BOTH Term 1 AND Term 2 content.
+
+⚠️ CRITICAL SPLIT RULE — NON-NEGOTIABLE:
+Approximately 50% of marks must come from Term 1 topics and 50% from Term 2 topics.
+The difference between the two terms must NEVER exceed 70%/30%.
+A paper using ONLY Term 1 topics is WRONG and will be rejected.
+A paper using ONLY Term 2 topics is WRONG and will be rejected.
+You MUST include questions from BOTH lists below.
+
+TERM 1 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
+  - ${t1List}
+
+TERM 2 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
+  - ${t2List}${focusHint}`;
+  } else if (isExam && t === 4) {
+    const t3List = examTerm3Topics.join('\n  - ');
+    const t4List = examTerm4Topics.join('\n  - ');
+    topicInstruction = `TERM 4 EXAM — THIS IS AN EXAM TERM. CAPS requires BOTH Term 3 AND Term 4 content.
+
+⚠️ CRITICAL SPLIT RULE — NON-NEGOTIABLE:
+Approximately 50% of marks must come from Term 3 topics and 50% from Term 4 topics.
+The difference between the two terms must NEVER exceed 70%/30%.
+A paper using ONLY Term 3 topics is WRONG and will be rejected.
+A paper using ONLY Term 4 topics is WRONG and will be rejected.
+You MUST include questions from BOTH lists below.
+
+TERM 3 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
+  - ${t3List}
+
+TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
+  - ${t4List}${focusHint}`;
   } else {
     topicInstruction = `TERM ${t} ASSESSMENT — covers ONLY Term ${t} topics (CAPS rule: Term 1 and Term 3 assessments test only that term's work).\nQuestions MUST be drawn ONLY from these CAPS-prescribed Grade ${g} Term ${t} topics:\n- ${atpTopicList}${focusHint}\n\nDO NOT include topics from other terms — this is a strict CAPS compliance requirement.`;
   }
-
+ 
   // ═══════════════════════════════════════
   // DOCX HELPERS
   // ═══════════════════════════════════════
@@ -430,11 +468,11 @@ export default async function handler(req, res) {
   const GREEN = '085041';
   const bdr = { style: BorderStyle.SINGLE, size: 1, color: 'AAAAAA' };
   const cellBorders = { top: bdr, bottom: bdr, left: bdr, right: bdr };
-
+ 
   function txt(text, opts = {}) {
     return new TextRun({ text: String(text), font: FONT, size: opts.size || 22, bold: !!opts.bold, color: opts.color || '000000', italics: !!opts.italics });
   }
-
+ 
   function para(content, opts = {}) {
     const children = typeof content === 'string' ? [txt(content, opts)] : content;
     return new Paragraph({
@@ -445,11 +483,11 @@ export default async function handler(req, res) {
       tabStops: opts.tabStops
     });
   }
-
+ 
   function sectionHead(text) {
     return para(text, { bold: true, size: 26, color: GREEN, spaceBefore: 300, spaceAfter: 120 });
   }
-
+ 
   function questionHead(text) {
     return new Paragraph({
       children: [txt(text, { bold: true, size: 24 })],
@@ -457,7 +495,7 @@ export default async function handler(req, res) {
       border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' } }
     });
   }
-
+ 
   function numQ(num, text) {
     return new Paragraph({
       children: [txt(num, { bold: true }), new TextRun({ text: '\t', font: FONT }), txt(text)],
@@ -466,23 +504,23 @@ export default async function handler(req, res) {
       spacing: { before: 120, after: 40 }
     });
   }
-
+ 
   function optLine(text) {
     return para(text, { indent: { left: 1200 }, spaceAfter: 20 });
   }
-
+ 
   function blankLine() {
     return para('_______________________________________________', { indent: { left: 900 }, spaceAfter: 80 });
   }
-
+ 
   function workLine() {
     return para([txt('Working: ', { bold: true, size: 20 }), txt('_______________________________________________', { size: 20 })], { indent: { left: 900 }, spaceAfter: 20 });
   }
-
+ 
   function ansLine() {
     return para([txt('Answer: ', { bold: true, size: 20 }), txt('_______________________________________________', { size: 20 })], { indent: { left: 900 }, spaceAfter: 80 });
   }
-
+ 
   function cell(text, opts = {}) {
     return new TableCell({
       children: [new Paragraph({
@@ -494,7 +532,7 @@ export default async function handler(req, res) {
       borders: cellBorders
     });
   }
-
+ 
   function tbl(headers, rows) {
     const hRow = new TableRow({
       children: headers.map(h => new TableCell({
@@ -507,21 +545,21 @@ export default async function handler(req, res) {
     const dRows = rows.map(r => new TableRow({ children: r.map(c => cell(c)) }));
     return new Table({ rows: [hRow, ...dRows], width: { size: 9026, type: WidthType.DXA } });
   }
-
+ 
   // ═══════════════════════════════════════
   // COVER PAGE
   // ═══════════════════════════════════════
   function buildCover(actualMarks) {
     const displayMarks = actualMarks || totalMarks;
     const els = [];
-
+ 
     els.push(para('THE RESOURCE ROOM', { bold: true, size: 28, color: GREEN, align: AlignmentType.CENTER, spaceAfter: 60 }));
     els.push(para(resourceType.toUpperCase(), { bold: true, size: 36, align: AlignmentType.CENTER, spaceAfter: 60 }));
     els.push(para(subject, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 160 }));
-
+ 
     const noBorder = { style: BorderStyle.NIL, size: 0, color: 'FFFFFF' };
     const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
-
+ 
     els.push(new Table({
       width: { size: 9026, type: WidthType.DXA }, columnWidths: [4513, 4513],
       rows: [new TableRow({ children: [
@@ -530,7 +568,7 @@ export default async function handler(req, res) {
       ]})]
     }));
     els.push(para('', { spaceAfter: 60 }));
-
+ 
     els.push(new Table({
       width: { size: 9026, type: WidthType.DXA }, columnWidths: [4513, 4513],
       rows: [
@@ -545,7 +583,7 @@ export default async function handler(req, res) {
       ]
     }));
     els.push(para('', { spaceAfter: 40 }));
-
+ 
     if (!isWorksheet) {
       els.push(new Table({
         width: { size: 9026, type: WidthType.DXA }, columnWidths: [4513, 4513],
@@ -556,7 +594,7 @@ export default async function handler(req, res) {
       }));
       els.push(para('', { spaceAfter: 80 }));
     }
-
+ 
     const scoreBdr = { style: BorderStyle.SINGLE, size: 4, color: '085041' };
     const scoreBorders = { top: scoreBdr, bottom: scoreBdr, left: scoreBdr, right: scoreBdr };
     const colW = [3611, 1805, 1805, 1805];
@@ -569,7 +607,7 @@ export default async function handler(req, res) {
       ]
     }));
     els.push(para('', { spaceAfter: 120 }));
-
+ 
     els.push(new Paragraph({ children: [txt('Instructions:', { bold: true, size: 22 })], spacing: { before: 0, after: 60 } }));
     for (const item of ['Read the questions properly.', 'Answer ALL the questions.', 'Show all working where required.', 'Pay special attention to the mark allocation of each question.']) {
       els.push(new Paragraph({ children: [txt('•  ' + item, { size: 22 })], indent: { left: 360 }, spacing: { before: 0, after: 40 } }));
@@ -577,7 +615,7 @@ export default async function handler(req, res) {
     els.push(para('', { spaceAfter: 160 }));
     return els;
   }
-
+ 
   // ═══════════════════════════════════════
   // TEXT → DOCX ELEMENTS
   // ═══════════════════════════════════════
@@ -621,7 +659,7 @@ export default async function handler(req, res) {
     }
     return els;
   }
-
+ 
   // ═══════════════════════════════════════
   // BUILD DOCUMENT
   // ═══════════════════════════════════════
@@ -631,7 +669,7 @@ export default async function handler(req, res) {
       return !/^THE RESOURCE ROOM\s*$/i.test(t);
     }).join('\n');
   }
-
+ 
   function buildDoc(qText, mText, actualMarks) {
     const cleanQ = stripBrandHeader(qText);
     const cleanM = stripBrandHeader(mText);
@@ -651,13 +689,13 @@ export default async function handler(req, res) {
       }]
     });
   }
-
+ 
   // ═══════════════════════════════════════
   // CLAUDE API
   // ═══════════════════════════════════════
   async function callClaude(system, user, maxTok) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 180000); // 180s — increased for language exam papers
+    const timeout = setTimeout(() => controller.abort(), 120000);
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -680,7 +718,7 @@ export default async function handler(req, res) {
       clearTimeout(timeout);
     }
   }
-
+ 
   // ═══════════════════════════════════════
   // SAFE CONTENT EXTRACTOR
   // ═══════════════════════════════════════
@@ -711,7 +749,7 @@ export default async function handler(req, res) {
     if (startIdx > 0) text = lines.slice(startIdx).join('\n');
     return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
   }
-
+ 
   // ═══════════════════════════════════════
   // CLEANUP — remove AI meta-commentary
   // ═══════════════════════════════════════
@@ -751,19 +789,19 @@ export default async function handler(req, res) {
       if (/^REDUCE BY/i.test(tr)) return false;
       return true;
     });
-
+ 
     const cleaned = lines.map(line => {
       if (line.length > 300 && /recount|already counted|cumulative|verify|reconcil/i.test(line) && /\d+\s*\+\s*\d+/.test(line)) return '';
       return line;
     });
-
+ 
     const result = [];
     let blanks = 0;
     for (const line of cleaned) {
       if (line.trim() === '') { blanks++; if (blanks <= 1) result.push(line); }
       else { blanks = 0; result.push(line); }
     }
-
+ 
     const cogHeadingRx = /COGNITIVE LEVEL/i;
     const cogTableRowRx = /Prescribed\s*%/i;
     let cogCount = 0;
@@ -777,7 +815,7 @@ export default async function handler(req, res) {
     }
     return deduped.join('\n');
   }
-
+ 
   // ═══════════════════════════════════════
   // MARK COUNTER
   // ═══════════════════════════════════════
@@ -792,14 +830,14 @@ export default async function handler(req, res) {
     }
     return total;
   }
-
+ 
   // ═══════════════════════════════════════
   // COGNITIVE LEVEL TYPE RULES
   // ═══════════════════════════════════════
   const LOW_DEMAND_TYPES = ['MCQ', 'True/False', 'True-False', 'Matching', 'True or False'];
   const maxLowDemandMarks = cogMarks[0];
   const highDemandLevels = cog.levels.slice(Math.max(0, cog.levels.length - 2));
-
+ 
   // ═══════════════════════════════════════
   // PHASE 1 — PLAN VALIDATOR
   // ═══════════════════════════════════════
@@ -824,56 +862,56 @@ export default async function handler(req, res) {
     }
     return plan;
   }
-
+ 
   // ═══════════════════════════════════════
   // PROMPTS
   // ═══════════════════════════════════════
   const taxLabel = isBarretts ? 'Barrett\'s Taxonomy' : 'Bloom\'s Taxonomy (DoE cognitive levels)';
-
+ 
   const planSys = `You are a South African CAPS ${phase} Phase assessment designer.
 Return ONLY valid JSON — no markdown, no explanation.
 Schema: {"questions":[{"number":"Q1","type":"MCQ","topic":"string","marks":5,"cogLevel":"${cog.levels[0]}"},...]}
 cogLevel must be exactly one of: ${cog.levels.join(' | ')}`;
-
+ 
   const planUsr = `Design a ${totalMarks}-mark ${resourceType} question plan for: Grade ${g} ${subject} Term ${t} in ${language}.
-
+ 
 ${topicInstruction}
-
+ 
 ${taxLabel} cognitive level targets — marks must hit each level within ±${cogTolerance} marks:
 ${cog.levels.map((l, i) => `  ${l}: ${cogMarks[i]} marks (${cog.pcts[i]}%)`).join('\n')}
-
+ 
 QUESTION TYPE RULES — strict and non-negotiable:
 1. MCQ and True/False questions are LOW DEMAND — they address recall only.
    Total marks from MCQ + True/False combined must NOT exceed ${cogMarks[0]} marks.
    MCQ and True/False can ONLY serve the "${cog.levels[0]}" level.
-
+ 
 2. The following levels MUST use higher-order question types:
 ${cog.levels.slice(1).map((l, i) => '   "' + l + '": use ' + (i === 0 ? 'Short Answer, Structured Question, Fill in the blank, Calculations' : i === cog.levels.length - 2 ? 'Multi-step, Structured Question, Analysis, Problem-solving' : 'Word Problem, Extended Response, Essay, Investigation')).join('\n')}
 3. Every question must have: number (Q1, Q2...), type, topic (must be from the ATP list above), marks (whole number ≥ 1), cogLevel
 4. Questions must sum to EXACTLY ${totalMarks} marks
 5. Minimum ${isWorksheet ? '4' : '6'} questions — spread topics across all prescribed ATP topics above
-
+ 
 Return only the JSON object, nothing else.`;
-
+ 
   const qSys = (plan) => `You are a South African CAPS ${phase} Phase teacher writing a ${resourceType} question paper in ${language}.
 Use SA context (rands, names: Sipho, Ayanda, Zanele, Thandi, Pieter, Anri, SA places like Johannesburg, Cape Town, Durban, Pretoria).
 DIFFICULTY: ${diffNote}
 CAPS: Grade ${g} Term ${t} ${subject}
-
+ 
 CRITICAL TOPIC RULE — NON-NEGOTIABLE:
 This assessment covers ONLY these CAPS-prescribed topics for Grade ${g} ${subject}:
 - ${atpTopicList}
 Do NOT include questions on topics from other terms. This is a CAPS compliance requirement.
 Every question topic field in the plan maps to this list — trust the plan.
-
+ 
 CRITICAL: Follow the question plan EXACTLY. Do not change any mark values. Do not add or remove questions.
 The plan guarantees CAPS cognitive level compliance — trust it and write accordingly.
-
+ 
 DO NOT INCLUDE:
 - NO cover page, title, header, name/date fields, or instructions — start DIRECTLY with Question 1 or SECTION A
 - NO cognitive level labels in the learner paper
 - NO notes, commentary, or meta-text of any kind
-
+ 
 NO DIAGRAMS RULE (applies to ALL subjects — non-negotiable):
 This system cannot render diagrams, graphs, drawings, or images.
 Do NOT write any question requiring the learner to look at a drawn diagram, drawn shape, drawn graph, drawn map, or drawn image.
@@ -884,7 +922,7 @@ INSTEAD use text-only alternatives:
 - Maps/scenarios: describe in words → "A garden is 14 m long and 9 m wide."
 - Food webs/circuits/ecosystems: describe relationships in words or use a text table
 This rule applies to EVERY subject. No exceptions.
-
+ 
 FORMAT RULES:
 - Numbering: Question 1: [heading] then 1.1, 1.2, 1.2.1 etc.
 - EVERY sub-question MUST show its mark in brackets (X) on the SAME LINE as the question text
@@ -897,58 +935,66 @@ ${isTest ? '- NO SECTION headers. Use Question 1, Question 2 etc.' : ''}
 ${isExamType ? '- USE SECTION A / B / C / D headers' : ''}
 - Write fractions as plain text: 3/4 not ¾
 - No Unicode box characters or Unicode fraction symbols
-
+ 
 ORDERING QUESTION RULE:
 - Never include two values that are mathematically equal
 - Convert ALL values to decimals to verify all are distinct before writing
 
+${subject.toLowerCase().includes('math') || subject.toLowerCase().includes('wiskunde') ? `MATHS NUMBER RANGE RULE FOR GRADE ${g}:
+${g <= 4 ? '- Use numbers up to 4-digit (up to 9,999). Do NOT use 5-digit or larger numbers.' : ''}${g === 5 ? '- Use numbers up to 6-digit (up to 999,999). Do NOT use 7-digit or larger numbers.' : ''}${g === 6 ? `- Use numbers up to 9-digit where CAPS requires it, but VARY your number sizes:
+  * Some questions must use small numbers (hundreds: 100–999)
+  * Some questions must use medium numbers (thousands: 1,000–99,999)
+  * Some questions must use large numbers only where CAPS explicitly requires it (up to 9 million max for Grade 6 tests)
+  * Do NOT use numbers in the hundreds of millions (100,000,000+) — these are too large for Grade 6 tests
+  * Whole number place value may go to 9-digit for ordering/comparing ONLY` : ''}${g === 7 ? '- Use numbers appropriate for Grade 7 — whole numbers up to 9-digit where needed, decimals to 3 places, fractions with mixed numbers. Vary sizes — not all numbers should be in the millions.' : ''}` : ''}
+ 
 NO DIAGRAMS rule: Do not write "Use the diagram/graph/map/figure below."
 End with: TOTAL: _____ / ${totalMarks} marks
 Return JSON: {"content":"question paper text only"}`;
-
+ 
   const qUsr = (plan) => `Write the question paper following this EXACT plan:
 ${JSON.stringify(plan.questions, null, 2)}
-
+ 
 Subject: ${subject} | Grade: ${g} | Term: ${t} | Language: ${language}
 ${topicInstruction}
 Total must be: ${totalMarks} marks`;
-
+ 
   const mSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum in ${language}.
 Use pipe | tables only. No Unicode box characters. Write fractions as plain text.
 Output ONLY the memorandum content — no headings like "STEP 1", "CORRECTED", "Updated" etc.
 No reasoning, notes or adjustments outside tables. Generate each cognitive level table ONCE only.
 Do NOT question or adjust mark allocation — use marks exactly as shown in the paper.
-
+ 
 COGNITIVE FRAMEWORK: ${taxLabel}
 Levels used: ${cog.levels.join(', ')}
-
+ 
 MEDIAN RULE: Sort ALL values from smallest to largest first. Count total n.
 If n is odd: median = value at position (n+1)/2.
 If n is even: median = average of values at positions n/2 and (n/2)+1.
 Count position by position — do not skip repeated values.
-
+ 
 STEM-AND-LEAF COUNT RULE: Count every individual leaf digit. Write count per stem, then add them.
-
+ 
 DECIMAL ROUNDING RULE: Round non-terminating decimals to 1 decimal place. Use same value throughout.
-
+ 
 COGNITIVE LEVEL TABLE RULE: Fill the table by mechanically adding MARK values per level from the memo rows above.
 Actual Marks for each level MUST equal the sum of that level's rows. All Actual Marks MUST sum to the paper total.
-
+ 
 Return JSON: {"content":"memorandum text"}`;
-
+ 
   const mUsrA = (qp, actualTotal, cogLevelRef) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
-
+ 
 Question paper:
 ${qp}
-
+ 
 This paper totals ${actualTotal} marks.
-
+ 
 COGNITIVE LEVEL REFERENCE (${taxLabel}) — copy these exactly, do not change:
 ${cogLevelRef}
-
+ 
 YOUR ONLY TASK: Write the MEMORANDUM TABLE.
 Columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
-
+ 
 - List EVERY SINGLE sub-question from the paper — scan every question block
 - Include ALL sub-parts (e.g. 5.1a, 5.1b)
 - Do NOT skip any question
@@ -956,46 +1002,293 @@ Columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
 - Copy COGNITIVE LEVEL from the reference above — do not reassign
 - For financial questions: income > cost = PROFIT; cost > income = LOSS
 - For stem-and-leaf: count every leaf individually
-
+ 
 After the table write: TOTAL: ${actualTotal} marks
 Do NOT write the cognitive level analysis table, extension activity, or rubric here.
 Return JSON: {"content":"memorandum table and TOTAL line only"}`;
-
+ 
   const mUsrB = (memoTable, actualTotal) => `Grade ${g} ${subject} — ${resourceType} — Term ${t}
-
+ 
 Completed memorandum table (${actualTotal} marks total):
 ${memoTable}
-
+ 
 YOUR TASK: Write the following sections based on the table above.
-
+ 
 SECTION: COGNITIVE LEVEL ANALYSIS (${taxLabel})
 Write this pipe table:
 Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %
 ${cog.levels.map((l, i) => l + ' | ' + cog.pcts[i] + '% | ' + cogMarks[i]).join('\n')}
-
+ 
 For EACH row:
 - Actual Marks = add up MARK column from memo table for all rows where COGNITIVE LEVEL matches
 - Actual % = (Actual Marks ÷ ${actualTotal}) × 100, rounded to 1 decimal place
 - All Actual Marks MUST sum to ${actualTotal}
-
+ 
 Then write ONE summary line per level:
 [Level] ([X] marks): Q1.1 (1) + Q2.3 (2) + ... = [X] marks
-
+ 
 ${!isWorksheet ? `SECTION: EXTENSION ACTIVITY
 Write one challenging question beyond the paper scope. Include complete step-by-step model answer.` : ''}
-
+ 
 ${includeRubric ? `SECTION: MARKING RUBRIC
 CRITERIA | Level 5 Outstanding (90-100%) | Level 4 Good (75-89%) | Level 3 Satisfactory (60-74%) | Level 2 Needs Improvement (40-59%) | Level 1 Not Achieved (0-39%)
 Write 3-4 subject-relevant criteria rows for ${subject}.` : ''}
-
+ 
 Return JSON: {"content":"cognitive level analysis + extension + rubric"}`;
-
+ 
   const mUsr = mUsrA;
+ 
+  // ═══════════════════════════════════════
+  // RESPONSE TO TEXT — 4-SECTION PIPELINE
+  // Runs instead of the standard pipeline for English HL/FAL
+  // and Afrikaans HL/FAL Response to Text papers
+  // ═══════════════════════════════════════
+  const isResponseToText = isBarretts && !isWorksheet;
+
+  // Barrett's marks per section for a Response to Text paper:
+  // Section A: Comprehension 20 marks  → own Barrett's
+  // Section B: Visual text  10 marks  → own Barrett's
+  // Section C: Summary       5 marks  → Reorganisation only
+  // Section D: Language     15 marks  → own Barrett's
+  // Total = 50 marks (standard). For non-50 papers, scale proportionally.
+  function getRTTSectionMarks(total) {
+    if (total === 50) return { a: 20, b: 10, c: 5, d: 15 };
+    // Scale proportionally, round to whole numbers
+    const scale = total / 50;
+    const a = Math.round(20 * scale);
+    const b = Math.round(10 * scale);
+    const d = Math.round(15 * scale);
+    const c = total - a - b - d;
+    return { a, b, c: Math.max(c, 3), d };
+  }
+
+  // Barrett's marks per level for a given section total
+  function getBarrettMarks(sectionTotal, includeSummaryOnly = false) {
+    if (includeSummaryOnly) {
+      // Summary is purely Reorganisation level
+      return [0, sectionTotal, 0, 0];
+    }
+    return largestRemainder(sectionTotal, [20, 20, 40, 20]);
+  }
+
+  async function generateResponseToText() {
+    const lang = language;
+    const isAfrikan = subject.toLowerCase().includes('afrikaans');
+    const secLabel = isAfrikan
+      ? ['AFDELING A', 'AFDELING B', 'AFDELING C', 'AFDELING D']
+      : ['SECTION A', 'SECTION B', 'SECTION C', 'SECTION D'];
+    const sm = getRTTSectionMarks(totalMarks);
+
+    // Shared passage — one literary or non-literary reading passage for Section A & C
+    const passageSys = `You are a South African CAPS ${phase} Phase ${lang} teacher.
+Write a reading passage suitable for Grade ${g} learners in ${lang}.
+Use South African context, names (Sipho, Ayanda, Zanele, Thandi, Pieter, Anri), SA places, SA currency (rands).
+The passage must be:
+- A ${isAfrikan ? 'literêre of nie-literêre teks' : 'literary or non-literary text'}
+- Appropriate reading level for Grade ${g}
+- Between 250 and 350 words long
+- Interesting and relevant to South African learners
+- NOT about diagrams, maps or images (text only)
+Return ONLY the passage text — no title instructions or commentary.`;
+    const passageUsr = `Write the reading passage for a Grade ${g} ${subject} Term ${t} Response to Text paper.
+Topic must align with CAPS Term ${t} ${subject} reading content.
+Return only the passage.`;
+
+    let passage = '';
+    try {
+      passage = await callClaude(passageSys, passageUsr, 1200);
+      passage = passage.replace(/^```.*\n?/, '').replace(/```$/, '').trim();
+    } catch(e) { passage = ''; }
+
+    // Helper: build Barrett's table for a section
+    function barretts(marks, includeSummaryOnly = false) {
+      const bm = getBarrettMarks(marks, includeSummaryOnly);
+      const levels = ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'];
+      const pcts = [20, 20, 40, 20];
+      if (includeSummaryOnly) {
+        return `| Cognitive Level | Prescribed % | Marks |\n|---|---|---|\n| Reorganisation | 100% | ${marks} |`;
+      }
+      return `| Cognitive Level | Prescribed % | Marks |\n|---|---|---|\n` +
+        levels.map((l, i) => `| ${l} | ${pcts[i]}% | ${bm[i]} |`).join('\n');
+    }
+
+    // SECTION A — Comprehension (20 marks)
+    const secASys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[0]} of a Response to Text exam in ${lang}.
+DIFFICULTY: ${diffNote}
+This section tests COMPREHENSION ONLY — NO language/grammar questions here.
+Language questions belong ONLY in Section D.
+The reading passage is provided. All questions must refer to it.
+
+Barrett's Taxonomy cognitive levels for this section (${sm.a} marks total):
+${barretts(sm.a)}
+
+FORMAT:
+- Heading: ${secLabel[0]}: ${isAfrikan ? 'BEGRIP' : 'COMPREHENSION'} [${sm.a}]
+- Sub-heading: ${isAfrikan ? 'Lees die gegewe teks en beantwoord die vrae wat volg.' : 'Read the passage and answer the questions that follow.'}
+- Questions numbered 1.1, 1.2 … with mark in brackets (X) on same line
+- Progress from Literal → Reorganisation → Inferential → Evaluation and Appreciation
+- End with: [${sm.a}]
+- NO grammar, vocabulary, figure of speech, or language structure questions
+Return JSON: {"content":"Section A text only"}`;
+
+    const secAUsr = `READING PASSAGE:\n${passage}\n\nWrite ${secLabel[0]} — Comprehension questions (${sm.a} marks) following the instructions exactly.`;
+
+    // SECTION B — Visual Text (10 marks)
+    const secBSys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[1]} of a Response to Text exam in ${lang}.
+This section tests VISUAL TEXT comprehension ONLY — NO language/grammar questions here.
+Language questions belong ONLY in Section D.
+
+IMPORTANT — NO DIAGRAMS RULE: This system cannot display actual images or posters.
+Instead, describe a visual text in words (e.g. "Study the advertisement described below:" then describe layout, text, images, colours in words). Learners answer questions about the described visual.
+
+Barrett's Taxonomy cognitive levels for this section (${sm.b} marks total):
+${barretts(sm.b)}
+
+FORMAT:
+- Heading: ${secLabel[1]}: ${isAfrikan ? 'VISUELE TEKS' : 'VISUAL TEXT'} [${sm.b}]
+- Describe the visual text in words (advertisement, poster, or cartoon)
+- Sub-heading: ${isAfrikan ? 'Bestudeer die visuele teks hieronder en beantwoord die vrae.' : 'Study the visual text below and answer the questions.'}
+- Questions numbered 2.1, 2.2 … with mark in brackets (X) on same line
+- End with: [${sm.b}]
+- NO grammar, vocabulary, or language structure questions
+Return JSON: {"content":"Section B text only"}`;
+
+    const secBUsr = `Write ${secLabel[1]} — Visual Text questions (${sm.b} marks) for Grade ${g} ${subject} Term ${t}.
+Use SA context. Describe a visual in words (advertisement, poster or cartoon about an SA topic relevant to Grade ${g}).`;
+
+    // SECTION C — Summary (5 marks)
+    const secCSys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[2]} of a Response to Text exam in ${lang}.
+This section is a SUMMARY WRITING task ONLY — one question only.
+Barrett's Taxonomy: This is a Reorganisation level task (selecting and organising key information).
+
+FORMAT:
+- Heading: ${secLabel[2]}: ${isAfrikan ? 'OPSOMMING' : 'SUMMARY'} [${sm.c}]
+- Instruct learners to write a summary of the reading passage (from Section A) in their own words
+- Specify maximum word count (about 50 words for 5 marks, scale accordingly)
+- State exactly what the summary must include (e.g. main points, key ideas)
+- Mark allocation: content marks + language/structure marks
+- End with: [${sm.c}]
+Return JSON: {"content":"Section C text only"}`;
+
+    const secCUsr = `READING PASSAGE (from Section A):\n${passage}\n\nWrite ${secLabel[2]} — Summary task (${sm.c} marks).`;
+
+    // SECTION D — Language Structures and Conventions
+    const secDSys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[3]} of a Response to Text exam in ${lang}.
+THIS IS THE ONLY SECTION WHERE LANGUAGE/GRAMMAR QUESTIONS ARE ASKED.
+Do NOT include comprehension questions here — only language structures and conventions.
+
+Barrett's Taxonomy for this section (${sm.d} marks total):
+${barretts(sm.d)}
+
+CAPS Grade ${g} ${subject} Term ${t} Language topics to draw from:
+${atpTopicList}
+
+QUESTION TYPES (mix these — do not repeat the same type more than twice):
+- Parts of speech (nouns, verbs, adjectives, adverbs, pronouns)
+- Tense (change sentence from present to past, etc.)
+- Active/Passive voice
+- Direct/Indirect speech
+- Punctuation and capitalisation
+- Synonyms and antonyms
+- Prefixes and suffixes
+- Figures of speech (simile, metaphor, personification)
+- Sentence structure (combine sentences, identify subject/predicate)
+- Vocabulary in context
+AVOID: conditional sentences and other Grade 7+ structures for Grade 6.
+
+FORMAT:
+- Heading: ${secLabel[3]}: ${isAfrikan ? 'TAALSTRUKTURE EN -KONVENSIES' : 'LANGUAGE STRUCTURES AND CONVENTIONS'} [${sm.d}]
+- Questions numbered 4.1, 4.2 … with mark in brackets (X) on same line
+- Mix question types — provide context sentences for each
+- End with: [${sm.d}]
+Return JSON: {"content":"Section D text only"}`;
+
+    const secDUsr = `Write ${secLabel[3]} — Language Structures and Conventions (${sm.d} marks) for Grade ${g} ${subject} Term ${t} in ${lang}.`;
+
+    // Generate all 4 sections in parallel
+    console.log(`RTT Pipeline: generating 4 sections in parallel (${sm.a}+${sm.b}+${sm.c}+${sm.d}=${sm.a+sm.b+sm.c+sm.d} marks)`);
+    const [secARaw, secBRaw, secCRaw, secDRaw] = await Promise.all([
+      callClaude(secASys, secAUsr, 3000),
+      callClaude(secBSys, secBUsr, 2000),
+      callClaude(secCSys, secCUsr, 1000),
+      callClaude(secDSys, secDUsr, 2500)
+    ]);
+
+    const secA = cleanOutput(safeExtractContent(secARaw));
+    const secB = cleanOutput(safeExtractContent(secBRaw));
+    const secC = cleanOutput(safeExtractContent(secCRaw));
+    const secD = cleanOutput(safeExtractContent(secDRaw));
+
+    // Assemble the full paper
+    const passageHeading = isAfrikan ? 'LEESSTUK:' : 'READING PASSAGE:';
+    const questionPaper = [
+      passageHeading,
+      '',
+      passage,
+      '',
+      secA,
+      '',
+      secB,
+      '',
+      secC,
+      '',
+      secD,
+      '',
+      `TOTAL: _____ / ${totalMarks} marks`
+    ].join('\n');
+
+    console.log(`RTT Pipeline: paper assembled (${questionPaper.length} chars)`);
+
+    // Build a combined memo for all 4 sections
+    const rttMemoSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum for a Response to Text exam in ${lang}.
+Use pipe | tables. No Unicode box characters.
+
+COGNITIVE FRAMEWORK: Barrett's Taxonomy
+Levels: Literal | Reorganisation | Inferential | Evaluation and Appreciation
+
+The paper has 4 sections with SEPARATE Barrett's analysis required for each:
+- ${secLabel[0]}: Comprehension — ${sm.a} marks
+- ${secLabel[1]}: Visual Text — ${sm.b} marks
+- ${secLabel[2]}: Summary — ${sm.c} marks
+- ${secLabel[3]}: Language — ${sm.d} marks
+
+Return JSON: {"content":"memorandum text"}`;
+
+    const rttMemoUsr = `QUESTION PAPER:\n${questionPaper}\n\nWrite the complete memorandum with:
+1. Memo answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+2. After EACH section's answers, a Barrett's Taxonomy table for THAT SECTION ONLY
+3. A final combined Barrett's table for the whole paper
+
+The combined Barrett's should total ${totalMarks} marks.
+Return JSON: {"content":"memorandum"}`;
+
+    let memoContent = cleanOutput(await callClaude(rttMemoSys, rttMemoUsr, 8192));
+    console.log(`RTT Pipeline: memo generated (${memoContent.length} chars)`);
+
+    const markTotal = totalMarks; // RTT papers use fixed mark total
+
+    // Build DOCX
+    let docxBase64 = null;
+    const filename = (subject + '-ResponseToText-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+    try {
+      const doc = buildDoc(questionPaper, memoContent, markTotal);
+      const buffer = await Packer.toBuffer(doc);
+      docxBase64 = buffer.toString('base64');
+    } catch(docxErr) { console.error('RTT DOCX build error:', docxErr.message); }
+
+    const preview = questionPaper + '\n\n' + memoContent;
+    return res.status(200).json({ docxBase64, preview, filename });
+  }
 
   // ═══════════════════════════════════════
   // EXECUTE — multi-phase generation
   // ═══════════════════════════════════════
   try {
+    // Route Barrett's subjects to the dedicated RTT pipeline
+    if (isResponseToText) {
+      return await generateResponseToText();
+    }
+
     // ── Phase 1: Generate & validate question plan ──
     let plan = null;
     let planAttempts = 0;
@@ -1010,7 +1303,7 @@ Return JSON: {"content":"cognitive level analysis + extension + rubric"}`;
         if (!plan) console.log(`Plan attempt ${planAttempts}: validation failed`);
       } catch(e) { console.log(`Plan attempt ${planAttempts}: error — ${e.message}`); }
     }
-
+ 
     if (!plan) {
       console.log('Plan validation failed — using JS fallback plan');
       const fallbackQuestions = [];
@@ -1028,15 +1321,14 @@ Return JSON: {"content":"cognitive level analysis + extension + rubric"}`;
       plan = { questions: fallbackQuestions };
       console.log(`Fallback plan: ${fallbackQuestions.length} questions, ${fallbackQuestions.reduce((s,q)=>s+q.marks,0)} marks`);
     }
-
+ 
     console.log(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
-
+ 
     // ── Phase 2: Write questions from validated plan ──
-    // Language exams (Barrett's) get extra tokens — they need a full reading passage + 4 sections
-    const qTok = isWorksheet ? 3000 : (isExamType && isBarretts) ? 7000 : (isExamType) ? 5500 : 4500;
+    const qTok = isWorksheet ? 3000 : (isExamType) ? 5500 : 4500;
     let questionPaper = await callClaude(qSys(plan), qUsr(plan), qTok);
     questionPaper = cleanOutput(questionPaper);
-
+ 
     // ── Phase 2a: Mark drift correction ──
     const countedAfterP2 = countMarks(questionPaper);
     const drift = countedAfterP2 - totalMarks;
@@ -1054,19 +1346,12 @@ RULES: Change minimum sub-question mark values needed. Only change (X) numbers �
     } else if (countedAfterP2 === totalMarks) {
       console.log(`Phase 2 exact: ${countedAfterP2} marks ✓`);
     }
-
+ 
     const finalCount = countMarks(questionPaper);
     const markTotal = finalCount > 0 ? finalCount : totalMarks;
     console.log(`Final mark total: ${markTotal}`);
-
+ 
     // ── Phase 2b: Question Quality Check ──
-    // Skipped for language papers (Barrett's taxonomy subjects) — the quality checks
-    // (equal-value ordering, MCQ errors) do not apply to comprehension/response-to-text
-    // papers. Skipping saves 30–40 seconds on already-slow language exam generation.
-    const skipPhase2b = isBarretts;
-    if (skipPhase2b) {
-      console.log('Phase 2b: skipped for language paper ✓');
-    } else {
     const qQualitySys = `You are a South African CAPS examiner reviewing a question paper for design flaws.
 Return ONLY valid JSON — no markdown.
 Check for:
@@ -1076,18 +1361,18 @@ Check for:
 4. DATA_AMBIGUOUS — data set where multiple modes exist but question says "the mode"
 5. QUESTION_IMPOSSIBLE — question that cannot be answered with information given
 6. WRONG_TERM_TOPIC — question on a topic NOT in this list: ${atpTopics.slice(0,8).join('; ')}
-
+ 
 Return: {"flaws":[{"question":"4.3","type":"ORDERING_EQUAL_VALUES","detail":"0.6 and 3/5 are both 0.60","fix":"Replace 3/5 with 2/5"}],"clean":false}
 If no flaws: {"flaws":[],"clean":true}`;
-
+ 
     const qQualityUsr = `Review this Grade ${g} ${subject} Term ${t} question paper for design flaws:\n\n${questionPaper}`;
-
+ 
     try {
       const rawQuality = await callClaude(qQualitySys, qQualityUsr, 1200);
       let qualityResult;
       try { qualityResult = typeof rawQuality === 'object' ? rawQuality : JSON.parse(rawQuality); }
       catch(e) { qualityResult = { flaws: [], clean: true }; }
-
+ 
       if (qualityResult.flaws && qualityResult.flaws.length > 0) {
         console.log(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected`);
         qualityResult.flaws.forEach(f => console.log(`  Q${f.question} [${f.type}]: ${f.detail}`));
@@ -1112,19 +1397,18 @@ OUTPUT RULES:
         console.log(`Phase 2b: no design flaws ✓`);
       }
     } catch(qErr) { console.log(`Phase 2b: quality check skipped (${qErr.message})`); }
-    } // end skipPhase2b check
-
+ 
     // ── Phase 3A: Generate memo table ──
     const cogLevelRef = plan.questions.map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`).join('\n');
     const memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
     console.log(`Phase 3A: memo table generated (${memoTableRaw.length} chars)`);
-
+ 
     // ── Phase 3B: Generate cog analysis + extension + rubric ──
     const memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
     console.log(`Phase 3B: cog analysis generated (${memoAnalysisRaw.length} chars)`);
-
+ 
     const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
-
+ 
     // ── Phase 4: Memo Verification + Auto-Correction ──
     const verSys = `You are a senior South African CAPS examiner performing a final accuracy check on a memorandum.
 Check EVERY row of the memorandum table:
@@ -1133,26 +1417,26 @@ Check EVERY row of the memorandum table:
 3. COUNT — for stem-and-leaf or data set "how many" questions: count every leaf. Flag mismatches.
 4. ROUNDING — check rounded value matches marking guidance. Flag if answer uses different value.
 5. COG_LEVEL_TOTAL — add up MARK values per cognitive level. Compare to the analysis table. Flag mismatches.
-
+ 
 Return ONLY valid JSON:
 {"errors":[{"question":"7.1a","check":"COUNT","found":"15","correct":"13","fix":"Change answer from 15 to 13 visitors"}],"cogLevelErrors":[{"level":"Knowledge","foundInTable":"16","foundInAnalysis":"15","fix":"Actual Marks for Knowledge should be 16"}],"clean":true}
 If no errors: {"errors":[],"cogLevelErrors":[],"clean":true}`;
-
+ 
     const verUsr = `QUESTION PAPER:\n${questionPaper}\n\nMEMORANDUM TO VERIFY:\n${memoContent}\n\nCheck every memo row. Report ALL errors.`;
-
+ 
     let verifiedMemo = memoContent;
     try {
       const rawVer = await callClaude(verSys, verUsr, 3000);
       let verResult;
       try { verResult = typeof rawVer === 'object' ? rawVer : JSON.parse(rawVer); }
       catch(e) { verResult = { errors: [], cogLevelErrors: [], clean: true }; }
-
+ 
       const totalErrors = (verResult.errors || []).length + (verResult.cogLevelErrors || []).length;
       if (totalErrors > 0) {
         console.log(`Phase 4: ${totalErrors} error(s) detected`);
         (verResult.errors || []).forEach(e => console.log(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
         (verResult.cogLevelErrors || []).forEach(e => console.log(`  CogLevel [${e.level}]: table=${e.foundInTable} analysis=${e.foundInAnalysis}`));
-
+ 
         const corrMemoSys = `You are correcting specific verified errors in a memorandum.
 Fix ONLY the rows and cells listed in the error report. Do not change anything else.
 Return the complete corrected memorandum as JSON: {"content":"complete corrected memorandum"}`;
@@ -1161,7 +1445,7 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
           ...(verResult.cogLevelErrors || []).map(e => `Cognitive Level table — ${e.level}: ${e.fix}`)
         ].join('\n');
         const corrMemoUsr = `Correct ONLY these verified errors. Do not change anything else.\n\nERRORS:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
-
+ 
         try {
           const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 8192);
           const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
@@ -1172,7 +1456,7 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
         console.log(`Phase 4: memo verified — no errors ✓`);
       }
     } catch(verErr) { console.log(`Phase 4: verification skipped (${verErr.message})`); }
-
+ 
     // ── Build DOCX ──
     let docxBase64 = null;
     const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
@@ -1183,13 +1467,12 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
     } catch (docxErr) {
       console.error('DOCX build error:', docxErr.message);
     }
-
+ 
     const preview = questionPaper + '\n\n' + verifiedMemo;
     return res.status(200).json({ docxBase64, preview, filename });
-
+ 
   } catch (err) {
     console.error('Generate error:', err);
     return res.status(500).json({ error: err.message || 'Server error' });
   }
 }
-
