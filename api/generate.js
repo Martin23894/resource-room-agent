@@ -7,6 +7,8 @@ import {
 import { logger as defaultLogger } from '../lib/logger.js';
 import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
+import { getCogLevels, largestRemainder, marksToTime, isBarretts as isBarrettsFn } from '../lib/cognitive.js';
+import { countMarks } from '../lib/marks.js';
 
 // ============================================================
 // ATP TOPIC DATABASE — sourced from official DBE ATP documents
@@ -367,66 +369,11 @@ export default async function handler(req, res) {
     ? `\nFOCUS: The teacher has requested emphasis on: ${topic}\n(This is a specific focus within the above topic list — do not limit to only this topic)`
     : '';
  
-  // Auto-calculate time from marks
-  function marksToTime(m) {
-    if (m <= 10)  return '15 minutes';
-    if (m <= 20)  return '30 minutes';
-    if (m <= 25)  return '45 minutes';
-    if (m <= 30)  return '45 minutes';
-    if (m <= 50)  return '1 hour';
-    if (m <= 60)  return '1 hour 30 minutes';
-    if (m <= 70)  return '1 hour 45 minutes';
-    if (m <= 75)  return '2 hours';
-    if (m <= 100) return '2 hours 30 minutes';
-    return Math.round(m * 1.5 / 60) + ' hours';
-  }
   const timeAllocation = marksToTime(totalMarks);
   const diffNote = difficulty === 'below' ? 'Below grade level' : difficulty === 'above' ? 'Above grade level' : 'On grade level';
  
-  // ═══════════════════════════════════════
-  // DoE COGNITIVE LEVELS
-  // Bloom's for: Maths, NST, SS, LS/LO, EMS, Technology
-  // Barrett's for: English and Afrikaans Response to Text papers
-  // ═══════════════════════════════════════
-  function getCogLevels(subj, gr) {
-    const s = (subj || '').toLowerCase();
-    if (s.includes('math') || s.includes('wiskunde'))
-      return { levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'], pcts: [25,45,20,10] };
-    if (s.includes('home language') || s.includes('huistaal'))
-      return { levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'], pcts: [20,20,40,20] };
-    if (s.includes('additional') || s.includes('addisionele') || s.includes('eerste'))
-      return { levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'], pcts: [20,20,40,20] };
-    if (s.includes('natural science') && !s.includes('technology'))
-      return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [50,35,15] };
-    if (s.includes('natural sciences and technology') || s.includes('nst') || s.includes('natuur'))
-      return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [50,35,15] };
-    if (s.includes('social') || s.includes('sosiale') || s.includes('geskieden') || s.includes('history') || s.includes('geography') || s.includes('geografie'))
-      return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,50,20] };
-    if (s.includes('technolog') || s.includes('tegnol'))
-      return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,50,20] };
-    if (s.includes('economic') || s.includes('ekonom'))
-      return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,50,20] };
-    if (s.includes('life') || s.includes('lewens') || s.includes('orientation') || s.includes('oriëntering'))
-      return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30] };
-    return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30] };
-  }
- 
-  const cog = getCogLevels(subject, g);
- 
-  // Detect if this subject uses Barrett's taxonomy
-  const isBarretts = cog.levels[0] === 'Literal';
- 
-  // ─── Largest Remainder Method — guarantees marks sum exactly to total ───
-  function largestRemainder(total, pcts) {
-    const raw = pcts.map(p => total * p / 100);
-    const floored = raw.map(Math.floor);
-    const remainders = raw.map((v, i) => ({ i, r: v - floored[i] }));
-    let deficit = total - floored.reduce((a, b) => a + b, 0);
-    remainders.sort((a, b) => b.r - a.r);
-    for (let k = 0; k < deficit; k++) floored[remainders[k].i]++;
-    return floored;
-  }
- 
+  const cog = getCogLevels(subject);
+  const isBarretts = isBarrettsFn(cog);
   const cogMarks = largestRemainder(totalMarks, cog.pcts);
   const cogTolerance = Math.max(1, Math.round(totalMarks * 0.02));
   const cogTable = cog.levels.map((l, i) => l + ' ' + cog.pcts[i] + '% = ' + cogMarks[i] + ' marks').join('\n');
@@ -826,21 +773,6 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
       deduped.push(line);
     }
     return deduped.join('\n');
-  }
- 
-  // ═══════════════════════════════════════
-  // MARK COUNTER
-  // ═══════════════════════════════════════
-  function countMarks(text) {
-    let total = 0;
-    const markPattern = /\((\d+)\)\s*$/gm;
-    let match;
-    while ((match = markPattern.exec(text)) !== null) total += parseInt(match[1]);
-    if (total === 0) {
-      const blockPattern = /\[(\d+)\]/g;
-      while ((match = blockPattern.exec(text)) !== null) total += parseInt(match[1]);
-    }
-    return total;
   }
  
   // ═══════════════════════════════════════

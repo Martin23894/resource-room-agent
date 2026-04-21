@@ -1151,14 +1151,16 @@ function getCogLevelsUI(subj) {
     return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [50,35,15], framework: "Bloom's Taxonomy" };
   if (s.includes('natural sciences and technology') || (s.includes('natural') && s.includes('technology')))
     return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [50,35,15], framework: "Bloom's Taxonomy" };
+  // Life Skills / Life Orientation must be checked before Social Sciences so
+  // "Life Skills — Personal and Social Wellbeing" maps to 30/40/30 (not 30/50/20).
+  if (s.includes('life') || s.includes('lewens') || s.includes('orientation') || s.includes('oriëntering'))
+    return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30], framework: "Bloom's Taxonomy" };
   if (s.includes('social') || s.includes('sosiale') || s.includes('history') || s.includes('geography') || s.includes('geskied') || s.includes('geografie'))
     return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,50,20], framework: "Bloom's Taxonomy" };
   if (s.includes('technolog') || s.includes('tegnol'))
     return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,50,20], framework: "Bloom's Taxonomy" };
   if (s.includes('economic') || s.includes('ekonom'))
     return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,50,20], framework: "Bloom's Taxonomy" };
-  if (s.includes('life') || s.includes('lewens') || s.includes('orientation') || s.includes('oriëntering'))
-    return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30], framework: "Bloom's Taxonomy" };
   return { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30,40,30], framework: "Bloom's Taxonomy" };
 }
 
