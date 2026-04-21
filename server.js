@@ -12,6 +12,7 @@ import generateHandler from './api/generate.js';
 import refineHandler from './api/refine.js';
 import coverHandler from './api/cover.js';
 import testHandler from './api/test.js';
+import atpHandler from './api/atp.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -94,6 +95,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/generate', apiLimiters, generateHandler);
 app.post('/api/refine', apiLimiters, refineHandler);
 app.post('/api/cover', apiLimiters, coverHandler);
+app.get('/api/atp', atpHandler);
 app.get('/api/test', testHandler);
 
 // ─── Health check (Railway uses this) ───────────────────────
