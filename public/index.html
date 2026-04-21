@@ -1569,12 +1569,14 @@ async function downloadWord(){downloadDocx();}
 async function downloadODT(){downloadDocx();}
 
 async function generateCover(){
-  const subj=document.getElementById('subj').value;
-  const topic=document.getElementById('topic').value;
+  const subj=decodeSubj(document.getElementById('subj').value);
+  const topicRaw=document.getElementById('topic').value;
+  // ALL_TERM / ALL_YEAR are sentinel values from the topic dropdown — don't ship them to the prompt.
+  const topic=(topicRaw==='ALL_TERM'||topicRaw==='ALL_YEAR')?'':topicRaw;
   const grade=document.getElementById('grade').value;
   const term=document.getElementById('term').value;
   if(!subj){alert('Please select a subject.');return;}
-  if(!topic||topic==='— Select subject first —'){alert('Please select a topic.');return;}
+  if(!topic){alert('Please pick a specific topic (not "All topics") for the Teacha listing.');return;}
   showCover('l');
   document.getElementById('gbtn').disabled=true;
   try{
