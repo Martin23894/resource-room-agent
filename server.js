@@ -1,7 +1,11 @@
 import express from 'express';
 import rateLimit from 'express-rate-limit';
+import pinoHttp from 'pino-http';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+import { logger } from './lib/logger.js';
 
 // Import route handlers
 import generateHandler from './api/generate.js';
@@ -17,6 +21,21 @@ const PORT = process.env.PORT || 3000;
 
 // Railway terminates TLS at its proxy; trust one hop so rate limits see the real client IP.
 app.set('trust proxy', 1);
+
+// ─── Structured access logs + per-request correlation id ────
+app.use(pinoHttp({
+  logger,
+  genReqId: (req) => req.headers['x-request-id'] || randomUUID(),
+  customLogLevel: (_req, res, err) => {
+    if (err || res.statusCode >= 500) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+  serializers: {
+    req: (req) => ({ id: req.id, method: req.method, url: req.url }),
+    res: (res) => ({ statusCode: res.statusCode }),
+  },
+}));
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
@@ -94,13 +113,11 @@ app.get('*', (req, res) => {
 
 // ─── Start ──────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`🏫 The Resource Room is running on port ${PORT}`);
-  console.log(`   API:    http://localhost:${PORT}/api/test`);
-  console.log(`   App:    http://localhost:${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}/health`);
-  if (allowedOrigins.length === 0) {
-    console.log('   CORS:   same-origin only (set ALLOWED_ORIGINS to open cross-origin access)');
-  } else {
-    console.log(`   CORS:   allowed origins = ${allowedOrigins.join(', ')}`);
-  }
+  logger.info(
+    {
+      port: PORT,
+      allowedOrigins: allowedOrigins.length ? allowedOrigins : 'same-origin only',
+    },
+    'Resource Room server ready',
+  );
 });

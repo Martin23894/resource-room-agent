@@ -45,13 +45,6 @@ select:focus{outline:none;border-color:var(--t4);}
 .dbtn.on.below{border-color:#BA7517;background:#FAEEDA;color:#633806;}
 .dbtn.on.on-grade{border-color:var(--t6);background:var(--t05);color:var(--t8);}
 .dbtn.on.above{border-color:var(--blue);background:var(--blue05);color:#0C447C;}
-/* Bloom's */
-.blooms-mode{display:flex;gap:4px;margin-bottom:6px;}
-.bmode-btn{flex:1;padding:6px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:700;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
-.bmode-btn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
-.blooms-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
-.bloom-btn{padding:6px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;line-height:1.3;}
-.bloom-btn.on{border-color:#534AB7;background:#EEEDFE;color:#3C3489;}
 /* Toggle */
 .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:7px 9px;border:1.5px solid var(--bdr2);border-radius:7px;background:var(--sur);}
 .toggle-label{font-size:11px;font-weight:600;color:var(--ink2);}
@@ -96,12 +89,8 @@ select:focus{outline:none;border-color:var(--t4);}
 .abtn:hover{border-color:var(--t4);color:var(--t8);background:var(--t05);}
 .abtn.pri{background:var(--t8);border-color:var(--t8);color:#fff;}
 .abtn.pri:hover{background:var(--t6);border-color:var(--t6);}
-.abtn.pdf{background:#A32D2D;border-color:#A32D2D;color:#fff;}
-.abtn.pdf:hover{background:#791F1F;}
 .abtn.word{background:var(--blue);border-color:var(--blue);color:#fff;}
 .abtn.word:hover{background:#0C447C;}
-.abtn.odt{background:#1D5C9E;border-color:#1D5C9E;color:#fff;}
-.abtn.odt:hover{background:#154780;}
 /* Pack */
 .pack{background:var(--sur2);border:1px solid var(--bdr);border-radius:13px;overflow:hidden;margin-bottom:16px;}
 .pack-top{background:var(--t9);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
@@ -284,34 +273,6 @@ select:focus{outline:none;border-color:var(--t4);}
         <div class="toggle-row">
           <span class="toggle-label">Include marking rubric</span>
           <label class="toggle"><input type="checkbox" id="rubric"/><span class="toggle-slider"></span></label>
-        </div>
-      </div>
-      <div style="display:none;">
-        <div class="flabel">Diagrams / Graphs</div>
-        <div style="margin-bottom:6px;">
-          <div class="flabel" style="font-size:10px;margin-bottom:3px;">How many? (appears in Addendum A)</div>
-          <div class="sw">
-            <select id="diagramCount" onchange="toggleDiagOptions()">
-              <option value="0">None</option>
-              <option value="1">1 diagram</option>
-              <option value="2">2 diagrams</option>
-              <option value="3">3 diagrams</option>
-            </select>
-          </div>
-        </div>
-        <div id="diag-options" style="display:none;">
-          <div class="flabel" style="font-size:10px;margin-bottom:3px;">Diagram type</div>
-          <div class="sw">
-            <select id="diagramType">
-              <option value="agent">Agent decides (recommended)</option>
-              <option value="bar">Bar graph / Pie chart</option>
-              <option value="line">Line graph</option>
-              <option value="science">Science diagram</option>
-              <option value="flow">Flow diagram</option>
-              <option value="map">Map / Grid</option>
-              <option value="maths">Maths diagram</option>
-            </select>
-          </div>
         </div>
       </div>
     </div>
@@ -1238,10 +1199,6 @@ function marksToTimeUI(m) {
   return Math.round(m * 1.5 / 60) + ' hours';
 }
 
-// ── Compatibility stubs (old button-based setType still referenced in history) ─
-function setType(el){
-  rtype = el?.dataset?.t || 'Test';
-}
 function setLang(el){
   document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
@@ -1251,14 +1208,6 @@ function setDiff(el){
   document.querySelectorAll('.dbtn').forEach(b=>b.classList.remove('on'));
   el.classList.add('on');
   diff=el.dataset.d;
-}
-function setBloomsMode(el){}
-function toggleBloom(el){}
-function getBloomsLevels(){return [];}
-function updateDoeDisplay(){ updateCogDisplay(); }
-function toggleDiagOptions(){
-  const count=parseInt(document.getElementById('diagramCount').value)||0;
-  document.getElementById('diag-options').style.display=count>0?'block':'none';
 }
 
 // ── Tab switching ─────────────────────────────────────────────────────────────
@@ -1529,31 +1478,6 @@ function doCopy(btn){
     .catch(()=>alert('Please select and copy manually.'));
 }
 
-function updateFontPreview(){}
-
-async function svgToPngDataUrl(svgString){
-  return new Promise((resolve)=>{
-    try{
-      const blob=new Blob([svgString],{type:'image/svg+xml;charset=utf-8'});
-      const url=URL.createObjectURL(blob);
-      const img=new Image();
-      img.onload=function(){
-        const canvas=document.createElement('canvas');
-        canvas.width=img.naturalWidth||520;
-        canvas.height=img.naturalHeight||320;
-        const ctx=canvas.getContext('2d');
-        ctx.fillStyle='#ffffff';
-        ctx.fillRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img,0,0);
-        URL.revokeObjectURL(url);
-        resolve(canvas.toDataURL('image/png'));
-      };
-      img.onerror=()=>{URL.revokeObjectURL(url);resolve(null);};
-      img.src=url;
-    }catch(e){resolve(null);}
-  });
-}
-
 function downloadDocx(){
   if(!window._docxBase64){alert('Generate a resource first.');return;}
   const bytes=Uint8Array.from(atob(window._docxBase64),c=>c.charCodeAt(0));
@@ -1565,8 +1489,6 @@ function downloadDocx(){
   a.click();
   document.body.removeChild(a);
 }
-async function downloadWord(){downloadDocx();}
-async function downloadODT(){downloadDocx();}
 
 async function generateCover(){
   const subj=decodeSubj(document.getElementById('subj').value);

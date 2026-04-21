@@ -3,7 +3,11 @@ import {
   AlignmentType, BorderStyle, WidthType, TabStopType,
   ShadingType, Header, Footer
 } from 'docx';
- 
+
+import { logger as defaultLogger } from '../lib/logger.js';
+import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
+import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
+
 // ============================================================
 // ATP TOPIC DATABASE — sourced from official DBE ATP documents
 // Grades 4–7, all subjects, all 4 terms
@@ -319,13 +323,27 @@ function getATPTopics(subject, grade, term, isExamType) {
 // MAIN HANDLER
 // ============================================================
 export default async function handler(req, res) {
+  const log = req.log || defaultLogger;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
- 
-  const { subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term } = req.body;
-  if (!subject || !resourceType || !language) return res.status(400).json({ error: 'Missing required fields' });
- 
-  const g = parseInt(grade) || 6;
-  const t = parseInt(term) || 3;
+
+  let subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term;
+  try {
+    subject      = str(req.body?.subject,      { field: 'subject',      max: 200 });
+    topic        = str(req.body?.topic,        { field: 'topic',        required: false, max: 500 });
+    resourceType = str(req.body?.resourceType, { field: 'resourceType', max: 50 });
+    language     = str(req.body?.language,     { field: 'language',     max: 40 });
+    duration     = int(req.body?.duration,     { field: 'duration',     required: false, min: 10, max: 200 }) || 50;
+    difficulty   = oneOf(req.body?.difficulty || 'on', ['below', 'on', 'above'], { field: 'difficulty' });
+    includeRubric = bool(req.body?.includeRubric);
+    grade        = int(req.body?.grade, { field: 'grade', min: 4, max: 7 });
+    term         = int(req.body?.term,  { field: 'term',  min: 1, max: 4 });
+  } catch (err) {
+    if (err instanceof ValidationError) return res.status(400).json({ error: err.message });
+    throw err;
+  }
+
+  const g = grade;
+  const t = term;
   const phase = g <= 3 ? 'Foundation' : g <= 6 ? 'Intermediate' : 'Senior';
   const isExam = resourceType === 'Exam';
   const isFinalExam = resourceType === 'Final Exam';
@@ -691,31 +709,25 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
   }
  
   // ═══════════════════════════════════════
-  // CLAUDE API
+  // CLAUDE API — delegates to shared wrapper (retries + 180s timeout);
+  // this thin adapter preserves the legacy content-extraction behaviour
+  // (JSON.content if present, else raw text with escape chars unescaped).
+  // Structured-output migration is Phase 1.5.
   // ═══════════════════════════════════════
   async function callClaude(system, user, maxTok) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 120000);
+    let raw;
     try {
-      const r = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        signal: controller.signal,
-        headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
-        body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTok, system, messages: [{ role: 'user', content: user }] })
-      });
-      const text = await r.text();
-      if (!r.ok) throw new Error(JSON.parse(text).error?.message || 'API error ' + r.status);
-      let raw = JSON.parse(text).content?.map(c => c.text || '').join('') || '';
-      raw = raw.replace(/```json|```/g, '').trim();
-      try { return JSON.parse(raw).content || raw; } catch(e) {
-        let c = raw.replace(/^\s*\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '');
-        return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
+      raw = await callAnthropic({ system, user, maxTokens: maxTok, logger: log });
+    } catch (err) {
+      if (err instanceof AnthropicError && err.code === 'TIMEOUT') {
+        throw new Error('Generation is taking longer than usual. Please try again — complex resources can take up to 3 minutes.');
       }
-    } catch(err) {
-      if (err.name === 'AbortError') throw new Error('Generation is taking longer than usual. Please try again — complex resources can take up to 2 minutes.');
       throw err;
-    } finally {
-      clearTimeout(timeout);
+    }
+    const stripped = raw.replace(/```json|```/g, '').trim();
+    try { return JSON.parse(stripped).content || stripped; } catch (e) {
+      let c = stripped.replace(/^\s*\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '');
+      return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
     }
   }
  
@@ -844,21 +856,21 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
   function validatePlan(plan) {
     if (!plan || !Array.isArray(plan.questions) || plan.questions.length === 0) return null;
     const planTotal = plan.questions.reduce((s, q) => s + (parseInt(q.marks) || 0), 0);
-    if (planTotal !== totalMarks) { console.log(`Plan total ${planTotal} !== requested ${totalMarks} — rejecting`); return null; }
+    if (planTotal !== totalMarks) { log.info(`Plan total ${planTotal} !== requested ${totalMarks} — rejecting`); return null; }
     const cogActual = {};
     cog.levels.forEach(l => cogActual[l] = 0);
     for (const q of plan.questions) { const lvl = q.cogLevel; if (cogActual[lvl] !== undefined) cogActual[lvl] += parseInt(q.marks) || 0; }
     for (let i = 0; i < cog.levels.length; i++) {
       const actual = cogActual[cog.levels[i]] || 0;
       const target = cogMarks[i];
-      if (Math.abs(actual - target) > cogTolerance) { console.log(`Cog level "${cog.levels[i]}" has ${actual} marks, target ${target} ±${cogTolerance} — rejecting`); return null; }
+      if (Math.abs(actual - target) > cogTolerance) { log.info(`Cog level "${cog.levels[i]}" has ${actual} marks, target ${target} ±${cogTolerance} — rejecting`); return null; }
     }
     const lowDemandTotal = plan.questions.filter(q => LOW_DEMAND_TYPES.some(t => (q.type || '').toLowerCase().includes(t.toLowerCase()))).reduce((s, q) => s + (parseInt(q.marks) || 0), 0);
-    if (lowDemandTotal > maxLowDemandMarks) { console.log(`Low-demand types total ${lowDemandTotal} marks, max ${maxLowDemandMarks} — rejecting`); return null; }
+    if (lowDemandTotal > maxLowDemandMarks) { log.info(`Low-demand types total ${lowDemandTotal} marks, max ${maxLowDemandMarks} — rejecting`); return null; }
     for (const q of plan.questions) {
       const isHighLevel = highDemandLevels.includes(q.cogLevel);
       const isLowType = LOW_DEMAND_TYPES.some(t => (q.type || '').toLowerCase().includes(t.toLowerCase()));
-      if (isHighLevel && isLowType) { console.log(`Q${q.number} is ${q.cogLevel} but uses ${q.type} — rejecting`); return null; }
+      if (isHighLevel && isLowType) { log.info(`Q${q.number} is ${q.cogLevel} but uses ${q.type} — rejecting`); return null; }
     }
     return plan;
   }
@@ -1206,7 +1218,7 @@ Return JSON: {"content":"Section D text only"}`;
     const secDUsr = `Write ${secLabel[3]} — Language Structures and Conventions (${sm.d} marks) for Grade ${g} ${subject} Term ${t} in ${lang}.`;
 
     // Generate all 4 sections in parallel
-    console.log(`RTT Pipeline: generating 4 sections in parallel (${sm.a}+${sm.b}+${sm.c}+${sm.d}=${sm.a+sm.b+sm.c+sm.d} marks)`);
+    log.info(`RTT Pipeline: generating 4 sections in parallel (${sm.a}+${sm.b}+${sm.c}+${sm.d}=${sm.a+sm.b+sm.c+sm.d} marks)`);
     const [secARaw, secBRaw, secCRaw, secDRaw] = await Promise.all([
       callClaude(secASys, secAUsr, 3000),
       callClaude(secBSys, secBUsr, 2000),
@@ -1237,7 +1249,7 @@ Return JSON: {"content":"Section D text only"}`;
       `TOTAL: _____ / ${totalMarks} marks`
     ].join('\n');
 
-    console.log(`RTT Pipeline: paper assembled (${questionPaper.length} chars)`);
+    log.info(`RTT Pipeline: paper assembled (${questionPaper.length} chars)`);
 
     // ── RTT Memo Phase 1: Section A (Comprehension) answers + Barrett's ──
     // Deliberately separate from the question paper generation to stay within token limits
@@ -1306,7 +1318,7 @@ Actual Marks per level = sum across ALL four sections. All Actual Marks must tot
 
 Return JSON: {"content":"Section D memo and combined Barrett's"}`;
 
-    console.log(`RTT Memo: generating in 3 phases (A / B+C / D+combined)`);
+    log.info(`RTT Memo: generating in 3 phases (A / B+C / D+combined)`);
     const [memoARaw, memoBCRaw, memoDRaw] = await Promise.all([
       callClaude(rttMemoSys, rttMemoUsrA, 4000),
       callClaude(rttMemoSys, rttMemoUsrB, 4000),
@@ -1330,7 +1342,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
       memoD
     ].join('\n');
 
-    console.log(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} BC:${memoBCRaw.length} D:${memoDRaw.length})`);
+    log.info(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} BC:${memoBCRaw.length} D:${memoDRaw.length})`);
 
     const markTotal = totalMarks; // RTT papers use fixed mark total
 
@@ -1341,7 +1353,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
       const doc = buildDoc(questionPaper, memoContent, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
-    } catch(docxErr) { console.error('RTT DOCX build error:', docxErr.message); }
+    } catch(docxErr) { log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX build error'); }
 
     const preview = questionPaper + '\n\n' + memoContent;
     return res.status(200).json({ docxBase64, preview, filename });
@@ -1365,14 +1377,14 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
         const rawPlan = await callClaude(planSys, planUsr, 1500);
         let parsedPlan;
         try { parsedPlan = typeof rawPlan === 'object' ? rawPlan : JSON.parse(rawPlan); }
-        catch(e) { console.log(`Plan attempt ${planAttempts}: JSON parse failed`); continue; }
+        catch(e) { log.info(`Plan attempt ${planAttempts}: JSON parse failed`); continue; }
         plan = validatePlan(parsedPlan);
-        if (!plan) console.log(`Plan attempt ${planAttempts}: validation failed`);
-      } catch(e) { console.log(`Plan attempt ${planAttempts}: error — ${e.message}`); }
+        if (!plan) log.info(`Plan attempt ${planAttempts}: validation failed`);
+      } catch(e) { log.info(`Plan attempt ${planAttempts}: error — ${e.message}`); }
     }
  
     if (!plan) {
-      console.log('Plan validation failed — using JS fallback plan');
+      log.info('Plan validation failed — using JS fallback plan');
       const fallbackQuestions = [];
       const typeByLevel = ['MCQ', 'Short Answer', 'Multi-step', 'Word Problem'];
       cog.levels.forEach((lvl, li) => {
@@ -1386,10 +1398,10 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
         }
       });
       plan = { questions: fallbackQuestions };
-      console.log(`Fallback plan: ${fallbackQuestions.length} questions, ${fallbackQuestions.reduce((s,q)=>s+q.marks,0)} marks`);
+      log.info(`Fallback plan: ${fallbackQuestions.length} questions, ${fallbackQuestions.reduce((s,q)=>s+q.marks,0)} marks`);
     }
  
-    console.log(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
+    log.info(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
  
     // ── Phase 2: Write questions from validated plan ──
     const qTok = isWorksheet ? 3000 : (isExamType) ? 5500 : 4500;
@@ -1400,23 +1412,23 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     const countedAfterP2 = countMarks(questionPaper);
     const drift = countedAfterP2 - totalMarks;
     if (countedAfterP2 > 0 && drift !== 0) {
-      console.log(`Mark drift: counted=${countedAfterP2}, target=${totalMarks}, drift=${drift > 0 ? '+' : ''}${drift}`);
+      log.info(`Mark drift: counted=${countedAfterP2}, target=${totalMarks}, drift=${drift > 0 ? '+' : ''}${drift}`);
       const corrSys = `You are correcting a ${subject} ${resourceType} question paper. The paper totals ${countedAfterP2} marks but must total EXACTLY ${totalMarks} marks. ${drift > 0 ? 'Reduce' : 'Increase'} the total by ${Math.abs(drift)} mark${Math.abs(drift) > 1 ? 's' : ''}.
 RULES: Change minimum sub-question mark values needed. Only change (X) numbers — not content. Keep Working:/Answer: lines. Return JSON: {"content":"complete corrected question paper"}`;
       const corrUsr = `Paper totals ${countedAfterP2}, must be EXACTLY ${totalMarks}. ${drift > 0 ? 'Reduce' : 'Increase'} by ${Math.abs(drift)}.\n\nPAPER:\n${questionPaper}\n\nReturn the complete corrected paper.`;
       try {
         const corrected = cleanOutput(await callClaude(corrSys, corrUsr, qTok));
         const countedAfterCorr = countMarks(corrected);
-        if (countedAfterCorr === totalMarks) { questionPaper = corrected; console.log(`Correction successful: ${countedAfterCorr} marks ✓`); }
-        else console.log(`Correction resulted in ${countedAfterCorr} marks — keeping Phase 2 paper`);
-      } catch(corrErr) { console.log(`Correction failed: ${corrErr.message}`); }
+        if (countedAfterCorr === totalMarks) { questionPaper = corrected; log.info(`Correction successful: ${countedAfterCorr} marks ✓`); }
+        else log.info(`Correction resulted in ${countedAfterCorr} marks — keeping Phase 2 paper`);
+      } catch(corrErr) { log.info(`Correction failed: ${corrErr.message}`); }
     } else if (countedAfterP2 === totalMarks) {
-      console.log(`Phase 2 exact: ${countedAfterP2} marks ✓`);
+      log.info(`Phase 2 exact: ${countedAfterP2} marks ✓`);
     }
  
     const finalCount = countMarks(questionPaper);
     const markTotal = finalCount > 0 ? finalCount : totalMarks;
-    console.log(`Final mark total: ${markTotal}`);
+    log.info(`Final mark total: ${markTotal}`);
  
     // ── Phase 2b: Question Quality Check ──
     const qQualitySys = `You are a South African CAPS examiner reviewing a question paper for design flaws.
@@ -1441,8 +1453,8 @@ If no flaws: {"flaws":[],"clean":true}`;
       catch(e) { qualityResult = { flaws: [], clean: true }; }
  
       if (qualityResult.flaws && qualityResult.flaws.length > 0) {
-        console.log(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected`);
-        qualityResult.flaws.forEach(f => console.log(`  Q${f.question} [${f.type}]: ${f.detail}`));
+        log.info(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected`);
+        qualityResult.flaws.forEach(f => log.info(`  Q${f.question} [${f.type}]: ${f.detail}`));
         const fixSys = `You are correcting specific design flaws in a ${subject} question paper.
 OUTPUT RULES:
 - Output the complete corrected question paper ONLY
@@ -1457,22 +1469,22 @@ OUTPUT RULES:
           const rawFixed = await callClaude(fixSys, fixUsr, qTok);
           const fixedPaper = cleanOutput(safeExtractContent(rawFixed));
           const fixedCount = countMarks(fixedPaper);
-          if (fixedCount === markTotal) { questionPaper = fixedPaper; console.log(`Phase 2b: fixed ✓`); }
-          else console.log(`Phase 2b: fix shifted mark total (${fixedCount}≠${markTotal}) — keeping original`);
-        } catch(fixErr) { console.log(`Phase 2b: fix failed (${fixErr.message})`); }
+          if (fixedCount === markTotal) { questionPaper = fixedPaper; log.info(`Phase 2b: fixed ✓`); }
+          else log.info(`Phase 2b: fix shifted mark total (${fixedCount}≠${markTotal}) — keeping original`);
+        } catch(fixErr) { log.info(`Phase 2b: fix failed (${fixErr.message})`); }
       } else {
-        console.log(`Phase 2b: no design flaws ✓`);
+        log.info(`Phase 2b: no design flaws ✓`);
       }
-    } catch(qErr) { console.log(`Phase 2b: quality check skipped (${qErr.message})`); }
+    } catch(qErr) { log.info(`Phase 2b: quality check skipped (${qErr.message})`); }
  
     // ── Phase 3A: Generate memo table ──
     const cogLevelRef = plan.questions.map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`).join('\n');
     const memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
-    console.log(`Phase 3A: memo table generated (${memoTableRaw.length} chars)`);
+    log.info(`Phase 3A: memo table generated (${memoTableRaw.length} chars)`);
  
     // ── Phase 3B: Generate cog analysis + extension + rubric ──
     const memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
-    console.log(`Phase 3B: cog analysis generated (${memoAnalysisRaw.length} chars)`);
+    log.info(`Phase 3B: cog analysis generated (${memoAnalysisRaw.length} chars)`);
  
     const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
  
@@ -1500,9 +1512,9 @@ If no errors: {"errors":[],"cogLevelErrors":[],"clean":true}`;
  
       const totalErrors = (verResult.errors || []).length + (verResult.cogLevelErrors || []).length;
       if (totalErrors > 0) {
-        console.log(`Phase 4: ${totalErrors} error(s) detected`);
-        (verResult.errors || []).forEach(e => console.log(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
-        (verResult.cogLevelErrors || []).forEach(e => console.log(`  CogLevel [${e.level}]: table=${e.foundInTable} analysis=${e.foundInAnalysis}`));
+        log.info(`Phase 4: ${totalErrors} error(s) detected`);
+        (verResult.errors || []).forEach(e => log.info(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
+        (verResult.cogLevelErrors || []).forEach(e => log.info(`  CogLevel [${e.level}]: table=${e.foundInTable} analysis=${e.foundInAnalysis}`));
  
         const corrMemoSys = `You are correcting specific verified errors in a memorandum.
 Fix ONLY the rows and cells listed in the error report. Do not change anything else.
@@ -1516,13 +1528,13 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
         try {
           const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 8192);
           const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
-          if (correctedMemo && correctedMemo.length > 500) { verifiedMemo = correctedMemo; console.log(`Phase 4: memo corrected ✓`); }
-          else { console.log(`Phase 4: correction too short — keeping original`); verifiedMemo = memoContent; }
-        } catch(corrErr) { console.log(`Phase 4: correction failed (${corrErr.message})`); verifiedMemo = memoContent; }
+          if (correctedMemo && correctedMemo.length > 500) { verifiedMemo = correctedMemo; log.info(`Phase 4: memo corrected ✓`); }
+          else { log.info(`Phase 4: correction too short — keeping original`); verifiedMemo = memoContent; }
+        } catch(corrErr) { log.info(`Phase 4: correction failed (${corrErr.message})`); verifiedMemo = memoContent; }
       } else {
-        console.log(`Phase 4: memo verified — no errors ✓`);
+        log.info(`Phase 4: memo verified — no errors ✓`);
       }
-    } catch(verErr) { console.log(`Phase 4: verification skipped (${verErr.message})`); }
+    } catch(verErr) { log.info(`Phase 4: verification skipped (${verErr.message})`); }
  
     // ── Build DOCX ──
     let docxBase64 = null;
@@ -1532,14 +1544,15 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
-      console.error('DOCX build error:', docxErr.message);
+      log.error({ err: docxErr?.message || docxErr }, 'DOCX build error');
     }
  
     const preview = questionPaper + '\n\n' + verifiedMemo;
     return res.status(200).json({ docxBase64, preview, filename });
  
   } catch (err) {
-    console.error('Generate error:', err);
-    return res.status(500).json({ error: err.message || 'Server error' });
+    log.error({ err: err?.message || err, stack: err?.stack }, 'Generate error');
+    const status = err?.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+    return res.status(status).json({ error: err?.message || 'Server error' });
   }
 }
