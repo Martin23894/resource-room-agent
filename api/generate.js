@@ -12,6 +12,7 @@ import { extractContent } from '../lib/content.js';
 import { i18n } from '../lib/i18n.js';
 import { cleanOutput } from '../lib/clean-output.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
+import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
 import { createDocxBuilder } from '../lib/docx-builder.js';
 import { buildPrompts } from '../lib/prompts.js';
 
@@ -558,9 +559,65 @@ RULES FOR THE CORRECTION ITSELF:
     }
  
     const finalCount = countMarks(questionPaper);
-    const markTotal = finalCount > 0 ? finalCount : totalMarks;
+    let markTotal = finalCount > 0 ? finalCount : totalMarks;
     log.info(`Final mark total: ${markTotal}`);
- 
+
+    // ── Phase 2c: Cog-level balance check (pure code, no Claude call) ──
+    // If the written paper drifts from the plan's cogLevel-per-question
+    // assignments by more than tolerance, fire ONE Claude rewrite. The
+    // check itself is free; the rewrite only fires on a minority of
+    // generations where Claude downgraded question types.
+    const balance = verifyCogBalance({ paper: questionPaper, plan, cog, cogMarks, tolerance: cogTolerance });
+    if (balance.lowConfidence) {
+      log.info({ unmapped: balance.unmapped.length }, 'Cog-balance check skipped (too many unmapped sub-questions)');
+    } else if (!balance.clean) {
+      log.info({ imbalances: balance.imbalances }, `Cog-level drift detected — rewriting paper once`);
+      const feedback = formatImbalances(balance);
+      const planList = plan.questions.map((q) => `  ${q.number}: ${q.cogLevel} (${q.marks} marks)`).join('\n');
+
+      const rebalanceSys = `You are rewriting a South African CAPS ${phase} Phase ${resourceType} question paper in ${language} because its cognitive-level distribution drifted from the validated plan.
+
+RULES — non-negotiable:
+- Keep every sub-question's numbering (1.1, 1.2, 2.1, …) unchanged.
+- Keep every sub-question's mark value (X) unchanged.
+- Change ONLY the question text / type / complexity so each sub-question lands at the cognitive level the plan requires.
+- Higher cognitive levels (Complex Procedures, Problem Solving, Evaluation, High Order) MUST use genuinely multi-step / analytical / problem-solving question types — NOT recall or simple routine questions.
+- Preserve every [N] block total and the final TOTAL line.
+- NO cover page, NO cognitive level labels in the learner paper, NO commentary.
+Output the complete corrected paper only.`;
+
+      const rebalanceUsr = `Current cognitive-level mismatch (target: within ±${cogTolerance} marks per level):
+${feedback}
+
+PLAN — each question's required cognitive level:
+${planList}
+
+CURRENT PAPER:
+${questionPaper}
+
+Rewrite the paper so each sub-question lands at its plan cogLevel.`;
+
+      try {
+        const rebalanced = cleanOutput(await callClaude(rebalanceSys, rebalanceUsr, qTok));
+        const rebalancedCount = countMarks(rebalanced);
+        if (rebalancedCount === markTotal || rebalancedCount === totalMarks) {
+          const newBalance = verifyCogBalance({ paper: rebalanced, plan, cog, cogMarks, tolerance: cogTolerance });
+          questionPaper = rebalanced;
+          markTotal = rebalancedCount;
+          log.info(
+            { clean: newBalance.clean, imbalances: newBalance.imbalances },
+            newBalance.clean ? 'Cog-level rebalance successful' : 'Cog-level rebalance still drifted — accepting',
+          );
+        } else {
+          log.info(`Cog-level rebalance changed mark total (${rebalancedCount} vs ${markTotal}) — keeping original paper`);
+        }
+      } catch (err) {
+        log.info(`Cog-level rebalance failed: ${err.message}`);
+      }
+    } else {
+      log.info(`Cog-level balance: clean ✓`);
+    }
+
     // ── Phase 2b: Question Quality Check ──
     // Tool-use guarantees a { clean, flaws[] } object — no JSON salvage.
     const qQualitySys = `You are a South African CAPS examiner reviewing a question paper for design flaws.
