@@ -13,6 +13,8 @@ import { i18n } from '../lib/i18n.js';
 import { cleanOutput } from '../lib/clean-output.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
+import { cacheGet, cacheSet } from '../lib/cache.js';
+import { generateCacheKey } from '../lib/cache-key.js';
 import { createDocxBuilder } from '../lib/docx-builder.js';
 import { buildPrompts } from '../lib/prompts.js';
 
@@ -37,6 +39,22 @@ export default async function handler(req, res) {
   } catch (err) {
     if (err instanceof ValidationError) return res.status(400).json({ error: err.message });
     throw err;
+  }
+
+  // ── Cache short-circuit ──
+  // Identical generation params within the TTL window return instantly
+  // at zero Anthropic cost. Default TTL is 1h (CACHE_TTL_SECONDS env).
+  const cacheKey = generateCacheKey({
+    subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term,
+  });
+  try {
+    const hit = cacheGet(cacheKey);
+    if (hit) {
+      log.info({ cacheKey }, 'Cache hit — serving stored response');
+      return res.status(200).json({ ...hit, cached: true });
+    }
+  } catch (cacheErr) {
+    log.warn({ err: cacheErr?.message || cacheErr }, 'Cache read failed — continuing with live generation');
   }
 
   const g = grade;
@@ -468,7 +486,9 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     } catch(docxErr) { log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX build error'); }
 
     const preview = finalPaper + '\n\n' + memoContent;
-    return res.status(200).json({ docxBase64, preview, filename });
+    const payload = { docxBase64, preview, filename };
+    try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
+    return res.status(200).json(payload);
   }
 
   // ═══════════════════════════════════════
@@ -755,7 +775,9 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
     }
 
     const preview = finalPaper + '\n\n' + verifiedMemo;
-    return res.status(200).json({ docxBase64, preview, filename });
+    const payload = { docxBase64, preview, filename };
+    try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
+    return res.status(200).json(payload);
  
   } catch (err) {
     log.error({ err: err?.message || err, stack: err?.stack }, 'Generate error');

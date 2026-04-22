@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { logger } from './lib/logger.js';
+import { openCache } from './lib/cache.js';
 
 // Import route handlers
 import generateHandler from './api/generate.js';
@@ -114,6 +115,11 @@ app.get('*', (req, res) => {
 });
 
 // ─── Start ──────────────────────────────────────────────────
+// Open the result cache up-front so any startup pruning happens before
+// the first request arrives.
+try { openCache({ logger }); }
+catch (err) { logger.warn({ err: err?.message || err }, 'Cache init failed — generate endpoint will run without caching'); }
+
 app.listen(PORT, () => {
   logger.info(
     {

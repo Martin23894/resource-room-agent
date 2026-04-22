@@ -35,6 +35,8 @@ See `.env.example` for the canonical list.
 | `PORT` | no | HTTP port (Railway sets this; default `3000` locally). |
 | `ALLOWED_ORIGINS` | no | Comma-separated allowlist of cross-origin domains. Leave empty for same-origin only. |
 | `TEST_SECRET` | no | If set, `/api/test?secret=<value>` returns an Anthropic health check; otherwise the endpoint 404s. |
+| `CACHE_DB_PATH` | no | SQLite file for the result cache. Default `./data/cache.db`. On Railway, point this at a mounted volume so the cache survives deploys. |
+| `CACHE_TTL_SECONDS` | no | How long a cached `/api/generate` response is served. Default `3600` (1h). `0` means never expire. |
 
 ---
 

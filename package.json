@@ -10,7 +10,8 @@
     "express-rate-limit": "^7.4.1",
     "docx": "^8.5.0",
     "pino": "^9.5.0",
-    "pino-http": "^10.3.0"
+    "pino-http": "^10.3.0",
+    "better-sqlite3": "^11.5.0"
   },
   "scripts": {
     "start": "node server.js",
