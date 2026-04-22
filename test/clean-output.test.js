@@ -58,6 +58,44 @@ describe('cleanOutput — drops commentary lines', () => {
     assert.equal(blanks, 1);
   });
 
+  test('drops the ⚠ DISTRIBUTION NOTE commentary block (one-line variant)', () => {
+    // The real leak observed in a Grade 6 History project — Claude writes
+    // the entire warning on a single long line.
+    const input = [
+      'High Order | 20% | 8 | 0 | 0.0%',
+      '',
+      "**⚠ COGNITIVE LEVEL DISTRIBUTION NOTE:** This paper does not meet the prescribed cognitive level distribution. The prescribed allocation requires Middle Order = 50% (20 marks) and High Order = 20% (8 marks). However, the actual paper allocates Middle Order = 70% (28 marks) and High Order = 0% (0 marks). No High Order questions have been included in this paper. The question paper should be revised to include High Order questions worth 8 marks.",
+      '',
+      'Low Order (12 marks): Q1.1 (1) + Q1.2 (1) = 12 marks',
+    ].join('\n');
+    const out = cleanOutput(input);
+    assert.doesNotMatch(out, /DISTRIBUTION NOTE/i);
+    assert.doesNotMatch(out, /This paper does not meet/i);
+    assert.doesNotMatch(out, /⚠/);
+    // Surrounding legitimate content must survive.
+    assert.match(out, /High Order \| 20%/);
+    assert.match(out, /Low Order \(12 marks\)/);
+  });
+
+  test('drops a multi-line DISTRIBUTION NOTE block', () => {
+    const input = [
+      'High Order | 20% | 8 | 0 | 0.0%',
+      '',
+      '⚠ COGNITIVE LEVEL DISTRIBUTION NOTE:',
+      'This paper does not meet the prescribed cognitive level distribution.',
+      'The question paper should be revised to include High Order questions.',
+      'No High Order questions have been included.',
+      '',
+      'Low Order (12 marks): Q1.1 (1) + Q1.2 (1) = 12 marks',
+    ].join('\n');
+    const out = cleanOutput(input);
+    assert.doesNotMatch(out, /DISTRIBUTION NOTE/i);
+    assert.doesNotMatch(out, /This paper does not meet/i);
+    assert.doesNotMatch(out, /No High Order questions/i);
+    assert.doesNotMatch(out, /The question paper should be revised/i);
+    assert.match(out, /Low Order \(12 marks\)/);
+  });
+
   test('preserves the Cognitive Level analysis table in full', () => {
     // Regression: an earlier dedup rule matched both the section heading
     // "COGNITIVE LEVEL ANALYSIS" and the case-insensitive table column
