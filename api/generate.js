@@ -281,7 +281,10 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     for (let i = 0; i < lines.length; i++) {
       const tr = lines[i].trim();
       if (!tr) { els.push(para('', { spaceAfter: 40 })); continue; }
-      if (/^[═━─\-_]{3,}$/.test(tr)) continue;
+      // Horizontal-rule separators (───, ━━━, ═══, ---) are decorative and
+      // skipped. Underscore runs are NOT skipped here because they are the
+      // learner's answer lines and get rendered by the rule on line below.
+      if (/^[═━─\-]{3,}$/.test(tr)) continue;
       if (/^\|[\s\-:]+\|/.test(tr)) continue;
       if (/^#{1,3}\s+/.test(tr)) { els.push(sectionHead(tr.replace(/^#+\s+/, ''))); continue; }
       if (/^SECTION\s+[A-Z]/i.test(tr) || /^AFDELING\s+[A-Z]/i.test(tr)) { els.push(sectionHead(tr)); continue; }
@@ -564,7 +567,8 @@ FORMAT RULES:
 - Question block totals: [X] right-aligned at end of each question block
 
 ANSWER SPACE RULES — apply to EVERY sub-question, non-negotiable:
-- MCQ: show (1) on the question line BEFORE the a. b. c. d. options. No answer line.
+- MCQ: show (1) on the question line BEFORE the a. b. c. d. options. After the LAST option (d.), add one answer line:
+    Answer: _______________________________________________
 - True/False: statement then blank then (marks) all on ONE line. No answer line.
 - Fill-in-the-blank: the question sentence contains the blank (e.g. "The capital of Gauteng is ____________."). No extra line.
 - Matching: present as a two-column pipe table. No answer line.

@@ -51,7 +51,7 @@ describe('ensureAnswerSpace — injects lines when missing', () => {
 });
 
 describe('ensureAnswerSpace — skips injection when space already exists', () => {
-  test('MCQ with options is left untouched', () => {
+  test('MCQ gets a single "Answer:" line after the last option', () => {
     const input = [
       '1.1 Zanele wants to separate iron filings from sand. Which method? (1)',
       'a. Filtration',
@@ -60,7 +60,27 @@ describe('ensureAnswerSpace — skips injection when space already exists', () =
       'd. Chromatography',
     ].join('\n');
     const out = ensureAnswerSpace(input);
+    const lines = out.split('\n');
+    const optDIdx = lines.findIndex((l) => /^d\.\s/.test(l));
+    assert.ok(optDIdx >= 0);
+    assert.match(lines[optDIdx + 1], /^Answer:/);
+    // No stray blank-underscore lines directly after the question.
     assert.equal(blanksAfter(out, '1.1'), 0);
+  });
+
+  test('MCQ with existing Answer: line is left untouched', () => {
+    const input = [
+      '1.1 Which gas? (1)',
+      'a. Oxygen',
+      'b. Nitrogen',
+      'c. Carbon dioxide',
+      'd. Hydrogen',
+      'Answer: _______________________________________________',
+    ].join('\n');
+    const out = ensureAnswerSpace(input);
+    // Should still have exactly one Answer line, not two.
+    const answerCount = (out.match(/^Answer:/gm) || []).length;
+    assert.equal(answerCount, 1);
   });
 
   test('question followed by existing underscore line is left untouched', () => {
