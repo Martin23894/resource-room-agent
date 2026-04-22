@@ -80,6 +80,23 @@ select:focus{outline:none;border-color:var(--t4);}
 @keyframes sp{to{transform:rotate(360deg);}}
 .ltxt{font-size:14px;color:var(--ink3);}
 .lsub{font-size:12px;color:var(--ink4);}
+/* Phase timeline */
+.phase-list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:260px;max-width:420px;}
+.phase-list li{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink4);padding:4px 10px;border-radius:6px;background:var(--sur2);border:1px solid var(--bdr);}
+.phase-list li .pi{width:14px;height:14px;border-radius:50%;flex-shrink:0;border:1.5px solid var(--bdr2);background:var(--sur);}
+.phase-list li.active{color:var(--ink2);border-color:var(--t4);background:var(--t05);}
+.phase-list li.active .pi{border-color:var(--t6);background:var(--t1);animation:sp 1.2s linear infinite;}
+.phase-list li.done{color:var(--ink3);border-color:var(--bdr);}
+.phase-list li.done .pi{border-color:var(--t6);background:var(--t6);}
+.phase-list li.warn{color:var(--amber);border-color:var(--amber);background:var(--amber05);}
+.phase-list li.warn .pi{border-color:var(--amber);background:var(--amber);}
+.phase-list li.skipped{opacity:.55;}
+#cancel-btn{margin-top:8px;}
+/* Verification badge */
+.vbadge{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;vertical-align:middle;margin-left:8px;}
+.vbadge.ok{background:var(--t05);color:var(--t8);border:1px solid var(--t2);}
+.vbadge.warn{background:var(--amber05);color:#633806;border:1px solid var(--amber);}
+.vbadge.skip{background:var(--sur);color:var(--ink3);border:1px solid var(--bdr);}
 /* Output */
 .out-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;gap:12px;flex-wrap:wrap;}
 .out-title{font-size:19px;font-weight:700;color:var(--ink);margin-bottom:3px;}
@@ -311,6 +328,8 @@ select:focus{outline:none;border-color:var(--t4);}
         <div class="spin"></div>
         <div class="ltxt" id="ltxt">Generating your teacher pack...</div>
         <div class="lsub" id="lsub">CAPS-aligned · Grade 6 · Term 3</div>
+        <ul class="phase-list" id="phase-list" aria-live="polite" aria-label="Pipeline progress"></ul>
+        <button class="abtn" id="cancel-btn" type="button" onclick="cancelGenerate()">Cancel</button>
       </div>
       <div id="os" style="display:none;"></div>
     </div>
@@ -714,7 +733,90 @@ function qf(g, t, s, tp, l, d){
   }, 50);
 }
 
-// ── Main generate function ───────────────────────────────────────────────────
+// ── Main generate function (SSE streaming) ──────────────────────────────────
+// Phase definitions — label + timeline position. Skipped phases (e.g.
+// mark_drift when no drift) remain greyed-out; unseen phases that don't
+// apply to the active pipeline are simply never added.
+const PHASE_LABELS = {
+  cache:          'Cached result',
+  plan:           'Designing question plan',
+  writing:        'Writing questions',
+  mark_drift:     'Balancing mark total',
+  cog_balance:    'Verifying cognitive levels',
+  quality_check:  'Quality check',
+  memo_table:     'Writing memo table',
+  memo_analysis:  'Writing memo analysis',
+  memo_verify:    'Verifying memo',
+  docx_build:     'Building Word document',
+  rtt_passage:    'Writing reading passage',
+  rtt_sections:   'Writing 4 sections',
+  rtt_memo:       'Writing memo sections',
+};
+
+function friendlyError(raw){
+  const msg = String(raw || '').trim();
+  if (/aborted|cancelled/i.test(msg)) return 'Generation cancelled.';
+  if (/ANTHROPIC_API_KEY/i.test(msg)) return 'The server is not fully configured. Contact support.';
+  if (/timed out/i.test(msg)) return 'Generation is taking unusually long. Please try again.';
+  if (/Too many requests|429/.test(msg)) return 'Too many requests. Please wait a minute and try again.';
+  if (/Hourly limit/i.test(msg)) return 'Hourly limit reached. Please try again later.';
+  if (/Daily limit/i.test(msg)) return 'Daily limit reached. Please try again tomorrow.';
+  if (/Not found/i.test(msg)) return 'The server rejected the request.';
+  return msg || 'Generation failed. Please try again.';
+}
+
+function phaseLi(key, label){
+  const li = document.createElement('li');
+  li.dataset.phase = key;
+  li.innerHTML = `<span class="pi" aria-hidden="true"></span><span class="label"></span>`;
+  li.querySelector('.label').textContent = label;
+  return li;
+}
+
+function updatePhase(phase, status, detail){
+  const list = document.getElementById('phase-list');
+  if (!list) return;
+  let li = list.querySelector(`li[data-phase="${phase}"]`);
+  const label = PHASE_LABELS[phase] || phase;
+  if (!li){
+    li = phaseLi(phase, label);
+    list.appendChild(li);
+  }
+  const labelEl = li.querySelector('.label');
+  li.classList.remove('active','done','warn','skipped');
+  switch(status){
+    case 'started':
+    case 'rewriting':
+    case 'fixing':
+    case 'correcting':
+      li.classList.add('active');
+      if (detail?.drift != null) labelEl.textContent = `${label} (${detail.drift > 0 ? '+' : ''}${detail.drift})`;
+      else if (detail?.imbalances) labelEl.textContent = `${label} — ${detail.imbalances} off-target`;
+      else if (detail?.flaws) labelEl.textContent = `${label} — fixing ${detail.flaws} flaw${detail.flaws>1?'s':''}`;
+      else if (detail?.errors) labelEl.textContent = `${label} — correcting ${detail.errors} error${detail.errors>1?'s':''}`;
+      else labelEl.textContent = label + '…';
+      break;
+    case 'done':
+    case 'clean':
+    case 'hit':
+    case 'corrected':
+      li.classList.add('done');
+      labelEl.textContent = detail?.questions ? `${label} (${detail.questions} questions, ${detail.marks} marks)` : label;
+      break;
+    case 'skipped':
+    case 'kept_original':
+      li.classList.add('skipped','done');
+      break;
+    case 'failed':
+    case 'review_recommended':
+    case 'still_drifted':
+      li.classList.add('warn');
+      break;
+    default:
+      li.classList.add('active');
+  }
+}
+
 async function doGenerate(bypassCache){
   const subj = decodeSubj(document.getElementById('subj').value);
   const topicRaw = document.getElementById('topic').value;
@@ -729,24 +831,27 @@ async function doGenerate(bypassCache){
 
   showGen('l');
   document.getElementById('gbtn').disabled = true;
+  document.getElementById('ltxt').textContent = 'Generating your teacher pack…';
   document.getElementById('lsub').textContent = `CAPS-aligned · Grade ${grade} · Term ${term}`;
-  const msgs = [
-    `Generating your Grade ${grade} ${lang} ${rtype}...`,
-    `Aligning to CAPS Grade ${grade} Term ${term}...`,
-    'Applying DoE cognitive level ratios...',
-    'Writing questions and memorandum...'
-  ];
-  let mi = 0;
-  const iv = setInterval(()=>{
-    mi = (mi+1) % msgs.length;
-    const el = document.getElementById('ltxt');
-    if(el) el.textContent = msgs[mi];
-  }, 2200);
+  const list = document.getElementById('phase-list');
+  if (list) list.innerHTML = '';
+
+  // AbortController lets the Cancel button tear down the fetch + server-side
+  // Anthropic calls. Stashed on window so the button can find it.
+  const controller = new AbortController();
+  window._generateAbort = controller;
+
+  let finalPayload = null;
+  let streamError = null;
 
   try{
     const r = await fetch('/api/generate',{
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: {
+        'Content-Type':'application/json',
+        'Accept': 'text/event-stream',
+      },
+      signal: controller.signal,
       body: JSON.stringify({
         subject: subj,
         topic,
@@ -758,27 +863,84 @@ async function doGenerate(bypassCache){
         grade,
         term,
         _bypassCache: bypassCache === true
-        // NOTE: allTopics intentionally NOT sent — generate.js builds it from ATP database
       })
     });
-    clearInterval(iv);
-    const rawText = await r.text();
-    let d;
-    try{ d = JSON.parse(rawText); }
-    catch(e){ throw new Error('Server error: ' + (rawText.substring(0,120) || 'No response')); }
-    if(!r.ok || d.error) throw new Error(d.error || 'Server error ' + r.status);
-    window._docxBase64 = d.docxBase64 || null;
-    window._docxFilename = d.filename || 'resource.docx';
-    const preview = d.preview || d.content || '';
+
+    // If the server fell back to JSON (e.g. validation 400), handle that path.
+    const ct = r.headers.get('Content-Type') || '';
+    if (!ct.includes('text/event-stream')){
+      const d = await r.json().catch(() => ({ error: 'Server returned non-JSON' }));
+      if (!r.ok || d.error) throw new Error(d.error || ('Server error ' + r.status));
+      finalPayload = d;
+    } else {
+      // Parse SSE frames off the ReadableStream.
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buf = '';
+      while (true){
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let idx;
+        while ((idx = buf.indexOf('\n\n')) !== -1){
+          const rawFrame = buf.slice(0, idx);
+          buf = buf.slice(idx + 2);
+          const frame = parseSSEFrame(rawFrame);
+          if (!frame) continue;
+          if (frame.event === 'phase'){
+            updatePhase(frame.data.phase, frame.data.status, frame.data);
+          } else if (frame.event === 'result'){
+            finalPayload = frame.data;
+          } else if (frame.event === 'error'){
+            streamError = frame.data;
+          }
+        }
+      }
+    }
+  } catch (e){
+    if (e.name === 'AbortError'){
+      streamError = { error: 'Generation cancelled.' };
+    } else {
+      streamError = { error: e.message };
+    }
+  } finally {
+    window._generateAbort = null;
+  }
+
+  if (streamError){
+    document.getElementById('os').innerHTML =
+      `<div class="err"><strong>Generation failed</strong><br><br>${esc(friendlyError(streamError.error))}</div>`;
+    showGen('o');
+  } else if (finalPayload){
+    window._docxBase64 = finalPayload.docxBase64 || null;
+    window._docxFilename = finalPayload.filename || 'resource.docx';
+    window._verificationStatus = finalPayload.verificationStatus || null;
+    const preview = finalPayload.preview || finalPayload.content || '';
     addHist(subj, topic, preview, null, grade, term);
     renderOut(subj, topic, preview, null, grade, term);
-  } catch(e){
-    clearInterval(iv);
-    document.getElementById('os').innerHTML =
-      `<div class="err"><strong>Generation failed</strong><br><br>${esc(e.message)}<br><br>Check your API key in Railway → Variables.</div>`;
-    showGen('o');
   }
   document.getElementById('gbtn').disabled = false;
+}
+
+function cancelGenerate(){
+  if (window._generateAbort){
+    window._generateAbort.abort();
+  }
+}
+
+// Parse one `event: x\ndata: y` frame (already split on \n\n).
+function parseSSEFrame(raw){
+  const lines = raw.split('\n');
+  let event = 'message';
+  let data = '';
+  for (const ln of lines){
+    if (ln.startsWith(':')) continue; // comment
+    if (ln.startsWith('event:')) event = ln.slice(6).trim();
+    else if (ln.startsWith('data:')) data += (data ? '\n' : '') + ln.slice(5).trim();
+  }
+  if (!data) return null;
+  try { return { event, data: JSON.parse(data) }; }
+  catch { return null; }
 }
 
 function buildDiagHtml(diagram){
@@ -812,10 +974,18 @@ function renderOut(subj, topic, content, diagrams, grade, term){
     </div>`;
   }
 
+  // Verification badge reflects the Phase-4 memo-check outcome.
+  const vs = window._verificationStatus;
+  let vBadge = '';
+  if (vs === 'clean')                 vBadge = '<span class="vbadge ok" title="Phase-4 verification passed with no corrections.">Verified ✓</span>';
+  else if (vs === 'corrected')        vBadge = '<span class="vbadge ok" title="Phase-4 verification auto-corrected one or more memo errors.">Verified ✓</span>';
+  else if (vs === 'review_recommended') vBadge = '<span class="vbadge warn" title="Phase-4 flagged issues the automatic correction could not fully resolve. Please spot-check the memo.">Review recommended</span>';
+  else if (vs === 'skipped')          vBadge = '<span class="vbadge skip" title="Phase-4 verification was unable to run.">Not verified</span>';
+
   document.getElementById('os').innerHTML = `
 <div class="out-hdr">
   <div>
-    <div class="out-title">${esc(subj)}</div>
+    <div class="out-title">${esc(subj)}${vBadge}</div>
     <div class="out-sub">${esc(rtype)} · ${esc(lang)} · Grade ${grade} Term ${term}</div>
   </div>
   <div class="brow">

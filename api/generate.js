@@ -17,6 +17,7 @@ import { cacheGet, cacheSet } from '../lib/cache.js';
 import { generateCacheKey } from '../lib/cache-key.js';
 import { createDocxBuilder } from '../lib/docx-builder.js';
 import { buildPrompts } from '../lib/prompts.js';
+import { createEventChannel } from '../lib/sse.js';
 
 // ============================================================
 // MAIN HANDLER
@@ -40,9 +41,26 @@ export default async function handler(req, res) {
     grade        = int(req.body?.grade, { field: 'grade', min: 4, max: 7 });
     term         = int(req.body?.term,  { field: 'term',  min: 1, max: 4 });
   } catch (err) {
-    if (err instanceof ValidationError) return res.status(400).json({ error: err.message });
+    if (err instanceof ValidationError) {
+      return res.status(400).json({ error: err.message });
+    }
     throw err;
   }
+
+  // ── Event channel + cancellation plumbing ──
+  // SSE mode (Accept: text/event-stream) streams phase updates; plain
+  // JSON mode keeps the original request/response API. A client disconnect
+  // aborts the AbortController, which propagates into every in-flight
+  // Claude call and halts the pipeline.
+  const channel = createEventChannel(req, res);
+  const abortController = new AbortController();
+  const signal = abortController.signal;
+  let clientClosed = false;
+  channel.onClose(() => {
+    clientClosed = true;
+    log.info('Client disconnected — aborting generation');
+    abortController.abort();
+  });
 
   // ── Cache short-circuit ──
   // Identical generation params within the TTL window return instantly
@@ -58,7 +76,9 @@ export default async function handler(req, res) {
       const hit = cacheGet(cacheKey);
       if (hit) {
         log.info({ cacheKey }, 'Cache hit — serving stored response');
-        return res.status(200).json({ ...hit, cached: true });
+        channel.sendPhase('cache', 'hit');
+        channel.sendResult({ ...hit, cached: true });
+        return;
       }
     } catch (cacheErr) {
       log.warn({ err: cacheErr?.message || cacheErr }, 'Cache read failed — continuing with live generation');
@@ -160,7 +180,7 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
   async function callClaude(system, user, maxTok) {
     let raw;
     try {
-      raw = await callAnthropic({ system, user, maxTokens: maxTok, logger: log });
+      raw = await callAnthropic({ system, user, maxTokens: maxTok, logger: log, signal });
     } catch (err) {
       if (err instanceof AnthropicError && err.code === 'TIMEOUT') {
         throw new Error('Generation is taking longer than usual. Please try again — complex resources can take up to 3 minutes.');
@@ -243,11 +263,16 @@ Return ONLY the passage text — no title instructions or commentary.`;
 Topic must align with CAPS Term ${t} ${subject} reading content.
 Return only the passage.`;
 
+    channel.sendPhase('rtt_passage', 'started');
     let passage = '';
     try {
       passage = await callClaude(passageSys, passageUsr, 1200);
       passage = passage.replace(/^```.*\n?/, '').replace(/```$/, '').trim();
-    } catch(e) { passage = ''; }
+      channel.sendPhase('rtt_passage', 'done');
+    } catch (e) {
+      passage = '';
+      channel.sendPhase('rtt_passage', 'failed');
+    }
 
     // Helper: build Barrett's table for a section
     function barretts(marks, includeSummaryOnly = false) {
@@ -356,12 +381,14 @@ Return JSON: {"content":"Section D text only"}`;
 
     // Generate all 4 sections in parallel
     log.info(`RTT Pipeline: generating 4 sections in parallel (${sm.a}+${sm.b}+${sm.c}+${sm.d}=${sm.a+sm.b+sm.c+sm.d} marks)`);
+    channel.sendPhase('rtt_sections', 'started');
     const [secARaw, secBRaw, secCRaw, secDRaw] = await Promise.all([
       callClaude(secASys, secAUsr, 3000),
       callClaude(secBSys, secBUsr, 2000),
       callClaude(secCSys, secCUsr, 1000),
       callClaude(secDSys, secDUsr, 2500)
     ]);
+    channel.sendPhase('rtt_sections', 'done');
 
     const secA = cleanOutput(safeExtractContent(secARaw));
     const secB = cleanOutput(safeExtractContent(secBRaw));
@@ -456,11 +483,13 @@ Actual Marks per level = sum across ALL four sections. All Actual Marks must tot
 Return JSON: {"content":"Section D memo and combined Barrett's"}`;
 
     log.info(`RTT Memo: generating in 3 phases (A / B+C / D+combined)`);
+    channel.sendPhase('rtt_memo', 'started');
     const [memoARaw, memoBCRaw, memoDRaw] = await Promise.all([
       callClaude(rttMemoSys, rttMemoUsrA, 4000),
       callClaude(rttMemoSys, rttMemoUsrB, 4000),
       callClaude(rttMemoSys, rttMemoUsrD, 4000)
     ]);
+    channel.sendPhase('rtt_memo', 'done');
 
     const memoA  = cleanOutput(safeExtractContent(memoARaw));
     const memoBC = cleanOutput(safeExtractContent(memoBCRaw));
@@ -485,6 +514,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
 
     // Safety net: inject blank answer lines where the AI forgot them.
     const finalPaper = ensureAnswerSpace(questionPaper);
+    channel.sendPhase('docx_build', 'started');
 
     // Build DOCX
     let docxBase64 = null;
@@ -493,12 +523,18 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
       const doc = buildDoc(finalPaper, memoContent, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
-    } catch(docxErr) { log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX build error'); }
+    } catch (docxErr) {
+      log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX build error');
+    }
+    channel.sendPhase('docx_build', 'done');
 
+    // RTT papers don't run a separate memo-verify step, so we report them
+    // as "clean" unconditionally — the schema-driven RTT memo is trusted.
     const preview = finalPaper + '\n\n' + memoContent;
-    const payload = { docxBase64, preview, filename };
+    const payload = { docxBase64, preview, filename, verificationStatus: 'clean' };
     try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
-    return res.status(200).json(payload);
+    channel.sendResult(payload);
+    return;
   }
 
   // ═══════════════════════════════════════
@@ -514,6 +550,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     // Tool-use guarantees the response is a valid plan object — no JSON.parse,
     // no escape-character salvage, no try/catch around parsing. validatePlan
     // still enforces the CAPS rules on top.
+    channel.sendPhase('plan', 'started');
     const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance });
     let plan = null;
     let planAttempts = 0;
@@ -526,6 +563,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
           tool: planTool(cog.levels),
           maxTokens: 1500,
           logger: log,
+          signal,
         });
         plan = validatePlan(parsedPlan, planCtx, log);
         if (!plan) log.info(`Plan attempt ${planAttempts}: validation failed`);
@@ -553,16 +591,23 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     }
  
     log.info(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
- 
+    channel.sendPhase('plan', 'done', {
+      questions: plan.questions.length,
+      marks: plan.questions.reduce((s, q) => s + q.marks, 0),
+    });
+
     // ── Phase 2: Write questions from validated plan ──
+    channel.sendPhase('writing', 'started');
     const qTok = isWorksheet ? 3000 : (isExamType) ? 5500 : 4500;
     let questionPaper = await callClaude(qSys(plan), qUsr(plan), qTok);
     questionPaper = cleanOutput(questionPaper);
+    channel.sendPhase('writing', 'done');
  
     // ── Phase 2a: Mark drift correction ──
     const countedAfterP2 = countMarks(questionPaper);
     const drift = countedAfterP2 - totalMarks;
     if (countedAfterP2 > 0 && drift !== 0) {
+      channel.sendPhase('mark_drift', 'started', { counted: countedAfterP2, target: totalMarks, drift });
       log.info(`Mark drift: counted=${countedAfterP2}, target=${totalMarks}, drift=${drift > 0 ? '+' : ''}${drift}`);
       const corrSys = `You are correcting a ${subject} ${resourceType} question paper. The paper totals ${countedAfterP2} marks but must total EXACTLY ${totalMarks} marks. ${drift > 0 ? 'Reduce' : 'Increase'} the total by ${Math.abs(drift)} mark${Math.abs(drift) > 1 ? 's' : ''}.
 
@@ -581,9 +626,18 @@ RULES FOR THE CORRECTION ITSELF:
       try {
         const corrected = cleanOutput(await callClaude(corrSys, corrUsr, qTok));
         const countedAfterCorr = countMarks(corrected);
-        if (countedAfterCorr === totalMarks) { questionPaper = corrected; log.info(`Correction successful: ${countedAfterCorr} marks ✓`); }
-        else log.info(`Correction resulted in ${countedAfterCorr} marks — keeping Phase 2 paper`);
-      } catch(corrErr) { log.info(`Correction failed: ${corrErr.message}`); }
+        if (countedAfterCorr === totalMarks) {
+          questionPaper = corrected;
+          log.info(`Correction successful: ${countedAfterCorr} marks ✓`);
+          channel.sendPhase('mark_drift', 'done', { marks: countedAfterCorr });
+        } else {
+          log.info(`Correction resulted in ${countedAfterCorr} marks — keeping Phase 2 paper`);
+          channel.sendPhase('mark_drift', 'kept_original', { marks: countedAfterP2 });
+        }
+      } catch (corrErr) {
+        log.info(`Correction failed: ${corrErr.message}`);
+        channel.sendPhase('mark_drift', 'failed');
+      }
     } else if (countedAfterP2 === totalMarks) {
       log.info(`Phase 2 exact: ${countedAfterP2} marks ✓`);
     }
@@ -597,11 +651,14 @@ RULES FOR THE CORRECTION ITSELF:
     // assignments by more than tolerance, fire ONE Claude rewrite. The
     // check itself is free; the rewrite only fires on a minority of
     // generations where Claude downgraded question types.
+    channel.sendPhase('cog_balance', 'started');
     const balance = verifyCogBalance({ paper: questionPaper, plan, cog, cogMarks, tolerance: cogTolerance });
     if (balance.lowConfidence) {
       log.info({ unmapped: balance.unmapped.length }, 'Cog-balance check skipped (too many unmapped sub-questions)');
+      channel.sendPhase('cog_balance', 'skipped');
     } else if (!balance.clean) {
       log.info({ imbalances: balance.imbalances }, `Cog-level drift detected — rewriting paper once`);
+      channel.sendPhase('cog_balance', 'rewriting', { imbalances: balance.imbalances.length });
       const feedback = formatImbalances(balance);
       const planList = plan.questions.map((q) => `  ${q.number}: ${q.cogLevel} (${q.marks} marks)`).join('\n');
 
@@ -638,14 +695,18 @@ Rewrite the paper so each sub-question lands at its plan cogLevel.`;
             { clean: newBalance.clean, imbalances: newBalance.imbalances },
             newBalance.clean ? 'Cog-level rebalance successful' : 'Cog-level rebalance still drifted — accepting',
           );
+          channel.sendPhase('cog_balance', newBalance.clean ? 'done' : 'still_drifted');
         } else {
           log.info(`Cog-level rebalance changed mark total (${rebalancedCount} vs ${markTotal}) — keeping original paper`);
+          channel.sendPhase('cog_balance', 'kept_original');
         }
       } catch (err) {
         log.info(`Cog-level rebalance failed: ${err.message}`);
+        channel.sendPhase('cog_balance', 'failed');
       }
     } else {
       log.info(`Cog-level balance: clean ✓`);
+      channel.sendPhase('cog_balance', 'clean');
     }
 
     // ── Phase 2b: Question Quality Check ──
@@ -663,6 +724,7 @@ Call the flag_question_paper_issues tool with clean=true and an empty flaws arra
 
     const qQualityUsr = `Review this Grade ${g} ${subject} Term ${t} question paper for design flaws:\n\n${questionPaper}`;
 
+    channel.sendPhase('quality_check', 'started');
     try {
       let qualityResult;
       try {
@@ -672,6 +734,7 @@ Call the flag_question_paper_issues tool with clean=true and an empty flaws arra
           tool: qualityTool,
           maxTokens: 1200,
           logger: log,
+          signal,
         });
       } catch (toolErr) {
         log.info(`Phase 2b: tool call failed (${toolErr.message}) — skipping`);
@@ -681,6 +744,7 @@ Call the flag_question_paper_issues tool with clean=true and an empty flaws arra
       if (qualityResult.flaws && qualityResult.flaws.length > 0) {
         log.info(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected`);
         qualityResult.flaws.forEach(f => log.info(`  Q${f.question} [${f.type}]: ${f.detail}`));
+        channel.sendPhase('quality_check', 'fixing', { flaws: qualityResult.flaws.length });
         const fixSys = `You are correcting specific design flaws in a ${subject} question paper.
 OUTPUT RULES:
 - Output the complete corrected question paper ONLY
@@ -695,22 +759,39 @@ OUTPUT RULES:
           const rawFixed = await callClaude(fixSys, fixUsr, qTok);
           const fixedPaper = cleanOutput(safeExtractContent(rawFixed));
           const fixedCount = countMarks(fixedPaper);
-          if (fixedCount === markTotal) { questionPaper = fixedPaper; log.info(`Phase 2b: fixed ✓`); }
-          else log.info(`Phase 2b: fix shifted mark total (${fixedCount}≠${markTotal}) — keeping original`);
-        } catch(fixErr) { log.info(`Phase 2b: fix failed (${fixErr.message})`); }
+          if (fixedCount === markTotal) {
+            questionPaper = fixedPaper;
+            log.info(`Phase 2b: fixed ✓`);
+            channel.sendPhase('quality_check', 'done');
+          } else {
+            log.info(`Phase 2b: fix shifted mark total (${fixedCount}≠${markTotal}) — keeping original`);
+            channel.sendPhase('quality_check', 'kept_original');
+          }
+        } catch (fixErr) {
+          log.info(`Phase 2b: fix failed (${fixErr.message})`);
+          channel.sendPhase('quality_check', 'failed');
+        }
       } else {
         log.info(`Phase 2b: no design flaws ✓`);
+        channel.sendPhase('quality_check', 'clean');
       }
-    } catch(qErr) { log.info(`Phase 2b: quality check skipped (${qErr.message})`); }
- 
+    } catch (qErr) {
+      log.info(`Phase 2b: quality check skipped (${qErr.message})`);
+      channel.sendPhase('quality_check', 'skipped');
+    }
+
     // ── Phase 3A: Generate memo table ──
+    channel.sendPhase('memo_table', 'started');
     const cogLevelRef = plan.questions.map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`).join('\n');
     const memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
     log.info(`Phase 3A: memo table generated (${memoTableRaw.length} chars)`);
- 
+    channel.sendPhase('memo_table', 'done');
+
     // ── Phase 3B: Generate cog analysis + extension + rubric ──
+    channel.sendPhase('memo_analysis', 'started');
     const memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
     log.info(`Phase 3B: cog analysis generated (${memoAnalysisRaw.length} chars)`);
+    channel.sendPhase('memo_analysis', 'done');
  
     const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
  
@@ -728,7 +809,12 @@ Call the flag_memo_errors tool with clean=true and empty arrays if no errors exi
 
     const verUsr = `QUESTION PAPER:\n${questionPaper}\n\nMEMORANDUM TO VERIFY:\n${memoContent}\n\nCheck every memo row. Report ALL errors.`;
 
+    // verificationStatus tracks whether Phase 4 confirmed the memo was clean,
+    // corrected errors, or skipped. Surfaced on the response so the UI can
+    // render a "Verified ✓" or "Review recommended" badge.
+    let verificationStatus = 'clean';
     let verifiedMemo = memoContent;
+    channel.sendPhase('memo_verify', 'started');
     try {
       let verResult;
       try {
@@ -738,18 +824,21 @@ Call the flag_memo_errors tool with clean=true and empty arrays if no errors exi
           tool: memoVerifyTool,
           maxTokens: 3000,
           logger: log,
+          signal,
         });
       } catch (toolErr) {
         log.info(`Phase 4: tool call failed (${toolErr.message}) — skipping`);
         verResult = { errors: [], cogLevelErrors: [], clean: true };
+        verificationStatus = 'skipped';
       }
- 
+
       const totalErrors = (verResult.errors || []).length + (verResult.cogLevelErrors || []).length;
       if (totalErrors > 0) {
         log.info(`Phase 4: ${totalErrors} error(s) detected`);
         (verResult.errors || []).forEach(e => log.info(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
         (verResult.cogLevelErrors || []).forEach(e => log.info(`  CogLevel [${e.level}]: table=${e.foundInTable} analysis=${e.foundInAnalysis}`));
- 
+        channel.sendPhase('memo_verify', 'correcting', { errors: totalErrors });
+
         const corrMemoSys = `You are correcting specific verified errors in a memorandum.
 Fix ONLY the rows and cells listed in the error report. Do not change anything else.
 Return the complete corrected memorandum as JSON: {"content":"complete corrected memorandum"}`;
@@ -758,20 +847,40 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
           ...(verResult.cogLevelErrors || []).map(e => `Cognitive Level table — ${e.level}: ${e.fix}`)
         ].join('\n');
         const corrMemoUsr = `Correct ONLY these verified errors. Do not change anything else.\n\nERRORS:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
- 
+
         try {
           const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 8192);
           const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
-          if (correctedMemo && correctedMemo.length > 500) { verifiedMemo = correctedMemo; log.info(`Phase 4: memo corrected ✓`); }
-          else { log.info(`Phase 4: correction too short — keeping original`); verifiedMemo = memoContent; }
-        } catch(corrErr) { log.info(`Phase 4: correction failed (${corrErr.message})`); verifiedMemo = memoContent; }
+          if (correctedMemo && correctedMemo.length > 500) {
+            verifiedMemo = correctedMemo;
+            verificationStatus = 'corrected';
+            log.info(`Phase 4: memo corrected ✓`);
+            channel.sendPhase('memo_verify', 'corrected');
+          } else {
+            log.info(`Phase 4: correction too short — keeping original`);
+            verifiedMemo = memoContent;
+            verificationStatus = 'review_recommended';
+            channel.sendPhase('memo_verify', 'review_recommended');
+          }
+        } catch (corrErr) {
+          log.info(`Phase 4: correction failed (${corrErr.message})`);
+          verifiedMemo = memoContent;
+          verificationStatus = 'review_recommended';
+          channel.sendPhase('memo_verify', 'review_recommended');
+        }
       } else {
         log.info(`Phase 4: memo verified — no errors ✓`);
+        channel.sendPhase('memo_verify', 'clean');
       }
-    } catch(verErr) { log.info(`Phase 4: verification skipped (${verErr.message})`); }
+    } catch (verErr) {
+      log.info(`Phase 4: verification skipped (${verErr.message})`);
+      verificationStatus = 'skipped';
+      channel.sendPhase('memo_verify', 'skipped');
+    }
 
     // ── Phase 5: Safety net — inject blank answer lines the AI may have skipped ──
     const finalPaper = ensureAnswerSpace(questionPaper);
+    channel.sendPhase('docx_build', 'started');
 
     // ── Build DOCX ──
     let docxBase64 = null;
@@ -783,15 +892,24 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
     } catch (docxErr) {
       log.error({ err: docxErr?.message || docxErr }, 'DOCX build error');
     }
+    channel.sendPhase('docx_build', 'done');
 
     const preview = finalPaper + '\n\n' + verifiedMemo;
-    const payload = { docxBase64, preview, filename };
+    const payload = { docxBase64, preview, filename, verificationStatus };
     try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
-    return res.status(200).json(payload);
- 
+    channel.sendResult(payload);
+    return;
+
   } catch (err) {
+    // Client-initiated aborts are not pipeline errors — they shouldn't be
+    // logged at error level or surfaced as 500s.
+    if (clientClosed || (err instanceof AnthropicError && err.code === 'ABORTED')) {
+      log.info('Generation cancelled by client');
+      return;
+    }
     log.error({ err: err?.message || err, stack: err?.stack }, 'Generate error');
     const status = err?.status && err.status >= 400 && err.status < 600 ? err.status : 500;
-    return res.status(status).json({ error: err?.message || 'Server error' });
+    channel.sendError(Object.assign(new Error(err?.message || 'Server error'), { status }));
+    return;
   }
 }

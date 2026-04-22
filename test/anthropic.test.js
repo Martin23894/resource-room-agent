@@ -148,6 +148,66 @@ describe('callAnthropic retry behaviour', () => {
   });
 });
 
+describe('callAnthropic abort signal', () => {
+  test('aborts an in-flight request when the external signal fires', { timeout: 5000 }, async () => {
+    // fetch that never resolves until aborted
+    global.fetch = (_url, opts) => new Promise((_resolve, reject) => {
+      const abort = () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        reject(err);
+      };
+      if (opts.signal?.aborted) return abort();
+      opts.signal?.addEventListener('abort', abort);
+    });
+
+    const controller = new AbortController();
+    const promise = callAnthropic({
+      system: 's', user: 'u', maxTokens: 10, logger: silentLogger, signal: controller.signal,
+    });
+    setTimeout(() => controller.abort(), 10);
+
+    await assert.rejects(promise, (err) => err instanceof AnthropicError && err.code === 'ABORTED');
+  });
+
+  test('an already-aborted signal short-circuits immediately', { timeout: 5000 }, async () => {
+    global.fetch = (_url, opts) => new Promise((_resolve, reject) => {
+      const abort = () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        reject(err);
+      };
+      if (opts.signal?.aborted) return abort();
+      opts.signal?.addEventListener('abort', abort);
+    });
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(
+      callAnthropic({ system: 's', user: 'u', maxTokens: 10, logger: silentLogger, signal: controller.signal }),
+      (err) => err instanceof AnthropicError && err.code === 'ABORTED',
+    );
+  });
+
+  test('ABORTED errors are NOT retried', { timeout: 5000 }, async () => {
+    let calls = 0;
+    global.fetch = (_url, opts) => new Promise((_resolve, reject) => {
+      calls++;
+      opts.signal?.addEventListener('abort', () => {
+        const err = new Error('aborted');
+        err.name = 'AbortError';
+        reject(err);
+      });
+    });
+    const controller = new AbortController();
+    const promise = callAnthropic({
+      system: 's', user: 'u', maxTokens: 10, logger: silentLogger, signal: controller.signal,
+    });
+    setTimeout(() => controller.abort(), 10);
+    await assert.rejects(promise);
+    assert.equal(calls, 1, 'aborted call must not retry');
+  });
+});
+
 describe('callAnthropic input guards', () => {
   test('throws AnthropicError when API key missing', async () => {
     delete process.env.ANTHROPIC_API_KEY;
