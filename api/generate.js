@@ -11,6 +11,8 @@ import { getCogLevels, largestRemainder, marksToTime, isBarretts as isBarrettsFn
 import { countMarks } from '../lib/marks.js';
 import { ensureAnswerSpace } from '../lib/answer-space.js';
 import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
+import { extractContent } from '../lib/content.js';
+import { i18n, resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
 
 // ============================================================
 // MAIN HANDLER
@@ -60,7 +62,9 @@ export default async function handler(req, res) {
     ? `\nFOCUS: The teacher has requested emphasis on: ${topic}\n(This is a specific focus within the above topic list — do not limit to only this topic)`
     : '';
  
-  const timeAllocation = marksToTime(totalMarks);
+  const L = i18n(language);
+  const displaySubject = subjectDisplayName(subject, language);
+  const timeAllocation = localiseDuration(marksToTime(totalMarks), language);
   const diffNote = difficulty === 'below' ? 'Below grade level' : difficulty === 'above' ? 'Above grade level' : 'On grade level';
  
   const cog = getCogLevels(subject);
@@ -210,47 +214,47 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     const els = [];
  
     els.push(para('THE RESOURCE ROOM', { bold: true, size: 28, color: GREEN, align: AlignmentType.CENTER, spaceAfter: 60 }));
-    els.push(para(resourceType.toUpperCase(), { bold: true, size: 36, align: AlignmentType.CENTER, spaceAfter: 60 }));
-    els.push(para(subject, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 160 }));
- 
+    els.push(para(resourceTypeLabel(resourceType, language), { bold: true, size: 36, align: AlignmentType.CENTER, spaceAfter: 60 }));
+    els.push(para(displaySubject, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 160 }));
+
     const noBorder = { style: BorderStyle.NIL, size: 0, color: 'FFFFFF' };
     const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder };
- 
+
     els.push(new Table({
       width: { size: 9026, type: WidthType.DXA }, columnWidths: [4513, 4513],
       rows: [new TableRow({ children: [
-        new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Grade ' + g, { size: 24, bold: true })] })] }),
-        new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Term ' + t, { size: 24, bold: true })], alignment: AlignmentType.RIGHT })] })
+        new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.grade + ' ' + g, { size: 24, bold: true })] })] }),
+        new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.term + ' ' + t, { size: 24, bold: true })], alignment: AlignmentType.RIGHT })] })
       ]})]
     }));
     els.push(para('', { spaceAfter: 60 }));
- 
+
     els.push(new Table({
       width: { size: 9026, type: WidthType.DXA }, columnWidths: [4513, 4513],
       rows: [
         new TableRow({ children: [
-          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Name: ___________________________', { size: 22 })] })] }),
-          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Date: ___________________', { size: 22 })], alignment: AlignmentType.RIGHT })] })
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.name + ': ___________________________', { size: 22 })] })] }),
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.date + ': ___________________', { size: 22 })], alignment: AlignmentType.RIGHT })] })
         ]}),
         new TableRow({ children: [
-          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Surname: ________________________', { size: 22 })] })] }),
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.surname + ': ________________________', { size: 22 })] })] }),
           new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('', { size: 22 })] })] })
         ]})
       ]
     }));
     els.push(para('', { spaceAfter: 40 }));
- 
+
     if (!isWorksheet) {
       els.push(new Table({
         width: { size: 9026, type: WidthType.DXA }, columnWidths: [4513, 4513],
         rows: [new TableRow({ children: [
-          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Examiner: ______________________', { size: 22 })] })] }),
-          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt('Time: ' + timeAllocation, { size: 22, bold: true })], alignment: AlignmentType.RIGHT })] })
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.examiner + ': ______________________', { size: 22 })] })] }),
+          new TableCell({ borders: noBorders, width: { size: 4513, type: WidthType.DXA }, children: [new Paragraph({ children: [txt(L.time + ': ' + timeAllocation, { size: 22, bold: true })], alignment: AlignmentType.RIGHT })] })
         ]})]
       }));
       els.push(para('', { spaceAfter: 80 }));
     }
- 
+
     const scoreBdr = { style: BorderStyle.SINGLE, size: 4, color: '085041' };
     const scoreBorders = { top: scoreBdr, bottom: scoreBdr, left: scoreBdr, right: scoreBdr };
     const colW = [3611, 1805, 1805, 1805];
@@ -258,14 +262,14 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     els.push(new Table({
       width: { size: 9026, type: WidthType.DXA }, columnWidths: colW,
       rows: [
-        new TableRow({ children: [cm(colW[0], [txt('Total', { bold: true, size: 20 })]), cm(colW[1], [txt(String(displayMarks), { bold: true, size: 20 })], AlignmentType.CENTER), cm(colW[2], [txt('%', { bold: true, size: 20 })], AlignmentType.CENTER), cm(colW[3], [txt('Code', { bold: true, size: 20 })], AlignmentType.CENTER)] }),
-        new TableRow({ children: [cm(colW[0], [txt('Comments:', { bold: true, size: 18 })]), new TableCell({ borders: scoreBorders, columnSpan: 3, width: { size: colW[1]+colW[2]+colW[3], type: WidthType.DXA }, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children: [new Paragraph({ children: [txt('', { size: 18 })] })] })] })
+        new TableRow({ children: [cm(colW[0], [txt(L.total, { bold: true, size: 20 })]), cm(colW[1], [txt(String(displayMarks), { bold: true, size: 20 })], AlignmentType.CENTER), cm(colW[2], [txt('%', { bold: true, size: 20 })], AlignmentType.CENTER), cm(colW[3], [txt(L.code, { bold: true, size: 20 })], AlignmentType.CENTER)] }),
+        new TableRow({ children: [cm(colW[0], [txt(L.comments + ':', { bold: true, size: 18 })]), new TableCell({ borders: scoreBorders, columnSpan: 3, width: { size: colW[1]+colW[2]+colW[3], type: WidthType.DXA }, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children: [new Paragraph({ children: [txt('', { size: 18 })] })] })] })
       ]
     }));
     els.push(para('', { spaceAfter: 120 }));
- 
-    els.push(new Paragraph({ children: [txt('Instructions:', { bold: true, size: 22 })], spacing: { before: 0, after: 60 } }));
-    for (const item of ['Read the questions properly.', 'Answer ALL the questions.', 'Show all working where required.', 'Pay special attention to the mark allocation of each question.']) {
+
+    els.push(new Paragraph({ children: [txt(L.instructions + ':', { bold: true, size: 22 })], spacing: { before: 0, after: 60 } }));
+    for (const item of L.instructionItems) {
       els.push(new Paragraph({ children: [txt('•  ' + item, { size: 22 })], indent: { left: 360 }, spacing: { before: 0, after: 40 } }));
     }
     els.push(para('', { spaceAfter: 160 }));
@@ -333,17 +337,17 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     const cleanQ = stripBrandHeader(qText);
     const cleanM = stripBrandHeader(mText);
     const cover = isWorksheet
-      ? [para(subject + ' — Worksheet', { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 80 }),
-         para('Grade ' + g + '  |  Term ' + t + '  |  ' + language, { align: AlignmentType.CENTER, spaceAfter: 40 }),
-         para([txt('Name: ___________________________'), txt('     Date: ___________________')], { spaceAfter: 40 }),
-         para('Total: _____ / ' + totalMarks + ' marks', { bold: true, spaceAfter: 120 })]
+      ? [para(displaySubject + ' — ' + L.worksheetTitle, { bold: true, size: 28, align: AlignmentType.CENTER, spaceAfter: 80 }),
+         para(L.grade + ' ' + g + '  |  ' + L.term + ' ' + t + '  |  ' + language, { align: AlignmentType.CENTER, spaceAfter: 40 }),
+         para([txt(L.name + ': ___________________________'), txt('     ' + L.date + ': ___________________')], { spaceAfter: 40 }),
+         para(L.total + ': _____ / ' + totalMarks + ' ' + L.marksWord, { bold: true, spaceAfter: 120 })]
       : buildCover(actualMarks);
     return new Document({
       styles: { default: { document: { run: { font: FONT, size: 22 } } } },
       sections: [{
         properties: { page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } } },
         headers: { default: new Header({ children: [para('THE RESOURCE ROOM', { size: 16, color: '999999', align: AlignmentType.RIGHT })] }) },
-        footers: { default: new Footer({ children: [para('© The Resource Room  |  CAPS Grade ' + g + ' Term ' + t + '  |  ' + subject, { size: 16, color: '999999', align: AlignmentType.CENTER })] }) },
+        footers: { default: new Footer({ children: [para('© The Resource Room  |  CAPS ' + L.grade + ' ' + g + ' ' + L.term + ' ' + t + '  |  ' + displaySubject, { size: 16, color: '999999', align: AlignmentType.CENTER })] }) },
         children: [...cover, ...parseText(cleanQ), ...parseText(cleanM)]
       }]
     });
@@ -365,43 +369,12 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
       }
       throw err;
     }
-    const stripped = raw.replace(/```json|```/g, '').trim();
-    try { return JSON.parse(stripped).content || stripped; } catch (e) {
-      let c = stripped.replace(/^\s*\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '');
-      return c.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-    }
+    return extractContent(raw);
   }
- 
-  // ═══════════════════════════════════════
-  // SAFE CONTENT EXTRACTOR
-  // ═══════════════════════════════════════
-  function safeExtractContent(raw) {
-    if (!raw || typeof raw !== 'string') return raw;
-    let text = raw.trim();
-    text = text.replace(/^```json\s*/i, '').replace(/```\s*$/g, '').trim();
-    text = text.replace(/^\{\s*"content"\s*:\s*"/, '').replace(/"\s*\}\s*$/, '').trim();
-    if (text.startsWith('{')) {
-      try {
-        const parsed = JSON.parse(text);
-        if (parsed.content) return parsed.content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-      } catch(e) {}
-    }
-    const lines = text.split('\n');
-    let startIdx = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const l = lines[i].trim();
-      if (/^(SECTION|AFDELING|Question\s+\d|Vraag\s+\d|\d+\.\d|TOTAL:|TOTAAL:|MEMORANDUM)/i.test(l)) {
-        startIdx = i;
-        break;
-      }
-      if (l.startsWith('{"content"')) {
-        const remainder = lines.slice(i).join('\n');
-        return safeExtractContent(remainder);
-      }
-    }
-    if (startIdx > 0) text = lines.slice(startIdx).join('\n');
-    return text.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"');
-  }
+
+  // Thin alias kept for legacy call sites — safeExtractContent was the old
+  // hand-rolled version of extractContent. They now do the same thing.
+  const safeExtractContent = extractContent;
  
   // ═══════════════════════════════════════
   // CLEANUP — remove AI meta-commentary
@@ -600,7 +573,7 @@ ${g <= 4 ? '- Use numbers up to 4-digit (up to 9,999). Do NOT use 5-digit or lar
   * Whole number place value may go to 9-digit for ordering/comparing ONLY` : ''}${g === 7 ? '- Use numbers appropriate for Grade 7 — whole numbers up to 9-digit where needed, decimals to 3 places, fractions with mixed numbers. Vary sizes — not all numbers should be in the millions.' : ''}` : ''}
  
 NO DIAGRAMS rule: Do not write "Use the diagram/graph/map/figure below."
-End with: TOTAL: _____ / ${totalMarks} marks
+End with: ${L.totalLabel}: _____ / ${totalMarks} ${L.marksWord}
 Return JSON: {"content":"question paper text only"}`;
  
   const qUsr = (plan) => `Write the question paper following this EXACT plan:
@@ -644,17 +617,17 @@ COGNITIVE LEVEL REFERENCE (${taxLabel}) — copy these exactly, do not change:
 ${cogLevelRef}
  
 YOUR ONLY TASK: Write the MEMORANDUM TABLE.
-Columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
- 
+Columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
+
 - List EVERY SINGLE sub-question from the paper — scan every question block
 - Include ALL sub-parts (e.g. 5.1a, 5.1b)
 - Do NOT skip any question
 - Use the EXACT (X) mark shown on each question line
-- Copy COGNITIVE LEVEL from the reference above — do not reassign
+- Copy ${L.memo.cogLevel} from the reference above — do not reassign
 - For financial questions: income > cost = PROFIT; cost > income = LOSS
 - For stem-and-leaf: count every leaf individually
- 
-After the table write: TOTAL: ${actualTotal} marks
+
+After the table write: ${L.totalLabel}: ${actualTotal} ${L.marksWord}
 Do NOT write the cognitive level analysis table, extension activity, or rubric here.
 Return JSON: {"content":"memorandum table and TOTAL line only"}`;
  
@@ -885,7 +858,7 @@ Return JSON: {"content":"Section D text only"}`;
       '',
       secD,
       '',
-      `TOTAL: _____ / ${totalMarks} marks`
+      `${L.totalLabel}: _____ / ${totalMarks} ${L.marksWord}`
     ].join('\n');
 
     log.info(`RTT Pipeline: paper assembled (${questionPaper.length} chars)`);
@@ -900,14 +873,14 @@ Return JSON: {"content":"memorandum text"}`;
 ${secA}
 
 Write the memo for ${secLabel[0]} ONLY:
-1. Answer table with columns: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+1. Answer table with columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
    - List every sub-question (1.1, 1.2 … etc)
    - COGNITIVE LEVEL must be one of: Literal | Reorganisation | Inferential | Evaluation and Appreciation
    - Use the MARK shown in brackets on each question line
 2. After the table, write a Barrett's Taxonomy summary for ${secLabel[0]} ONLY:
    | Barrett's Level | Questions | Marks Allocated | Marks as % of Section |
    All rows must sum to exactly ${sm.a} marks. Target: Literal 20%, Reorganisation 20%, Inferential 40%, Evaluation 20%.
-3. End with: ${secLabel[0]} TOTAL: ${sm.a} marks
+3. End with: ${secLabel[0]} ${L.totalLabel}: ${sm.a} ${L.marksWord}
 
 Return JSON: {"content":"Section A memo"}`;
 
@@ -920,16 +893,16 @@ ${secC}
 
 Write the memo for ${secLabel[1]} AND ${secLabel[2]}:
 
-PART 1 — ${secLabel[1]} answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+PART 1 — ${secLabel[1]} answer table: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
 List every sub-question (2.1, 2.2 … etc). Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
 Then write Barrett's Taxonomy summary for ${secLabel[1]} ONLY (must sum to ${sm.b} marks).
-End with: ${secLabel[1]} TOTAL: ${sm.b} marks
+End with: ${secLabel[1]} ${L.totalLabel}: ${sm.b} ${L.marksWord}
 
-PART 2 — ${secLabel[2]} answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+PART 2 — ${secLabel[2]} answer table: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
 This section is a summary task. Award marks for: content points included (award per bullet point met) + language/structure.
 Cognitive level for summary = Reorganisation.
 Then write Barrett's Taxonomy summary for ${secLabel[2]} ONLY (must sum to ${sm.c} marks — all Reorganisation).
-End with: ${secLabel[2]} TOTAL: ${sm.c} marks
+End with: ${secLabel[2]} ${L.totalLabel}: ${sm.c} ${L.marksWord}
 
 Return JSON: {"content":"Section B and C memo"}`;
 
@@ -938,10 +911,10 @@ Return JSON: {"content":"Section B and C memo"}`;
 ${secD}
 
 Write the memo for ${secLabel[3]}:
-1. Answer table: NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK
+1. Answer table: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
    List every sub-question (4.1, 4.2 … etc). Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
 2. Barrett's Taxonomy summary for ${secLabel[3]} ONLY (must sum to ${sm.d} marks).
-3. End with: ${secLabel[3]} TOTAL: ${sm.d} marks
+3. End with: ${secLabel[3]} ${L.totalLabel}: ${sm.d} ${L.marksWord}
 
 Then write the COMBINED PAPER BARRETT'S ANALYSIS:
 Heading: COMBINED BARRETT'S TAXONOMY ANALYSIS — FULL PAPER (${totalMarks} marks)
@@ -1056,8 +1029,19 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     if (countedAfterP2 > 0 && drift !== 0) {
       log.info(`Mark drift: counted=${countedAfterP2}, target=${totalMarks}, drift=${drift > 0 ? '+' : ''}${drift}`);
       const corrSys = `You are correcting a ${subject} ${resourceType} question paper. The paper totals ${countedAfterP2} marks but must total EXACTLY ${totalMarks} marks. ${drift > 0 ? 'Reduce' : 'Increase'} the total by ${Math.abs(drift)} mark${Math.abs(drift) > 1 ? 's' : ''}.
-RULES: Change minimum sub-question mark values needed. Only change (X) numbers — not content. Keep Working:/Answer: lines. Return JSON: {"content":"complete corrected question paper"}`;
-      const corrUsr = `Paper totals ${countedAfterP2}, must be EXACTLY ${totalMarks}. ${drift > 0 ? 'Reduce' : 'Increase'} by ${Math.abs(drift)}.\n\nPAPER:\n${questionPaper}\n\nReturn the complete corrected paper.`;
+
+STRICT OUTPUT RULES — NON-NEGOTIABLE:
+- Your response must be VALID JSON and nothing else.
+- Do NOT write any reasoning, commentary, planning text, "Current marks:" notes, "Change Q… from X to Y" lists, running tallies, verification checks, or explanations BEFORE or AFTER the JSON.
+- Do NOT wrap the JSON in markdown fences.
+- The ONLY text you output is a single JSON object: {"content":"<complete corrected paper>"}.
+
+RULES FOR THE CORRECTION ITSELF:
+- Change the minimum number of sub-question mark values needed.
+- Only change (X) numbers — never change the question text or answer spaces.
+- Keep all Working:/Answer:/Antwoord: lines exactly as they are.
+- Keep the ${L.totalLabel} line exactly as it is except for the mark value.`;
+      const corrUsr = `Paper totals ${countedAfterP2}, must be EXACTLY ${totalMarks}. ${drift > 0 ? 'Reduce' : 'Increase'} by ${Math.abs(drift)}.\n\nPAPER:\n${questionPaper}\n\nOutput the corrected paper as a single JSON object: {"content":"…"}. No prose before or after.`;
       try {
         const corrected = cleanOutput(await callClaude(corrSys, corrUsr, qTok));
         const countedAfterCorr = countMarks(corrected);
