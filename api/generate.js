@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   const log = req.log || defaultLogger;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term;
+  let subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term, bypassCache;
   try {
     subject      = str(req.body?.subject,      { field: 'subject',      max: 200 });
     topic        = str(req.body?.topic,        { field: 'topic',        required: false, max: 500 });
@@ -34,6 +34,9 @@ export default async function handler(req, res) {
     duration     = int(req.body?.duration,     { field: 'duration',     required: false, min: 10, max: 200 }) || 50;
     difficulty   = oneOf(req.body?.difficulty || 'on', ['below', 'on', 'above'], { field: 'difficulty' });
     includeRubric = bool(req.body?.includeRubric);
+    // _bypassCache is optional — set to true by the Regenerate button so
+    // teachers get fresh content instead of the cached version.
+    bypassCache  = bool(req.body?._bypassCache);
     grade        = int(req.body?.grade, { field: 'grade', min: 4, max: 7 });
     term         = int(req.body?.term,  { field: 'term',  min: 1, max: 4 });
   } catch (err) {
@@ -44,17 +47,24 @@ export default async function handler(req, res) {
   // ── Cache short-circuit ──
   // Identical generation params within the TTL window return instantly
   // at zero Anthropic cost. Default TTL is 1h (CACHE_TTL_SECONDS env).
+  // The Regenerate button sends _bypassCache=true so teachers can force a
+  // fresh paper; we still WRITE the fresh result to the cache so downstream
+  // retries / reloads benefit from it.
   const cacheKey = generateCacheKey({
     subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term,
   });
-  try {
-    const hit = cacheGet(cacheKey);
-    if (hit) {
-      log.info({ cacheKey }, 'Cache hit — serving stored response');
-      return res.status(200).json({ ...hit, cached: true });
+  if (!bypassCache) {
+    try {
+      const hit = cacheGet(cacheKey);
+      if (hit) {
+        log.info({ cacheKey }, 'Cache hit — serving stored response');
+        return res.status(200).json({ ...hit, cached: true });
+      }
+    } catch (cacheErr) {
+      log.warn({ err: cacheErr?.message || cacheErr }, 'Cache read failed — continuing with live generation');
     }
-  } catch (cacheErr) {
-    log.warn({ err: cacheErr?.message || cacheErr }, 'Cache read failed — continuing with live generation');
+  } else {
+    log.info({ cacheKey }, 'Cache bypass requested — generating fresh');
   }
 
   const g = grade;

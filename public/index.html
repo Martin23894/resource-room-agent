@@ -715,7 +715,7 @@ function qf(g, t, s, tp, l, d){
 }
 
 // ── Main generate function ───────────────────────────────────────────────────
-async function doGenerate(){
+async function doGenerate(bypassCache){
   const subj = decodeSubj(document.getElementById('subj').value);
   const topicRaw = document.getElementById('topic').value;
   // If ALL_TERM or ALL_YEAR selected, send empty string so generate.js uses ATP db
@@ -756,7 +756,8 @@ async function doGenerate(){
         difficulty: diff,
         includeRubric,
         grade,
-        term
+        term,
+        _bypassCache: bypassCache === true
         // NOTE: allTopics intentionally NOT sent — generate.js builds it from ATP database
       })
     });
@@ -820,7 +821,7 @@ function renderOut(subj, topic, content, diagrams, grade, term){
   <div class="brow">
     <button class="abtn" onclick="doCopy(this)">Copy</button>
     <button class="abtn word" onclick="downloadDocx()">⬇ Download Word</button>
-    <button class="abtn pri" onclick="doGenerate()">Regenerate ↺</button>
+    <button class="abtn pri" onclick="doGenerate(true)" title="Generate a fresh paper (bypasses cache)">Regenerate ↺</button>
   </div>
 </div>
 <div class="pack">

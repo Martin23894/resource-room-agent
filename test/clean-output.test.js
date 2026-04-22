@@ -185,4 +185,23 @@ describe('cleanOutput — preserves real content', () => {
     assert.equal(cleanOutput(null), null);
     assert.equal(cleanOutput(undefined), undefined);
   });
+
+  test('unescapes \\_ markdown escapes to plain underscores', () => {
+    // Regression: True/False questions came out as
+    //   "A cube has 6 faces. \\_\\_\\_\\_\\_\\_\\_\\_ (1)"
+    // The backslashes (markdown underscore escapes) rendered literally AND
+    // broke the /_{3,}/ detection in ensureAnswerSpace, triggering extra
+    // blank answer lines below.
+    const input = '2.1 A cube has 6 faces. \\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_ (1)';
+    const out = cleanOutput(input);
+    assert.match(out, /_{10,}/, 'should collapse into a run of plain underscores');
+    assert.doesNotMatch(out, /\\_/);
+  });
+
+  test('unescapes \\* markdown escapes to plain asterisks', () => {
+    const input = 'A formula like a \\* b = c';
+    const out = cleanOutput(input);
+    assert.match(out, /a \* b = c/);
+    assert.doesNotMatch(out, /\\\*/);
+  });
 });
