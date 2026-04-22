@@ -96,6 +96,37 @@ describe('cleanOutput — drops commentary lines', () => {
     assert.match(out, /Low Order \(12 marks\)/);
   });
 
+  test('keeps only the LAST Cognitive Level table when Claude iterates', () => {
+    // Regression: Claude sometimes writes a table, recounts aloud, writes a
+    // corrected table. The final table is the one we want.
+    const input = [
+      'Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %',
+      'Low Order | 50% | 20 | 20 | 50.0%',
+      'Middle Order | 35% | 14 | 13 | 32.5%',
+      'High Order | 15% | 6 | 7 | 17.5%',
+      'TOTAL | 100% | 40 | 40 | 100%',
+      '',
+      'High Order (7 marks): Q9.1 (1) + Q9.2 (2) + Q10.3 was not listed; confirmed sum: = 6 marks',
+      'High Order (7 marks): Q9.1 (1) + [remaining 1 mark from Q10 total] = 7 marks',
+      '',
+      'Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %',
+      'Low Order | 50% | 20 | 20 | 50.0%',
+      'Middle Order | 35% | 14 | 14 | 35.0%',
+      'High Order | 15% | 6 | 6 | 15.0%',
+      'TOTAL | 100% | 40 | 40 | 100%',
+    ].join('\n');
+    const out = cleanOutput(input);
+    const tables = out.match(/Cognitive Level \| Prescribed %/g) || [];
+    assert.equal(tables.length, 1, 'should collapse to one table');
+    // The surviving table is the corrected one (Middle=14, High=6).
+    assert.match(out, /Middle Order \| 35% \| 14 \| 14/);
+    assert.match(out, /High Order \| 15% \| 6 \| 6/);
+    // The reasoning noise is gone.
+    assert.doesNotMatch(out, /was not listed/);
+    assert.doesNotMatch(out, /confirmed sum/);
+    assert.doesNotMatch(out, /\[remaining/);
+  });
+
   test('preserves the Cognitive Level analysis table in full', () => {
     // Regression: an earlier dedup rule matched both the section heading
     // "COGNITIVE LEVEL ANALYSIS" and the case-insensitive table column
