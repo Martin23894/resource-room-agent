@@ -9,6 +9,7 @@ import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
 import { getCogLevels, largestRemainder, marksToTime, isBarretts as isBarrettsFn } from '../lib/cognitive.js';
 import { countMarks } from '../lib/marks.js';
+import { ensureAnswerSpace } from '../lib/answer-space.js';
 import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
 
 // ============================================================
@@ -560,11 +561,23 @@ This rule applies to EVERY subject. No exceptions.
 FORMAT RULES:
 - Numbering: Question 1: [heading] then 1.1, 1.2, 1.2.1 etc.
 - EVERY sub-question MUST show its mark in brackets (X) on the SAME LINE as the question text
-- MCQ: show (1) on the question line BEFORE the a. b. c. d. options
-- True/False: statement then blank then (marks) all on ONE line
-- Answer lines: _______________________________________________
-- Working:/Answer: lines only for calculation questions
 - Question block totals: [X] right-aligned at end of each question block
+
+ANSWER SPACE RULES — apply to EVERY sub-question, non-negotiable:
+- MCQ: show (1) on the question line BEFORE the a. b. c. d. options. No answer line.
+- True/False: statement then blank then (marks) all on ONE line. No answer line.
+- Fill-in-the-blank: the question sentence contains the blank (e.g. "The capital of Gauteng is ____________."). No extra line.
+- Matching: present as a two-column pipe table. No answer line.
+- Short answer / naming / labelling / one-word (1-2 marks): leave ONE blank line immediately after the question:
+    _______________________________________________
+- Descriptive / "Describe" / "Explain" / "Give reasons" (2-4 marks): leave TWO blank lines after the question.
+- Multi-part list (e.g. "List the eight planets" / "Name four biomes"): leave as many blank lines as the question asks items for, or a minimum of TWO.
+- Long-answer / paragraph / extended explanation (5+ marks): leave FOUR blank lines after the question.
+- Calculation (numeric answer): include a "Working:" line followed by an "Answer:" line:
+    Working: _______________________________________________
+    Answer: _______________________________________________
+
+Every blank answer line is EXACTLY this: _______________________________________________
 ${isTest ? '- NO SECTION headers. Use Question 1, Question 2 etc.' : ''}
 ${isExamType ? '- USE SECTION A / B / C / D headers' : ''}
 - Write fractions as plain text: 3/4 not ¾
@@ -968,16 +981,19 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
 
     const markTotal = totalMarks; // RTT papers use fixed mark total
 
+    // Safety net: inject blank answer lines where the AI forgot them.
+    const finalPaper = ensureAnswerSpace(questionPaper);
+
     // Build DOCX
     let docxBase64 = null;
     const filename = (subject + '-ResponseToText-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
     try {
-      const doc = buildDoc(questionPaper, memoContent, markTotal);
+      const doc = buildDoc(finalPaper, memoContent, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch(docxErr) { log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX build error'); }
 
-    const preview = questionPaper + '\n\n' + memoContent;
+    const preview = finalPaper + '\n\n' + memoContent;
     return res.status(200).json({ docxBase64, preview, filename });
   }
 
@@ -1157,19 +1173,22 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
         log.info(`Phase 4: memo verified — no errors ✓`);
       }
     } catch(verErr) { log.info(`Phase 4: verification skipped (${verErr.message})`); }
- 
+
+    // ── Phase 5: Safety net — inject blank answer lines the AI may have skipped ──
+    const finalPaper = ensureAnswerSpace(questionPaper);
+
     // ── Build DOCX ──
     let docxBase64 = null;
     const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
     try {
-      const doc = buildDoc(questionPaper, verifiedMemo, markTotal);
+      const doc = buildDoc(finalPaper, verifiedMemo, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
       log.error({ err: docxErr?.message || docxErr }, 'DOCX build error');
     }
- 
-    const preview = questionPaper + '\n\n' + verifiedMemo;
+
+    const preview = finalPaper + '\n\n' + verifiedMemo;
     return res.status(200).json({ docxBase64, preview, filename });
  
   } catch (err) {
