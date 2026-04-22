@@ -58,19 +58,27 @@ describe('cleanOutput — drops commentary lines', () => {
     assert.equal(blanks, 1);
   });
 
-  test('deduplicates repeated COGNITIVE LEVEL analysis blocks', () => {
-    const doubled = [
-      'COGNITIVE LEVEL ANALYSIS',
-      '| Level | Prescribed % | Marks |',
-      '| Low | 30% | 6 |',
-      'Some paper content',
-      'COGNITIVE LEVEL ANALYSIS',  // duplicate — content after this should be dropped
-      '| Level | Prescribed % | Marks |',
-      '| Low | 30% | 6 |',
+  test('preserves the Cognitive Level analysis table in full', () => {
+    // Regression: an earlier dedup rule matched both the section heading
+    // "COGNITIVE LEVEL ANALYSIS" and the case-insensitive table column
+    // header "Cognitive Level", so the analysis table was cut off at its
+    // own first row. The whole table must survive.
+    const input = [
+      'SECTION: COGNITIVE LEVEL ANALYSIS (Bloom\'s Taxonomy)',
+      '',
+      'Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %',
+      'Low Order | 30% | 15 | 13 | 26%',
+      'Middle Order | 50% | 25 | 22 | 44%',
+      'High Order | 20% | 10 | 15 | 30%',
+      '',
+      'SECTION: EXTENSION ACTIVITY',
+      'Write one challenging question.',
     ].join('\n');
-    const out = cleanOutput(doubled);
-    const matches = out.match(/COGNITIVE LEVEL ANALYSIS/g) || [];
-    assert.equal(matches.length, 1);
+    const out = cleanOutput(input);
+    assert.match(out, /Low Order \| 30%/);
+    assert.match(out, /Middle Order \| 50%/);
+    assert.match(out, /High Order \| 20%/);
+    assert.match(out, /EXTENSION ACTIVITY/);
   });
 });
 
