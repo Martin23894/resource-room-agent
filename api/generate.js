@@ -1,7 +1,8 @@
 import { Packer } from 'docx';
 
 import { logger as defaultLogger } from '../lib/logger.js';
-import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
+import { callAnthropic, callAnthropicTool, AnthropicError } from '../lib/anthropic.js';
+import { planTool, qualityTool, memoVerifyTool } from '../lib/tools.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
 import { getCogLevels, largestRemainder, isBarretts as isBarrettsFn } from '../lib/cognitive.js';
 import { countMarks } from '../lib/marks.js';
@@ -479,19 +480,27 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     }
 
     // ── Phase 1: Generate & validate question plan ──
+    // Tool-use guarantees the response is a valid plan object — no JSON.parse,
+    // no escape-character salvage, no try/catch around parsing. validatePlan
+    // still enforces the CAPS rules on top.
     const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance });
     let plan = null;
     let planAttempts = 0;
     while (!plan && planAttempts < 2) {
       planAttempts++;
       try {
-        const rawPlan = await callClaude(planSys, planUsr, 1500);
-        let parsedPlan;
-        try { parsedPlan = typeof rawPlan === 'object' ? rawPlan : JSON.parse(rawPlan); }
-        catch(e) { log.info(`Plan attempt ${planAttempts}: JSON parse failed`); continue; }
+        const parsedPlan = await callAnthropicTool({
+          system: planSys,
+          user: planUsr,
+          tool: planTool(cog.levels),
+          maxTokens: 1500,
+          logger: log,
+        });
         plan = validatePlan(parsedPlan, planCtx, log);
         if (!plan) log.info(`Plan attempt ${planAttempts}: validation failed`);
-      } catch(e) { log.info(`Plan attempt ${planAttempts}: error — ${e.message}`); }
+      } catch (e) {
+        log.info(`Plan attempt ${planAttempts}: error — ${e.message}`);
+      }
     }
  
     if (!plan) {
@@ -553,8 +562,8 @@ RULES FOR THE CORRECTION ITSELF:
     log.info(`Final mark total: ${markTotal}`);
  
     // ── Phase 2b: Question Quality Check ──
+    // Tool-use guarantees a { clean, flaws[] } object — no JSON salvage.
     const qQualitySys = `You are a South African CAPS examiner reviewing a question paper for design flaws.
-Return ONLY valid JSON — no markdown.
 Check for:
 1. ORDERING_EQUAL_VALUES — ordering question where two or more values are mathematically equal
 2. MCQ_MULTIPLE_CORRECT — MCQ where more than one option is correct
@@ -562,18 +571,26 @@ Check for:
 4. DATA_AMBIGUOUS — data set where multiple modes exist but question says "the mode"
 5. QUESTION_IMPOSSIBLE — question that cannot be answered with information given
 6. WRONG_TERM_TOPIC — question on a topic NOT in this list: ${atpTopics.slice(0,8).join('; ')}
- 
-Return: {"flaws":[{"question":"4.3","type":"ORDERING_EQUAL_VALUES","detail":"0.6 and 3/5 are both 0.60","fix":"Replace 3/5 with 2/5"}],"clean":false}
-If no flaws: {"flaws":[],"clean":true}`;
- 
+
+Call the flag_question_paper_issues tool with clean=true and an empty flaws array if you find no issues.`;
+
     const qQualityUsr = `Review this Grade ${g} ${subject} Term ${t} question paper for design flaws:\n\n${questionPaper}`;
- 
+
     try {
-      const rawQuality = await callClaude(qQualitySys, qQualityUsr, 1200);
       let qualityResult;
-      try { qualityResult = typeof rawQuality === 'object' ? rawQuality : JSON.parse(rawQuality); }
-      catch(e) { qualityResult = { flaws: [], clean: true }; }
- 
+      try {
+        qualityResult = await callAnthropicTool({
+          system: qQualitySys,
+          user: qQualityUsr,
+          tool: qualityTool,
+          maxTokens: 1200,
+          logger: log,
+        });
+      } catch (toolErr) {
+        log.info(`Phase 2b: tool call failed (${toolErr.message}) — skipping`);
+        qualityResult = { flaws: [], clean: true };
+      }
+
       if (qualityResult.flaws && qualityResult.flaws.length > 0) {
         log.info(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected`);
         qualityResult.flaws.forEach(f => log.info(`  Q${f.question} [${f.type}]: ${f.detail}`));
@@ -611,6 +628,7 @@ OUTPUT RULES:
     const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
  
     // ── Phase 4: Memo Verification + Auto-Correction ──
+    // Tool-use guarantees a { clean, errors[], cogLevelErrors[] } object.
     const verSys = `You are a senior South African CAPS examiner performing a final accuracy check on a memorandum.
 Check EVERY row of the memorandum table:
 1. ARITHMETIC — recalculate the answer from scratch. Flag any mismatch.
@@ -618,19 +636,26 @@ Check EVERY row of the memorandum table:
 3. COUNT — for stem-and-leaf or data set "how many" questions: count every leaf. Flag mismatches.
 4. ROUNDING — check rounded value matches marking guidance. Flag if answer uses different value.
 5. COG_LEVEL_TOTAL — add up MARK values per cognitive level. Compare to the analysis table. Flag mismatches.
- 
-Return ONLY valid JSON:
-{"errors":[{"question":"7.1a","check":"COUNT","found":"15","correct":"13","fix":"Change answer from 15 to 13 visitors"}],"cogLevelErrors":[{"level":"Knowledge","foundInTable":"16","foundInAnalysis":"15","fix":"Actual Marks for Knowledge should be 16"}],"clean":true}
-If no errors: {"errors":[],"cogLevelErrors":[],"clean":true}`;
- 
+
+Call the flag_memo_errors tool with clean=true and empty arrays if no errors exist.`;
+
     const verUsr = `QUESTION PAPER:\n${questionPaper}\n\nMEMORANDUM TO VERIFY:\n${memoContent}\n\nCheck every memo row. Report ALL errors.`;
- 
+
     let verifiedMemo = memoContent;
     try {
-      const rawVer = await callClaude(verSys, verUsr, 3000);
       let verResult;
-      try { verResult = typeof rawVer === 'object' ? rawVer : JSON.parse(rawVer); }
-      catch(e) { verResult = { errors: [], cogLevelErrors: [], clean: true }; }
+      try {
+        verResult = await callAnthropicTool({
+          system: verSys,
+          user: verUsr,
+          tool: memoVerifyTool,
+          maxTokens: 3000,
+          logger: log,
+        });
+      } catch (toolErr) {
+        log.info(`Phase 4: tool call failed (${toolErr.message}) — skipping`);
+        verResult = { errors: [], cogLevelErrors: [], clean: true };
+      }
  
       const totalErrors = (verResult.errors || []).length + (verResult.cogLevelErrors || []).length;
       if (totalErrors > 0) {

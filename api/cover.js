@@ -1,5 +1,6 @@
 import { logger as defaultLogger } from '../lib/logger.js';
-import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
+import { callAnthropicTool, AnthropicError } from '../lib/anthropic.js';
+import { coverTool } from '../lib/tools.js';
 import { str, int, oneOf, ValidationError } from '../lib/validate.js';
 
 export default async function handler(req, res) {
@@ -22,16 +23,7 @@ export default async function handler(req, res) {
 
   const system = `You are a professional educational product copywriter for The Resource Room, a South African CAPS-aligned teaching resources brand. Write compelling, teacher-focused product listings for the Teacha Resources marketplace.
 
-Always respond in JSON only — no preamble, no markdown fences. Return exactly this structure:
-{
-  "productTitle": "...",
-  "tagline": "...",
-  "description": "...",
-  "whatIncluded": ["...", "...", "..."],
-  "suitableFor": "...",
-  "keywords": ["...", "...", "..."],
-  "suggestedPrice": "..."
-}`;
+Submit the listing by calling the submit_teacha_listing tool. Every field is required.`;
 
   const user = `Create a Teacha Resources product listing for:
 Subject: ${subject}
@@ -45,17 +37,14 @@ Difficulty: ${difficulty} grade level
 The product title should be compelling and searchable. The description should be 3-4 sentences explaining value to SA teachers. whatIncluded should list 4-6 bullet points of what's in the pack. suggestedPrice should be in ZAR (R30-R120 range depending on resource type). Keywords should include 6-8 search terms SA teachers would use.`;
 
   try {
-    const raw = await callAnthropic({ system, user, maxTokens: 1000, logger: log });
-
-    const clean = raw.replace(/```json|```/g, '').trim();
-    let parsed;
-    try {
-      parsed = JSON.parse(clean);
-    } catch (parseErr) {
-      log.error({ err: parseErr.message, preview: clean.substring(0, 200) }, 'Cover JSON parse error');
-      return res.status(500).json({ error: 'AI returned malformed data. Please try again.' });
-    }
-    return res.status(200).json(parsed);
+    const listing = await callAnthropicTool({
+      system,
+      user,
+      tool: coverTool,
+      maxTokens: 1000,
+      logger: log,
+    });
+    return res.status(200).json(listing);
   } catch (err) {
     log.error({ err: err?.message || err }, 'Cover error');
     if (err instanceof AnthropicError && err.code === 'TIMEOUT') {
