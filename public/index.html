@@ -502,15 +502,24 @@ async function loadAtpData(){
 let rtype='Test', lang='English', diff='on', hist=[], activeTab='generator';
 let previewMode='word'; // 'word' | 'text' — user toggle between preview styles
 
-// ── localStorage persistence ────────────────────────────────────────────────
+// ── Persistence ─────────────────────────────────────────────────────────────
 // Sidebar settings hydrate on page load so teachers don't reset every tab.
 // History keeps only metadata (subject, topic, grade, term, preview snippet,
 // timestamp) — NOT the DOCX bytes, which would blow past the 5MB localStorage
 // quota within a handful of entries. Clicking a history entry re-fills the
 // sidebar; teachers can then hit Regenerate for an instant cache hit.
+//
+// When the teacher is signed in, the server copy at /api/user/{settings,
+// history} is authoritative and follows them across devices. localStorage
+// stays as an offline fallback so a dropped connection doesn't lose work.
 const LS_SETTINGS = 'rr.settings.v1';
 const LS_HISTORY  = 'rr.history.v1';
 const MAX_HISTORY = 20;
+
+// Debounce window for settings PUTs: teachers flip grade → subject → topic
+// → rubric in quick succession; no point hitting the DB per keystroke.
+const SETTINGS_PUSH_DEBOUNCE_MS = 800;
+let _settingsPushTimer = null;
 
 function lsGet(key){
   try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
@@ -521,8 +530,8 @@ function lsSet(key, value){
   catch (err) { console.warn('localStorage write failed', err); }
 }
 
-function saveSettings(){
-  lsSet(LS_SETTINGS, {
+function currentSettings(){
+  return {
     grade: document.getElementById('grade')?.value,
     term: document.getElementById('term')?.value,
     subject: document.getElementById('subj')?.value,
@@ -531,7 +540,38 @@ function saveSettings(){
     difficulty: diff,
     duration: document.getElementById('dur')?.value,
     includeRubric: document.getElementById('rubric')?.checked,
-  });
+  };
+}
+
+function saveSettings(){
+  const s = currentSettings();
+  lsSet(LS_SETTINGS, s);
+  // Mirror to server when signed in; debounced and best-effort (a failure
+  // just leaves localStorage authoritative for now).
+  if (_currentUser){
+    clearTimeout(_settingsPushTimer);
+    _settingsPushTimer = setTimeout(() => pushSettingsToServer(s), SETTINGS_PUSH_DEBOUNCE_MS);
+  }
+}
+
+async function pushSettingsToServer(settings){
+  try {
+    await fetch('/api/user/settings', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ settings }),
+    });
+  } catch (err) { console.warn('settings sync failed', err); }
+}
+
+async function fetchSettingsFromServer(){
+  try {
+    const r = await fetch('/api/user/settings', { credentials: 'same-origin' });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.settings || null;
+  } catch { return null; }
 }
 
 function applySettings(s){
@@ -559,6 +599,39 @@ function loadHistory(){
   hist = Array.isArray(h) ? h : [];
 }
 function persistHistory(){ lsSet(LS_HISTORY, hist.slice(0, MAX_HISTORY)); }
+
+async function fetchHistoryFromServer(){
+  try {
+    const r = await fetch('/api/user/history?limit=' + MAX_HISTORY, { credentials: 'same-origin' });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return Array.isArray(d.history) ? d.history : null;
+  } catch { return null; }
+}
+
+async function pushHistoryEntryToServer(entry){
+  if (!_currentUser) return null;
+  try {
+    const r = await fetch('/api/user/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ entry }),
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d.entry || null;
+  } catch (err) { console.warn('history sync failed', err); return null; }
+}
+
+async function deleteHistoryEntryOnServer(id){
+  if (!_currentUser || !id) return;
+  try {
+    await fetch('/api/user/history/' + encodeURIComponent(id), {
+      method: 'DELETE', credentials: 'same-origin',
+    });
+  } catch (err) { console.warn('history delete failed', err); }
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getPhase(g){ return g<=6?'intermediate':'senior'; }
@@ -1480,6 +1553,18 @@ function addHist(subj, topic, content, diagrams, grade, term){
   if (hist.length > MAX_HISTORY) hist.length = MAX_HISTORY;
   persistHistory();
   renderHistoryList();
+
+  // Mirror to server — when the server row comes back with its id we patch
+  // the in-memory entry so deletes can target the right row later.
+  if (_currentUser){
+    pushHistoryEntryToServer(entry).then(saved => {
+      if (saved?.id){
+        entry.id = saved.id;
+        entry.ts = saved.ts || entry.ts;
+        persistHistory();
+      }
+    });
+  }
 }
 function renderHistoryList(){
   const sec = document.getElementById('hist-sec');
@@ -1689,9 +1774,28 @@ async function fetchAuthed(url, opts = {}){
   // any Claude endpoint until then — the server enforces that).
   const user = await checkAuth();
 
+  // Start from localStorage (instant); hydrate from the server in the
+  // background when signed in so the most recent edits from another device
+  // take precedence.
   loadHistory();
   renderHistoryList();
-  const saved = lsGet(LS_SETTINGS);
+  let saved = lsGet(LS_SETTINGS);
+
+  if (user){
+    const [serverSettings, serverHistory] = await Promise.all([
+      fetchSettingsFromServer(),
+      fetchHistoryFromServer(),
+    ]);
+    if (serverSettings){
+      saved = serverSettings;
+      lsSet(LS_SETTINGS, saved);
+    }
+    if (serverHistory){
+      hist = serverHistory.slice(0, MAX_HISTORY);
+      persistHistory();
+      renderHistoryList();
+    }
+  }
 
   const s = document.getElementById('subj');
   if (s) s.innerHTML = '<option value="">Loading CAPS data…</option>';

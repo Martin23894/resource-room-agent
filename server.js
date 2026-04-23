@@ -20,6 +20,8 @@ import authRequestHandler from './api/auth-request.js';
 import authVerifyHandler from './api/auth-verify.js';
 import authLogoutHandler from './api/auth-logout.js';
 import authMeHandler from './api/auth-me.js';
+import userSettingsHandler from './api/user-settings.js';
+import userHistoryHandler from './api/user-history.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,22 +75,30 @@ app.use((req, res, next) => {
   next();
 });
 
-// ─── Rate limiters — per-IP, stacked (minute / hour / day) ──
+// ─── Rate limiters — stacked (minute / hour / day) ──────────
 // Each /api/generate request triggers ~10 Anthropic calls, so keep these tight.
+// All Claude-backed endpoints are auth-gated, so req.user is always set by
+// the time we hit these limiters. We key on the user id — a signed-in teacher
+// sharing a school network IP with colleagues gets their own bucket.
 const jsonMessage = (msg) => (req, res) => res.status(429).json({ error: msg });
 
+const userKey = (req) => (req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`);
+
 const perMinute = rateLimit({
-  windowMs: 60 * 1000, max: 5,
+  windowMs: 60 * 1000, max: 10,
+  keyGenerator: userKey,
   standardHeaders: true, legacyHeaders: false,
   handler: jsonMessage('Too many requests. Please wait a minute and try again.'),
 });
 const perHour = rateLimit({
-  windowMs: 60 * 60 * 1000, max: 20,
+  windowMs: 60 * 60 * 1000, max: 50,
+  keyGenerator: userKey,
   standardHeaders: true, legacyHeaders: false,
   handler: jsonMessage('Hourly limit reached. Please try again later.'),
 });
 const perDay = rateLimit({
-  windowMs: 24 * 60 * 60 * 1000, max: 100,
+  windowMs: 24 * 60 * 60 * 1000, max: 200,
+  keyGenerator: userKey,
   standardHeaders: true, legacyHeaders: false,
   handler: jsonMessage('Daily limit reached. Please try again tomorrow.'),
 });
@@ -154,6 +164,16 @@ app.post('/api/cover', requireAuth, apiLimiters, coverHandler);
 app.post('/api/rebuild-docx', requireAuth, apiLimiters, rebuildDocxHandler);
 app.get('/api/atp', atpHandler);
 app.get('/api/test', testHandler);
+
+// ─── Per-user settings + history (Phase 2.4b) ───────────────
+// Cheap CRUD on the local SQLite DB — no Claude calls — but still
+// auth-gated so the user can only see their own rows.
+app.get('/api/user/settings', requireAuth, userSettingsHandler);
+app.put('/api/user/settings', requireAuth, userSettingsHandler);
+app.get('/api/user/history', requireAuth, userHistoryHandler);
+app.post('/api/user/history', requireAuth, userHistoryHandler);
+app.delete('/api/user/history', requireAuth, userHistoryHandler);
+app.delete('/api/user/history/:id', requireAuth, userHistoryHandler);
 
 // ─── Health check (Railway uses this) ───────────────────────
 app.get('/health', (req, res) => {
