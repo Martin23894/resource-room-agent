@@ -4,20 +4,10 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>The Resource Room — CAPS Agent Gr4–7</title>
-<!-- docx-preview renders the Word bytes we already have into a real page
-     view so teachers see the actual formatting before they download.
-     JSZip is docx-preview's only dep — order matters, load it first.
-     onload/onerror flags let us distinguish "still loading" from
-     "CDN didn't respond" in the UI. -->
-<script>
-  window._docxScripts = { jszip: false, docx: false, jszipErr: null, docxErr: null };
-</script>
-<script src="https://unpkg.com/[email protected]/dist/jszip.min.js" defer
-        onload="window._docxScripts.jszip=true"
-        onerror="window._docxScripts.jszipErr='failed to load jszip'"></script>
-<script src="https://unpkg.com/[email protected]/dist/docx-preview.min.js" defer
-        onload="window._docxScripts.docx=true"
-        onerror="window._docxScripts.docxErr='failed to load docx-preview'"></script>
+<!-- docx-preview is loaded lazily on first Word-preview click (see
+     ensureDocxLib() in the main script). We try jsDelivr first, then
+     unpkg, and both .js and .min.js filenames because older versions
+     of docx-preview only ship the unminified build. -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -1182,14 +1172,14 @@ async function renderWordPreview(){
     return;
   }
 
-  container.innerHTML = '<div class="word-preview-error">Rendering Word preview…</div>';
-  const lib = await waitForDocxLib();
-  if (!lib){
-    const diag = window._docxScripts?.docxErr || window._docxScripts?.jszipErr;
-    container.innerHTML = '<div class="word-preview-error">'
-      + (diag ? 'Word preview failed to load (' + esc(diag) + '). Check your internet connection and refresh the page.'
-              : 'Word preview is taking too long to load. Check your internet connection and refresh the page.')
-      + '</div>';
+  container.innerHTML = '<div class="word-preview-error">Loading Word preview…</div>';
+  let lib;
+  try {
+    lib = await ensureDocxLib();
+  } catch (err) {
+    console.error('Word preview lib load failed', err);
+    container.innerHTML = '<div class="word-preview-error">Word preview could not load the renderer. Try Plain text — or refresh the page. '
+      + '<br><small style="opacity:.7">' + esc(err?.message || String(err)) + '</small></div>';
     return;
   }
 
@@ -1210,29 +1200,61 @@ async function renderWordPreview(){
   }
 }
 
-// docx-preview exposes its namespace under a few different globals
-// depending on version (`window.docx`, `window['docx-preview']`, or
-// `window.docxPreview`). Try all of them, and if the deferred scripts
-// haven't finished loading yet when the user clicks Word preview, poll
-// for up to 5 seconds before giving up.
-async function waitForDocxLib(){
-  const find = () => window.docx
-    || window['docx-preview']
-    || window.docxPreview
-    || null;
-  const ready = (lib) => lib && typeof lib.renderAsync === 'function';
+// Lazy CDN loader for docx-preview.
+//
+// Tries jsDelivr first, then unpkg, and both the unminified and minified
+// filenames — older docx-preview releases don't ship a .min.js, so a
+// single hardcoded URL to "docx-preview.min.js" just 404s. Results are
+// cached in a module-scoped promise so subsequent clicks are free.
+const DOCX_PREVIEW_URLS = [
+  'https://cdn.jsdelivr.net/npm/[email protected]/dist/docx-preview.js',
+  'https://unpkg.com/[email protected]/dist/docx-preview.js',
+  'https://cdn.jsdelivr.net/npm/[email protected]/dist/docx-preview.min.js',
+  'https://unpkg.com/[email protected]/dist/docx-preview.min.js',
+];
+const JSZIP_URLS = [
+  'https://cdn.jsdelivr.net/npm/[email protected]/dist/jszip.min.js',
+  'https://unpkg.com/[email protected]/dist/jszip.min.js',
+];
 
-  let lib = find();
-  if (ready(lib)) return lib;
+function loadScriptOnce(src){
+  return new Promise((resolve, reject) => {
+    const existing = [...document.scripts].find(s => s.src === src);
+    if (existing && existing.dataset.loadState === 'done') { resolve(); return; }
+    if (existing && existing.dataset.loadState === 'error') { reject(new Error('previous load error')); return; }
+    const s = existing || document.createElement('script');
+    if (!existing) { s.src = src; document.head.appendChild(s); }
+    s.addEventListener('load', () => { s.dataset.loadState = 'done'; resolve(); }, { once: true });
+    s.addEventListener('error', () => { s.dataset.loadState = 'error'; reject(new Error('script load error: ' + src)); }, { once: true });
+  });
+}
 
-  for (let i = 0; i < 50; i++){
-    // Exit early if we already know a load failed — no point polling.
-    if (window._docxScripts?.docxErr || window._docxScripts?.jszipErr) return null;
-    await new Promise(r => setTimeout(r, 100));
-    lib = find();
-    if (ready(lib)) return lib;
+async function loadFirstAvailable(urls){
+  const tried = [];
+  for (const url of urls){
+    try { await loadScriptOnce(url); return url; }
+    catch (err) { tried.push(url.replace(/^https:\/\/(cdn\.jsdelivr\.net|unpkg\.com)\//, '')); }
   }
-  return null;
+  throw new Error('All CDN sources failed: ' + tried.join(', '));
+}
+
+let _docxLibPromise = null;
+function ensureDocxLib(){
+  if (_docxLibPromise) return _docxLibPromise;
+  _docxLibPromise = (async () => {
+    await loadFirstAvailable(JSZIP_URLS);
+    await loadFirstAvailable(DOCX_PREVIEW_URLS);
+    const lib = window.docx || window['docx-preview'] || window.docxPreview;
+    if (!lib || typeof lib.renderAsync !== 'function'){
+      throw new Error('docx-preview loaded but renderAsync is not exposed');
+    }
+    return lib;
+  })().catch((err) => {
+    // Don't cache the failure — let the next click retry the CDN.
+    _docxLibPromise = null;
+    throw err;
+  });
+  return _docxLibPromise;
 }
 
 // ── Mobile drawer ───────────────────────────────────────────────────────────
