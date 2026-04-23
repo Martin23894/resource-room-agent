@@ -4,6 +4,11 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>The Resource Room — CAPS Agent Gr4–7</title>
+<!-- docx-preview renders the Word bytes we already have into a real page
+     view so teachers see the actual formatting before they download.
+     JSZip is docx-preview's only dep — order matters, load it first. -->
+<script src="https://unpkg.com/[email protected]/dist/jszip.min.js" defer></script>
+<script src="https://unpkg.com/[email protected]/dist/docx-preview.min.js" defer></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -168,12 +173,48 @@ select:focus{outline:none;border-color:var(--t4);}
 .kw-pill{background:var(--t05);border:1px solid var(--t2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--t8);font-weight:600;}
 .err{background:#fff5f5;border:1.5px solid #f09595;border-radius:9px;padding:14px 18px;color:#A32D2D;font-size:13px;line-height:1.7;}
 /* Print */
+/* Hamburger + drawer overlay (only visible on mobile) */
+.hamburger{display:none;align-items:center;justify-content:center;background:transparent;border:1px solid var(--t6);color:var(--t1);border-radius:7px;width:34px;height:34px;cursor:pointer;padding:0;font-size:18px;line-height:1;}
+.hamburger:hover{background:var(--t9);}
+.drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;}
+.drawer-overlay.on{display:block;}
+/* Word-preview toggle and container */
+.preview-mode{display:flex;gap:4px;padding:10px 20px 0;background:#fafaf8;}
+.pmbtn{padding:5px 12px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:11px;font-weight:600;color:var(--ink3);background:var(--sur2);cursor:pointer;font-family:inherit;}
+.pmbtn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
+.word-preview{background:#fafaf8;max-height:55vh;overflow:auto;padding:16px 20px;}
+.word-preview .docx{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);margin:0 auto;}
+.word-preview .docx-wrapper{background:transparent;padding:0;}
+.word-preview-error{padding:20px;color:var(--ink3);font-size:12px;font-style:italic;}
+
+@media (max-width: 720px){
+  .hamburger{display:inline-flex;}
+  .layout{display:block;}
+  .side{
+    position:fixed;top:0;left:0;height:100vh;width:280px;
+    z-index:100;transform:translateX(-100%);
+    transition:transform .2s ease;
+    box-shadow:2px 0 12px rgba(0,0,0,.18);
+  }
+  .side.open{transform:translateX(0);}
+  .main{padding:16px;}
+  .hdr{padding:10px 14px;gap:8px;flex-wrap:wrap;}
+  .hdr-right{gap:6px;flex-wrap:wrap;}
+  .tab-toggle{order:3;flex-basis:100%;margin-top:6px;}
+  .badge{font-size:8px;padding:3px 8px;}
+  .genbtn{margin-top:12px;}
+  .pack-body,.word-preview{max-height:none;}
+  .out-hdr{flex-direction:column;align-items:stretch;}
+  .brow{flex-wrap:wrap;}
+}
+
 @media print{
-  .hdr,.side,.out-hdr,.pack-foot,.brow,.refine-box{display:none!important;}
+  .hdr,.side,.out-hdr,.pack-foot,.brow,.refine-box,.hamburger,.drawer-overlay,.preview-mode{display:none!important;}
   .layout{display:block;}
   .main{padding:0;}
   .pack{border:none;border-radius:0;}
   .pack-body{max-height:none;overflow:visible;font-size:12px;line-height:1.8;padding:0;}
+  .word-preview{max-height:none;overflow:visible;padding:0;background:#fff;}
   .pack-top{background:#085041!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   body{background:#fff;}
   svg{max-width:100%!important;}
@@ -182,6 +223,7 @@ select:focus{outline:none;border-color:var(--t4);}
 </head>
 <body>
 <div class="hdr">
+  <button class="hamburger" type="button" aria-label="Open menu" onclick="toggleDrawer()">☰</button>
   <div class="logo">
     <div class="l-the">THE</div>
     <div><span class="l-res">RESOURCE</span></div>
@@ -195,6 +237,7 @@ select:focus{outline:none;border-color:var(--t4);}
     <div class="badge">GR4–7 · ALL TERMS · CAPS</div>
   </div>
 </div>
+<div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
 <div class="layout">
   <!-- SIDEBAR -->
   <div class="side">
@@ -398,6 +441,65 @@ async function loadAtpData(){
 }
 
 let rtype='Test', lang='English', diff='on', hist=[], activeTab='generator';
+let previewMode='word'; // 'word' | 'text' — user toggle between preview styles
+
+// ── localStorage persistence ────────────────────────────────────────────────
+// Sidebar settings hydrate on page load so teachers don't reset every tab.
+// History keeps only metadata (subject, topic, grade, term, preview snippet,
+// timestamp) — NOT the DOCX bytes, which would blow past the 5MB localStorage
+// quota within a handful of entries. Clicking a history entry re-fills the
+// sidebar; teachers can then hit Regenerate for an instant cache hit.
+const LS_SETTINGS = 'rr.settings.v1';
+const LS_HISTORY  = 'rr.history.v1';
+const MAX_HISTORY = 20;
+
+function lsGet(key){
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+  catch { return null; }
+}
+function lsSet(key, value){
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch (err) { console.warn('localStorage write failed', err); }
+}
+
+function saveSettings(){
+  lsSet(LS_SETTINGS, {
+    grade: document.getElementById('grade')?.value,
+    term: document.getElementById('term')?.value,
+    subject: document.getElementById('subj')?.value,
+    resourceType: document.getElementById('restype')?.value,
+    language: lang,
+    difficulty: diff,
+    duration: document.getElementById('dur')?.value,
+    includeRubric: document.getElementById('rubric')?.checked,
+  });
+}
+
+function applySettings(s){
+  if (!s) return;
+  if (s.grade) document.getElementById('grade').value = s.grade;
+  if (s.term)  document.getElementById('term').value  = s.term;
+  // Subject, resourceType and duration are populated by the cascade —
+  // we set them after loadSubjects / loadResourceTypes.
+  if (s.language === 'Afrikaans'){
+    document.querySelectorAll('.lbtn').forEach(b => b.classList.toggle('on', b.dataset.l === 'Afrikaans'));
+    lang = 'Afrikaans';
+  }
+  if (s.difficulty){
+    document.querySelectorAll('.dbtn').forEach(b => b.classList.toggle('on', b.dataset.d === s.difficulty));
+    diff = s.difficulty;
+  }
+  if (s.includeRubric != null) document.getElementById('rubric').checked = !!s.includeRubric;
+  // Subject / resource-type / duration are re-applied AFTER the ATP cascade
+  // finishes in initFromStorage() below.
+  return s;
+}
+
+function loadHistory(){
+  const h = lsGet(LS_HISTORY);
+  hist = Array.isArray(h) ? h : [];
+}
+function persistHistory(){ lsSet(LS_HISTORY, hist.slice(0, MAX_HISTORY)); }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getPhase(g){ return g<=6?'intermediate':'senior'; }
@@ -1004,6 +1106,11 @@ function renderOut(subj, topic, content, diagrams, grade, term){
       ${document.getElementById('rubric').checked?'<span class="pt-badge blue">Rubric</span>':''}
     </div>
   </div>
+  <div class="preview-mode" role="tablist" aria-label="Preview mode">
+    <button class="pmbtn" id="pm-word" role="tab" onclick="setPreviewMode('word')">Word preview</button>
+    <button class="pmbtn" id="pm-text" role="tab" onclick="setPreviewMode('text')">Plain text</button>
+  </div>
+  <div class="word-preview" id="word-preview" style="display:none;"></div>
   <div class="pack-body" id="pack-body">${esc(content)}</div>
   ${addendumHtml}
   <div class="pack-foot">
@@ -1028,8 +1135,73 @@ function renderOut(subj, topic, content, diagrams, grade, term){
   </div>
 </div>`;
   showGen('o');
+  // Apply the currently-selected preview mode. If we have DOCX bytes, the
+  // Word preview is the default; otherwise fall back to plain text.
+  setPreviewMode(window._docxBase64 ? previewMode : 'text');
   const ta = document.getElementById('refine-input');
   if(ta) ta.addEventListener('input',()=>{ ta.style.height='auto'; ta.style.height=ta.scrollHeight+'px'; });
+}
+
+// ── Word preview ────────────────────────────────────────────────────────────
+// docx-preview renders the DOCX bytes we already have into a Word-like view
+// so teachers can see the actual formatting before downloading. The plain
+// text view remains for quick scanning and copy-paste.
+function setPreviewMode(mode){
+  previewMode = mode;
+  const wordEl = document.getElementById('word-preview');
+  const textEl = document.getElementById('pack-body');
+  const wBtn = document.getElementById('pm-word');
+  const tBtn = document.getElementById('pm-text');
+  if (!wordEl || !textEl) return;
+  if (wBtn) wBtn.classList.toggle('on', mode === 'word');
+  if (tBtn) tBtn.classList.toggle('on', mode === 'text');
+  if (mode === 'word'){
+    wordEl.style.display = 'block';
+    textEl.style.display = 'none';
+    renderWordPreview();
+  } else {
+    wordEl.style.display = 'none';
+    textEl.style.display = 'block';
+  }
+}
+
+async function renderWordPreview(){
+  const container = document.getElementById('word-preview');
+  if (!container) return;
+  if (!window._docxBase64){
+    container.innerHTML = '<div class="word-preview-error">No Word document available for this view. Regenerate to build one.</div>';
+    return;
+  }
+  if (typeof window.docx?.renderAsync !== 'function'){
+    container.innerHTML = '<div class="word-preview-error">Word preview script is still loading — try again in a moment.</div>';
+    return;
+  }
+  container.innerHTML = '<div class="word-preview-error">Rendering Word preview…</div>';
+  try {
+    const bytes = Uint8Array.from(atob(window._docxBase64), c => c.charCodeAt(0));
+    container.innerHTML = '';
+    await window.docx.renderAsync(bytes, container, null, {
+      className: 'docx',
+      inWrapper: true,
+      ignoreWidth: false,
+      ignoreHeight: false,
+      breakPages: true,
+      experimental: false,
+    });
+  } catch (err){
+    console.error('Word preview failed', err);
+    container.innerHTML = `<div class="word-preview-error">Word preview failed: ${esc(err.message || err)}</div>`;
+  }
+}
+
+// ── Mobile drawer ───────────────────────────────────────────────────────────
+function toggleDrawer(){
+  const side = document.querySelector('.side');
+  const overlay = document.getElementById('drawer-overlay');
+  if (!side) return;
+  const open = !side.classList.contains('open');
+  side.classList.toggle('open', open);
+  if (overlay) overlay.classList.toggle('on', open);
 }
 
 async function sendRefinement(){
@@ -1078,17 +1250,43 @@ async function sendRefinement(){
 }
 
 function addHist(subj, topic, content, diagrams, grade, term){
-  hist.unshift({subj, topic, rtype, lang, diff, content, diagrams:diagrams||null, grade, term});
-  if(hist.length > 6) hist.pop();
-  document.getElementById('hist-sec').style.display = 'block';
-  document.getElementById('hist-list').innerHTML = hist.map((h,i)=>
+  // Persisted history is metadata only — NO docx bytes, which would chew
+  // through the 5MB localStorage quota. The preview snippet lets loadH()
+  // show a preview without re-calling the API; full DOCX needs a
+  // Regenerate click (cache hit — near-instant).
+  const entry = {
+    subj, topic, rtype, lang, diff, grade, term,
+    previewSnippet: (content || '').slice(0, 1500),
+    ts: Date.now(),
+  };
+  hist.unshift(entry);
+  if (hist.length > MAX_HISTORY) hist.length = MAX_HISTORY;
+  persistHistory();
+  renderHistoryList();
+}
+function renderHistoryList(){
+  const sec = document.getElementById('hist-sec');
+  const list = document.getElementById('hist-list');
+  if (!sec || !list) return;
+  sec.style.display = hist.length ? 'block' : 'none';
+  list.innerHTML = hist.map((h, i) =>
     `<div class="hist-item" onclick="loadH(${i})"><div class="hdot"></div><div class="htxt">Gr${h.grade} ${esc(h.subj)} — ${esc(h.rtype)}</div></div>`
   ).join('');
 }
 function loadH(i){
   const h = hist[i];
+  if (!h) return;
+  // Re-fill the sidebar so the teacher can tweak and regenerate. The
+  // preview panel shows the stored snippet so they can remember which pack
+  // this was; the full DOCX comes back instantly via the cache on
+  // Regenerate.
   rtype = h.rtype; lang = h.lang; diff = h.diff;
-  renderOut(h.subj, h.topic, h.content, h.diagrams, h.grade, h.term);
+  document.querySelectorAll('.lbtn').forEach(b => b.classList.toggle('on', b.dataset.l === h.lang));
+  document.querySelectorAll('.dbtn').forEach(b => b.classList.toggle('on', b.dataset.d === h.diff));
+  window._docxBase64 = null;
+  window._docxFilename = null;
+  window._verificationStatus = null;
+  renderOut(h.subj, h.topic, h.previewSnippet || h.content || '', null, h.grade, h.term);
 }
 function doCopy(btn){
   if(!window._cur) return;
@@ -1172,13 +1370,54 @@ function copyCover(){
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
-  // Show a quick loading hint on the subject dropdown while the ATP fetch runs.
+  loadHistory();
+  renderHistoryList();
+  const saved = lsGet(LS_SETTINGS);
+
   const s = document.getElementById('subj');
   if (s) s.innerHTML = '<option value="">Loading CAPS data…</option>';
   await loadAtpData();
+  // Apply grade, term, language, difficulty, rubric BEFORE loadSubjects so the
+  // phase cascade (grade → subject list) uses the persisted grade.
+  applySettings(saved);
   loadSubjects();
-  const subj = document.getElementById('subj').value;
-  if (subj) { loadResourceTypes(); loadTopics(); updateCogDisplay(); }
+  // After subjects list is populated, pick the saved subject if it still exists.
+  if (saved?.subject){
+    const subj = document.getElementById('subj');
+    for (let i = 0; i < subj.options.length; i++){
+      if (decodeSubj(subj.options[i].value) === decodeSubj(saved.subject)){
+        subj.selectedIndex = i;
+        break;
+      }
+    }
+  }
+  onSubjChange(); // loadResourceTypes + loadTopics + updateCogDisplay
+  if (saved?.resourceType){
+    const rt = document.getElementById('restype');
+    for (let i = 0; i < rt.options.length; i++){
+      if (rt.options[i].value === saved.resourceType){
+        rt.selectedIndex = i;
+        onResTypeChange();
+        break;
+      }
+    }
+  }
+  if (saved?.duration){
+    const dur = document.getElementById('dur');
+    if (dur && [...dur.options].some(o => o.value === String(saved.duration))){
+      dur.value = String(saved.duration);
+      updateCogDisplay();
+    }
+  }
+
+  // Save-on-change so a refresh retains everything without an explicit save.
+  const wire = (id, ev = 'change') => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(ev, saveSettings);
+  };
+  ['grade', 'term', 'subj', 'restype', 'dur', 'rubric'].forEach(id => wire(id));
+  document.querySelectorAll('.lbtn').forEach(b => b.addEventListener('click', saveSettings));
+  document.querySelectorAll('.dbtn').forEach(b => b.addEventListener('click', saveSettings));
 })();
 
 
