@@ -10,6 +10,16 @@
      of docx-preview only ship the unminified build. -->
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
+/* Accessibility: visible focus ring for keyboard users (but not mouse clicks
+   — :focus-visible is skipped on pointer focus). Tuned to the green palette. */
+button:focus-visible,select:focus-visible,a:focus-visible,[role="tab"]:focus-visible,[contenteditable]:focus-visible,textarea:focus-visible,input:focus-visible{
+  outline:2px solid var(--t4);
+  outline-offset:2px;
+  border-radius:4px;
+}
+/* The select focus style was outline:none + border-color; keep the look but
+   also add a real focus-visible ring so keyboard users can see tab position. */
+select:focus-visible{outline:2px solid var(--t4);outline-offset:2px;}
 :root{
   --t9:#04342C;--t8:#085041;--t6:#0F6E56;--t4:#1D9E75;--t2:#5DCAA5;
   --t1:#9FE1CB;--t05:#E1F5EE;
@@ -31,7 +41,7 @@ body{font-family:system-ui,sans-serif;background:var(--sur);color:var(--ink);min
 .tt-btn.on{background:var(--t4);color:var(--t9);}
 .layout{display:flex;flex:1;min-height:0;}
 .side{width:272px;flex-shrink:0;background:var(--sur2);border-right:1px solid var(--bdr);padding:16px 14px;display:flex;flex-direction:column;gap:11px;overflow-y:auto;}
-.slabel{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ink4);text-transform:uppercase;margin-bottom:4px;}
+.slabel{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ink3);text-transform:uppercase;margin-bottom:4px;}
 .flabel{font-size:11px;font-weight:600;color:var(--ink2);margin-bottom:3px;}
 .sw{position:relative;}
 .sw::after{content:'▾';position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--ink4);font-size:11px;pointer-events:none;}
@@ -83,7 +93,7 @@ select:focus{outline:none;border-color:var(--t4);}
 .spin{width:38px;height:38px;border:3px solid var(--t05);border-top-color:var(--t6);border-radius:50%;animation:sp .8s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg);}}
 .ltxt{font-size:14px;color:var(--ink3);}
-.lsub{font-size:12px;color:var(--ink4);}
+.lsub{font-size:12px;color:var(--ink3);}
 /* Phase timeline */
 .phase-list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:260px;max-width:420px;}
 .phase-list li{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--ink4);padding:4px 10px;border-radius:6px;background:var(--sur2);border:1px solid var(--bdr);}
@@ -185,6 +195,10 @@ select:focus{outline:none;border-color:var(--t4);}
 .word-preview .docx{background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.08);margin:0 auto;}
 .word-preview .docx-wrapper{background:transparent;padding:0;}
 .word-preview-error{padding:20px;color:var(--ink3);font-size:12px;font-style:italic;}
+/* Edit mode: contenteditable pack-body gets a dashed outline + notice */
+.pack-body[contenteditable="true"]{outline:2px dashed var(--t4);outline-offset:-2px;background:#fffdf7;cursor:text;min-height:120px;}
+.pack-body[contenteditable="true"]:focus{outline-color:var(--t6);}
+.edit-notice{background:var(--amber05);border:1px solid var(--amber);color:#633806;font-size:12px;line-height:1.5;padding:10px 20px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
 
 @media (max-width: 720px){
   .hamburger{display:inline-flex;}
@@ -350,7 +364,7 @@ select:focus{outline:none;border-color:var(--t4);}
     <div class="panel vis" id="panel-generator">
       <div class="empty" id="es">
         <div class="eico">
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#085041" stroke-width="1.8">
+          <svg aria-hidden="true" focusable="false" width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#085041" stroke-width="1.8">
             <rect x="4" y="2" width="18" height="22" rx="3"/>
             <line x1="8" y1="9" x2="18" y2="9"/>
             <line x1="8" y1="13" x2="18" y2="13"/>
@@ -379,7 +393,7 @@ select:focus{outline:none;border-color:var(--t4);}
     <div class="panel" id="panel-cover">
       <div class="cover-empty" id="cover-empty">
         <div class="eico">
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#085041" stroke-width="1.8">
+          <svg aria-hidden="true" focusable="false" width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="#085041" stroke-width="1.8">
             <rect x="3" y="2" width="20" height="22" rx="3"/>
             <line x1="7" y1="8" x2="19" y2="8"/>
             <line x1="7" y1="12" x2="19" y2="12"/>
@@ -1089,10 +1103,15 @@ function renderOut(subj, topic, content, diagrams, grade, term){
     <div class="out-title">${esc(subj)}${vBadge}</div>
     <div class="out-sub">${esc(rtype)} · ${esc(lang)} · Grade ${grade} Term ${term}</div>
   </div>
-  <div class="brow">
+  <div class="brow" id="brow-view">
     <button class="abtn" onclick="doCopy(this)">Copy</button>
     <button class="abtn word" onclick="downloadDocx()">⬇ Download Word</button>
+    <button class="abtn" id="edit-btn" onclick="enterEditMode()" aria-label="Edit paper text">✎ Edit</button>
     <button class="abtn pri" onclick="doGenerate(true)" title="Generate a fresh paper (bypasses cache)">Regenerate ↺</button>
+  </div>
+  <div class="brow" id="brow-edit" style="display:none;">
+    <button class="abtn pri" id="save-edits-btn" onclick="saveEdits()">Save changes</button>
+    <button class="abtn" onclick="cancelEdits()">Cancel</button>
   </div>
 </div>
 <div class="pack">
@@ -1109,6 +1128,9 @@ function renderOut(subj, topic, content, diagrams, grade, term){
     <button class="pmbtn" id="pm-word" role="tab" onclick="setPreviewMode('word')">Word preview</button>
     <button class="pmbtn" id="pm-text" role="tab" onclick="setPreviewMode('text')">Plain text</button>
   </div>
+  <div class="edit-notice" id="edit-notice" style="display:none;" role="status">
+    ⚠ Editing the paper here won't update the memorandum. For memo changes, use the Refine chat below.
+  </div>
   <div class="word-preview" id="word-preview" style="display:none;"></div>
   <div class="pack-body" id="pack-body">${esc(content)}</div>
   ${addendumHtml}
@@ -1121,7 +1143,7 @@ function renderOut(subj, topic, content, diagrams, grade, term){
 <!-- REFINEMENT CHAT -->
 <div class="refine-box" id="refine-box">
   <div class="refine-header">
-    <div class="refine-icon">✦</div>
+    <div class="refine-icon" aria-hidden="true">✦</div>
     <div>
       <div class="refine-title">Refine this resource</div>
       <div class="refine-subtitle">Ask the agent to make changes — add questions, adjust difficulty, change context, and more.</div>
@@ -1269,6 +1291,88 @@ function toggleDrawer(){
   const open = !side.classList.contains('open');
   side.classList.toggle('open', open);
   if (overlay) overlay.classList.toggle('on', open);
+}
+
+// ── Inline edit mode ────────────────────────────────────────────────────────
+// The pack-body becomes contenteditable. On Save we POST the edited text to
+// /api/rebuild-docx, which rebuilds the Word document without any Claude
+// calls. The memo is passed through unchanged — editing the paper may put
+// it out of sync with the memo, and the amber notice tells teachers so.
+function enterEditMode(){
+  const body = document.getElementById('pack-body');
+  if (!body) return;
+  window._editOriginal = window._cur;
+  // Always force plain-text view so the contenteditable target is visible.
+  setPreviewMode('text');
+  body.setAttribute('contenteditable', 'true');
+  body.focus();
+  document.getElementById('brow-view').style.display = 'none';
+  document.getElementById('brow-edit').style.display = 'flex';
+  document.getElementById('edit-notice').style.display = 'block';
+  // Hide the Word-preview toggle during edit — the edits only apply to the
+  // text until Save rebuilds the DOCX.
+  const pm = document.querySelector('.preview-mode');
+  if (pm) pm.style.display = 'none';
+}
+
+function cancelEdits(){
+  const body = document.getElementById('pack-body');
+  if (!body) return;
+  body.setAttribute('contenteditable', 'false');
+  body.textContent = window._editOriginal || window._cur || '';
+  exitEditMode();
+}
+
+function exitEditMode(){
+  const body = document.getElementById('pack-body');
+  if (body) body.setAttribute('contenteditable', 'false');
+  document.getElementById('brow-view').style.display = 'flex';
+  document.getElementById('brow-edit').style.display = 'none';
+  document.getElementById('edit-notice').style.display = 'none';
+  const pm = document.querySelector('.preview-mode');
+  if (pm) pm.style.display = 'flex';
+  window._editOriginal = null;
+}
+
+async function saveEdits(){
+  const body = document.getElementById('pack-body');
+  if (!body) return;
+  const edited = body.innerText;
+  const saveBtn = document.getElementById('save-edits-btn');
+  const originalLabel = saveBtn.textContent;
+  saveBtn.disabled = true;
+  saveBtn.textContent = 'Saving…';
+
+  try {
+    const r = await fetch('/api/rebuild-docx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        subject: window._subj || document.getElementById('subj').value,
+        resourceType: rtype,
+        language: lang,
+        difficulty: diff,
+        grade: window._grade || document.getElementById('grade').value,
+        term: window._term || document.getElementById('term').value,
+        duration: document.getElementById('dur').value,
+        includeRubric: document.getElementById('rubric').checked,
+        preview: edited,
+      }),
+    });
+    const d = await r.json().catch(() => ({ error: 'Server returned non-JSON' }));
+    if (!r.ok || d.error) throw new Error(d.error || ('Server error ' + r.status));
+    // Replace the in-memory DOCX so Download + Word preview reflect the edit.
+    window._docxBase64 = d.docxBase64;
+    window._docxFilename = d.filename || window._docxFilename;
+    window._cur = edited;
+    body.textContent = edited;
+    exitEditMode();
+  } catch (err){
+    alert('Could not save changes: ' + (err?.message || err));
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = originalLabel;
+  }
 }
 
 async function sendRefinement(){

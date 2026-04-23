@@ -14,6 +14,7 @@ import refineHandler from './api/refine.js';
 import coverHandler from './api/cover.js';
 import testHandler from './api/test.js';
 import atpHandler from './api/atp.js';
+import rebuildDocxHandler from './api/rebuild-docx.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -118,6 +119,10 @@ for (const [route, filePath] of Object.entries(VENDOR_FILES)) {
 app.post('/api/generate', apiLimiters, generateHandler);
 app.post('/api/refine', apiLimiters, refineHandler);
 app.post('/api/cover', apiLimiters, coverHandler);
+// Rebuild a DOCX from edited preview text — no Claude calls, only the
+// docx-builder runs. Still behind apiLimiters so a misbehaving client
+// can't hammer the endpoint.
+app.post('/api/rebuild-docx', apiLimiters, rebuildDocxHandler);
 app.get('/api/atp', atpHandler);
 app.get('/api/test', testHandler);
 
