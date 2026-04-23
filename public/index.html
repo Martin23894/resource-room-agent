@@ -6,9 +6,18 @@
 <title>The Resource Room — CAPS Agent Gr4–7</title>
 <!-- docx-preview renders the Word bytes we already have into a real page
      view so teachers see the actual formatting before they download.
-     JSZip is docx-preview's only dep — order matters, load it first. -->
-<script src="https://unpkg.com/[email protected]/dist/jszip.min.js" defer></script>
-<script src="https://unpkg.com/[email protected]/dist/docx-preview.min.js" defer></script>
+     JSZip is docx-preview's only dep — order matters, load it first.
+     onload/onerror flags let us distinguish "still loading" from
+     "CDN didn't respond" in the UI. -->
+<script>
+  window._docxScripts = { jszip: false, docx: false, jszipErr: null, docxErr: null };
+</script>
+<script src="https://unpkg.com/[email protected]/dist/jszip.min.js" defer
+        onload="window._docxScripts.jszip=true"
+        onerror="window._docxScripts.jszipErr='failed to load jszip'"></script>
+<script src="https://unpkg.com/[email protected]/dist/docx-preview.min.js" defer
+        onload="window._docxScripts.docx=true"
+        onerror="window._docxScripts.docxErr='failed to load docx-preview'"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -1172,15 +1181,22 @@ async function renderWordPreview(){
     container.innerHTML = '<div class="word-preview-error">No Word document available for this view. Regenerate to build one.</div>';
     return;
   }
-  if (typeof window.docx?.renderAsync !== 'function'){
-    container.innerHTML = '<div class="word-preview-error">Word preview script is still loading — try again in a moment.</div>';
+
+  container.innerHTML = '<div class="word-preview-error">Rendering Word preview…</div>';
+  const lib = await waitForDocxLib();
+  if (!lib){
+    const diag = window._docxScripts?.docxErr || window._docxScripts?.jszipErr;
+    container.innerHTML = '<div class="word-preview-error">'
+      + (diag ? 'Word preview failed to load (' + esc(diag) + '). Check your internet connection and refresh the page.'
+              : 'Word preview is taking too long to load. Check your internet connection and refresh the page.')
+      + '</div>';
     return;
   }
-  container.innerHTML = '<div class="word-preview-error">Rendering Word preview…</div>';
+
   try {
     const bytes = Uint8Array.from(atob(window._docxBase64), c => c.charCodeAt(0));
     container.innerHTML = '';
-    await window.docx.renderAsync(bytes, container, null, {
+    await lib.renderAsync(bytes, container, null, {
       className: 'docx',
       inWrapper: true,
       ignoreWidth: false,
@@ -1192,6 +1208,31 @@ async function renderWordPreview(){
     console.error('Word preview failed', err);
     container.innerHTML = `<div class="word-preview-error">Word preview failed: ${esc(err.message || err)}</div>`;
   }
+}
+
+// docx-preview exposes its namespace under a few different globals
+// depending on version (`window.docx`, `window['docx-preview']`, or
+// `window.docxPreview`). Try all of them, and if the deferred scripts
+// haven't finished loading yet when the user clicks Word preview, poll
+// for up to 5 seconds before giving up.
+async function waitForDocxLib(){
+  const find = () => window.docx
+    || window['docx-preview']
+    || window.docxPreview
+    || null;
+  const ready = (lib) => lib && typeof lib.renderAsync === 'function';
+
+  let lib = find();
+  if (ready(lib)) return lib;
+
+  for (let i = 0; i < 50; i++){
+    // Exit early if we already know a load failed — no point polling.
+    if (window._docxScripts?.docxErr || window._docxScripts?.jszipErr) return null;
+    await new Promise(r => setTimeout(r, 100));
+    lib = find();
+    if (ready(lib)) return lib;
+  }
+  return null;
 }
 
 // ── Mobile drawer ───────────────────────────────────────────────────────────
