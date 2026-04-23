@@ -13,7 +13,8 @@
     "pino-http": "^10.3.0",
     "better-sqlite3": "^11.5.0",
     "jszip": "^3.10.1",
-    "docx-preview": "^0.3.2"
+    "docx-preview": "^0.3.2",
+    "resend": "^4.0.1"
   },
   "scripts": {
     "start": "node server.js",

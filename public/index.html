@@ -182,6 +182,29 @@ select:focus{outline:none;border-color:var(--t4);}
 .kw-pill{background:var(--t05);border:1px solid var(--t2);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--t8);font-weight:600;}
 .err{background:#fff5f5;border:1.5px solid #f09595;border-radius:9px;padding:14px 18px;color:#A32D2D;font-size:13px;line-height:1.7;}
 /* Print */
+/* Signed-in user chip in the header */
+.user-chip{display:inline-flex;align-items:center;gap:8px;background:var(--t9);border:1px solid var(--t6);border-radius:20px;padding:4px 4px 4px 12px;font-size:11px;color:#fff;}
+.user-email{color:var(--t1);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.user-logout{background:var(--t6);border:none;color:#fff;font-size:10px;font-weight:700;border-radius:14px;padding:4px 10px;cursor:pointer;font-family:inherit;}
+.user-logout:hover{background:var(--t4);color:var(--t9);}
+
+/* Auth gate — full-screen overlay shown until the user is signed in */
+.auth-gate{position:fixed;inset:0;background:rgba(4,52,44,.78);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;}
+.auth-gate.hidden{display:none;}
+.auth-card{background:#fff;border-radius:14px;max-width:420px;width:100%;padding:32px 28px;box-shadow:0 8px 32px rgba(0,0,0,.25);text-align:center;}
+.auth-logo{display:inline-block;text-align:left;margin-bottom:20px;line-height:1.1;}
+.auth-card h2{font-size:22px;color:var(--t8);margin:4px 0 8px;}
+.auth-sub{font-size:13px;color:var(--ink3);line-height:1.6;margin-bottom:18px;}
+.auth-label{display:block;font-size:11px;font-weight:700;color:var(--ink3);text-align:left;margin-bottom:4px;letter-spacing:.4px;text-transform:uppercase;}
+#auth-email{width:100%;padding:10px 12px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:14px;font-family:inherit;color:var(--ink);background:var(--sur);margin-bottom:12px;}
+#auth-email:focus{outline:none;border-color:var(--t4);}
+.auth-submit{width:100%;padding:11px;background:var(--t8);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.auth-submit:hover:not(:disabled){background:var(--t6);}
+.auth-submit:disabled{background:var(--ink4);cursor:not-allowed;}
+.auth-status{margin-top:14px;font-size:13px;color:var(--ink2);line-height:1.5;min-height:20px;}
+.auth-status.success{color:var(--t8);font-weight:600;}
+.auth-status.error{color:#a32d2d;}
+
 /* Hamburger + drawer overlay (only visible on mobile) */
 .hamburger{display:none;align-items:center;justify-content:center;background:transparent;border:1px solid var(--t6);color:var(--t1);border-radius:7px;width:34px;height:34px;cursor:pointer;padding:0;font-size:18px;line-height:1;}
 .hamburger:hover{background:var(--t9);}
@@ -248,9 +271,32 @@ select:focus{outline:none;border-color:var(--t4);}
       <button class="tt-btn" onclick="switchTab('cover',this)">Teacha Cover Page</button>
     </div>
     <div class="badge">GR4–7 · ALL TERMS · CAPS</div>
+    <div class="user-chip" id="user-chip" style="display:none;">
+      <span class="user-email" id="user-email"></span>
+      <button type="button" class="user-logout" onclick="doLogout()">Sign out</button>
+    </div>
   </div>
 </div>
 <div class="drawer-overlay" id="drawer-overlay" onclick="toggleDrawer()"></div>
+
+<!-- Blocking login gate. Displayed on page load until /api/auth/me returns 200. -->
+<div class="auth-gate" id="auth-gate" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="l-the">THE</div>
+      <div><span class="l-res" style="color:#085041">RESOURCE</span></div>
+      <div><div class="l-wrap"><span class="l-room">ROOM</span></div></div>
+    </div>
+    <h2 id="auth-title">Sign in to continue</h2>
+    <p class="auth-sub">Enter your email and we'll send you a one-click sign-in link. No password to remember.</p>
+    <form id="auth-form" onsubmit="event.preventDefault(); sendMagicLink();">
+      <label class="auth-label" for="auth-email">Email</label>
+      <input id="auth-email" type="email" autocomplete="email" required placeholder="[email protected]" />
+      <button class="auth-submit" id="auth-submit" type="submit">Send sign-in link</button>
+    </form>
+    <div class="auth-status" id="auth-status" aria-live="polite"></div>
+  </div>
+</div>
 <div class="layout">
   <!-- SIDEBAR -->
   <div class="side">
@@ -960,7 +1006,7 @@ async function doGenerate(bypassCache){
   let streamError = null;
 
   try{
-    const r = await fetch('/api/generate',{
+    const r = await fetchAuthed('/api/generate',{
       method: 'POST',
       headers: {
         'Content-Type':'application/json',
@@ -1344,7 +1390,7 @@ async function saveEdits(){
   saveBtn.textContent = 'Saving…';
 
   try {
-    const r = await fetch('/api/rebuild-docx', {
+    const r = await fetchAuthed('/api/rebuild-docx', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -1389,7 +1435,7 @@ async function sendRefinement(){
   sendBtn.innerHTML = '<span class="refine-spinning"></span>Refining...';
   histEl.scrollTop = histEl.scrollHeight;
   try{
-    const r = await fetch('/api/refine',{
+    const r = await fetchAuthed('/api/refine',{
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
@@ -1490,7 +1536,7 @@ async function generateCover(){
   showCover('l');
   document.getElementById('gbtn').disabled=true;
   try{
-    const r=await fetch('/api/cover',{
+    const r=await fetchAuthed('/api/cover',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({subject:subj,topic,resourceType:rtype,language:lang,difficulty:diff,grade,term})
@@ -1539,8 +1585,110 @@ function copyCover(){
   navigator.clipboard.writeText(txt).then(()=>alert('Copied! Paste into your Teacha listing.')).catch(()=>alert('Please copy manually.'));
 }
 
+// ── Auth gating ────────────────────────────────────────────────────────────
+// Sign-in is REQUIRED for this app (Option B). The auth-gate is shown on
+// load until /api/auth/me returns a user. fetchAuthed() wraps fetch() so
+// the gate reappears if any API call returns 401 UNAUTHENTICATED (e.g. if
+// the session expires mid-session).
+let _currentUser = null;
+
+function showAuthGate(reason){
+  const gate = document.getElementById('auth-gate');
+  const chip = document.getElementById('user-chip');
+  if (gate) gate.classList.remove('hidden');
+  if (chip) chip.style.display = 'none';
+  if (reason){
+    const st = document.getElementById('auth-status');
+    if (st){ st.textContent = reason; st.className = 'auth-status error'; }
+  }
+}
+function hideAuthGate(){
+  const gate = document.getElementById('auth-gate');
+  if (gate) gate.classList.add('hidden');
+}
+function renderSignedIn(user){
+  _currentUser = user;
+  const chip = document.getElementById('user-chip');
+  const email = document.getElementById('user-email');
+  if (email) email.textContent = user.email;
+  if (chip) chip.style.display = 'inline-flex';
+  hideAuthGate();
+}
+
+async function checkAuth(){
+  try {
+    const r = await fetch('/api/auth/me', { credentials: 'same-origin' });
+    if (r.status === 200){
+      const { user } = await r.json();
+      renderSignedIn(user);
+      return user;
+    }
+  } catch (_) {}
+  showAuthGate();
+  return null;
+}
+
+async function sendMagicLink(){
+  const emailEl = document.getElementById('auth-email');
+  const submitBtn = document.getElementById('auth-submit');
+  const status = document.getElementById('auth-status');
+  const email = (emailEl?.value || '').trim();
+  if (!email){ status.className='auth-status error'; status.textContent='Please enter your email.'; return; }
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending…';
+  status.className = 'auth-status';
+  status.textContent = '';
+  try {
+    const r = await fetch('/api/auth/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email }),
+    });
+    if (r.ok){
+      status.className = 'auth-status success';
+      status.textContent = `Check your inbox — we sent a sign-in link to ${email}.`;
+      emailEl.value = '';
+    } else {
+      const d = await r.json().catch(() => ({}));
+      status.className = 'auth-status error';
+      status.textContent = d.error || 'Could not send sign-in link. Try again.';
+    }
+  } catch (err){
+    status.className = 'auth-status error';
+    status.textContent = 'Network error — please try again.';
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Send sign-in link';
+  }
+}
+
+async function doLogout(){
+  try {
+    await fetch('/api/auth/logout', { method: 'POST', credentials: 'same-origin' });
+  } catch (_) {}
+  _currentUser = null;
+  // Full reload so all in-memory state (cached packs, history, preview) resets.
+  window.location.reload();
+}
+
+/** Fetch wrapper that surfaces the auth gate whenever a 401 comes back. */
+async function fetchAuthed(url, opts = {}){
+  const r = await fetch(url, { credentials: 'same-origin', ...opts });
+  if (r.status === 401){
+    showAuthGate('Your session has expired — please sign in again.');
+  }
+  return r;
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
+  // Check auth FIRST so the gate is up before the heavy ATP fetch starts.
+  // If the user isn't signed in we still load the data so the UI is ready
+  // the moment they complete sign-in without a reload (but they can't hit
+  // any Claude endpoint until then — the server enforces that).
+  const user = await checkAuth();
+
   loadHistory();
   renderHistoryList();
   const saved = lsGet(LS_SETTINGS);

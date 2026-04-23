@@ -37,6 +37,11 @@ See `.env.example` for the canonical list.
 | `TEST_SECRET` | no | If set, `/api/test?secret=<value>` returns an Anthropic health check; otherwise the endpoint 404s. |
 | `CACHE_DB_PATH` | no | SQLite file for the result cache. Default `./data/cache.db`. On Railway, point this at a mounted volume so the cache survives deploys. |
 | `CACHE_TTL_SECONDS` | no | How long a cached `/api/generate` response is served. Default `3600` (1h). `0` means never expire. |
+| `AUTH_SECRET` | **prod only** | HMAC key for signing session cookies. Required when `NODE_ENV=production`. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
+| `APP_URL` | prod recommended | Base URL for magic-link verification (e.g. `https://resource-room.up.railway.app`). Leave blank for local dev — links become relative. |
+| `EMAIL_PROVIDER` | no | `console` (logs to stdout — dev default), `resend` (Resend API), or `disabled`. |
+| `RESEND_API_KEY` | if `EMAIL_PROVIDER=resend` | API key from <https://resend.com/api-keys>. |
+| `EMAIL_FROM` | no | Sender address (e.g. `The Resource Room <no-reply@yourdomain.com>`). Defaults to Resend's sandbox sender; verify your own domain in Resend to send from it. |
 
 ---
 

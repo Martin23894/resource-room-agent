@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 
 import { logger } from './lib/logger.js';
 import { openCache } from './lib/cache.js';
+import { parseSession, requireAuth } from './lib/auth.js';
 
 // Import route handlers
 import generateHandler from './api/generate.js';
@@ -15,6 +16,10 @@ import coverHandler from './api/cover.js';
 import testHandler from './api/test.js';
 import atpHandler from './api/atp.js';
 import rebuildDocxHandler from './api/rebuild-docx.js';
+import authRequestHandler from './api/auth-request.js';
+import authVerifyHandler from './api/auth-verify.js';
+import authLogoutHandler from './api/auth-logout.js';
+import authMeHandler from './api/auth-me.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -90,6 +95,24 @@ const perDay = rateLimit({
 
 const apiLimiters = [perMinute, perHour, perDay];
 
+// Tight bucket for /api/auth/request so a hostile actor can't spam
+// someone's inbox with magic links: 3/min, 10/hr per IP.
+const authRequestLimiters = [
+  rateLimit({
+    windowMs: 60 * 1000, max: 3,
+    standardHeaders: true, legacyHeaders: false,
+    handler: jsonMessage('Too many sign-in attempts. Wait a minute.'),
+  }),
+  rateLimit({
+    windowMs: 60 * 60 * 1000, max: 10,
+    standardHeaders: true, legacyHeaders: false,
+    handler: jsonMessage('Too many sign-in attempts this hour. Try again later.'),
+  }),
+];
+
+// ─── Attach session (anonymous requests get req.user = null) ─
+app.use(parseSession);
+
 // ─── Serve static frontend ──────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -115,14 +138,20 @@ for (const [route, filePath] of Object.entries(VENDOR_FILES)) {
   });
 }
 
-// ─── API Routes ─────────────────────────────────────────────
-app.post('/api/generate', apiLimiters, generateHandler);
-app.post('/api/refine', apiLimiters, refineHandler);
-app.post('/api/cover', apiLimiters, coverHandler);
+// ─── Auth routes (no requireAuth — these ARE the sign-in flow) ──
+app.post('/api/auth/request', authRequestLimiters, authRequestHandler);
+app.get('/api/auth/verify', authVerifyHandler);
+app.post('/api/auth/logout', authLogoutHandler);
+app.get('/api/auth/me', authMeHandler);
+
+// ─── API Routes — Claude-backed endpoints require sign-in ───
+app.post('/api/generate', requireAuth, apiLimiters, generateHandler);
+app.post('/api/refine', requireAuth, apiLimiters, refineHandler);
+app.post('/api/cover', requireAuth, apiLimiters, coverHandler);
 // Rebuild a DOCX from edited preview text — no Claude calls, only the
-// docx-builder runs. Still behind apiLimiters so a misbehaving client
-// can't hammer the endpoint.
-app.post('/api/rebuild-docx', apiLimiters, rebuildDocxHandler);
+// docx-builder runs. Still auth-gated so anonymous users can't rebuild
+// arbitrary content either.
+app.post('/api/rebuild-docx', requireAuth, apiLimiters, rebuildDocxHandler);
 app.get('/api/atp', atpHandler);
 app.get('/api/test', testHandler);
 
