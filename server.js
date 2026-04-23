@@ -92,6 +92,28 @@ const apiLimiters = [perMinute, perHour, perDay];
 // ─── Serve static frontend ──────────────────────────────────
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── /vendor/* — self-hosted Word preview libs ──────────────
+// docx-preview and JSZip are served from this origin (not a CDN) so
+// teachers on corporate/school networks or behind strict firewalls can
+// still use the Word preview. The npm versions are pinned in package.json.
+//
+// Implementation note: docx-preview's "exports" field forbids both
+// require.resolve('docx-preview/dist/…') AND require.resolve('docx-preview
+// /package.json'), so we go straight to the node_modules path. Railway
+// (Nixpacks) installs to ./node_modules just like a local dev install.
+const NODE_MODULES = path.join(__dirname, 'node_modules');
+const VENDOR_FILES = {
+  '/vendor/jszip.min.js':    path.join(NODE_MODULES, 'jszip',        'dist', 'jszip.min.js'),
+  '/vendor/docx-preview.js': path.join(NODE_MODULES, 'docx-preview', 'dist', 'docx-preview.js'),
+};
+for (const [route, filePath] of Object.entries(VENDOR_FILES)) {
+  app.get(route, (_req, res) => {
+    res.type('application/javascript; charset=utf-8');
+    res.set('Cache-Control', 'public, max-age=86400, immutable');
+    res.sendFile(filePath);
+  });
+}
+
 // ─── API Routes ─────────────────────────────────────────────
 app.post('/api/generate', apiLimiters, generateHandler);
 app.post('/api/refine', apiLimiters, refineHandler);

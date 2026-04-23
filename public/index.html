@@ -1206,13 +1206,17 @@ async function renderWordPreview(){
 // filenames — older docx-preview releases don't ship a .min.js, so a
 // single hardcoded URL to "docx-preview.min.js" just 404s. Results are
 // cached in a module-scoped promise so subsequent clicks are free.
+// Self-hosted vendor paths first — these work regardless of CDN reachability,
+// corporate firewalls, ad-blockers, or strict CSPs. CDN URLs stay as
+// fallbacks in case the server ever can't serve the vendor file for some
+// reason (filesystem issue, deploy without node_modules, etc.).
 const DOCX_PREVIEW_URLS = [
+  '/vendor/docx-preview.js',
   'https://cdn.jsdelivr.net/npm/[email protected]/dist/docx-preview.js',
   'https://unpkg.com/[email protected]/dist/docx-preview.js',
-  'https://cdn.jsdelivr.net/npm/[email protected]/dist/docx-preview.min.js',
-  'https://unpkg.com/[email protected]/dist/docx-preview.min.js',
 ];
 const JSZIP_URLS = [
+  '/vendor/jszip.min.js',
   'https://cdn.jsdelivr.net/npm/[email protected]/dist/jszip.min.js',
   'https://unpkg.com/[email protected]/dist/jszip.min.js',
 ];
