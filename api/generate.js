@@ -1,7 +1,7 @@
 import { Packer } from 'docx';
 
 import { logger as defaultLogger } from '../lib/logger.js';
-import { callAnthropic, callAnthropicTool, AnthropicError } from '../lib/anthropic.js';
+import { callAnthropic, callAnthropicTool, AnthropicError, TOOL_MODEL } from '../lib/anthropic.js';
 import { planTool, qualityTool, memoVerifyTool } from '../lib/tools.js';
 import { str, int, oneOf, bool, teacherGuidance as vGuidance, buildGuidanceBlock, ValidationError } from '../lib/validate.js';
 import { getCogLevels, largestRemainder, isBarretts as isBarrettsFn } from '../lib/cognitive.js';
@@ -568,6 +568,9 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
           user: planUsr,
           tool: planTool(cog.levels),
           maxTokens: 1500,
+          // Haiku 4.5 — structured output, shallow schema, cheap. ~3× saving.
+          model: TOOL_MODEL,
+          phase: 'plan',
           logger: log,
           signal,
         });
@@ -739,6 +742,9 @@ Call the flag_question_paper_issues tool with clean=true and an empty flaws arra
           user: qQualityUsr,
           tool: qualityTool,
           maxTokens: 1200,
+          // Haiku 4.5 — picks from a fixed flaw-type enum, no creative writing.
+          model: TOOL_MODEL,
+          phase: 'quality',
           logger: log,
           signal,
         });
@@ -829,6 +835,10 @@ Call the flag_memo_errors tool with clean=true and empty arrays if no errors exi
           user: verUsr,
           tool: memoVerifyTool,
           maxTokens: 3000,
+          // Haiku 4.5 — compares answers against a memo, emits structured
+          // error list. Mechanical check, no generation.
+          model: TOOL_MODEL,
+          phase: 'memo-verify',
           logger: log,
           signal,
         });
