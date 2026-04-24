@@ -210,7 +210,7 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     isWorksheet, isTest, isExamType,
     cog, cogMarks, cogTolerance,
     isBarretts,
-    atpTopicList, topicInstruction,
+    atpTopicList, topicInstruction, atpTopics,
     teacherGuidance: guidance,
   });
 
@@ -558,7 +558,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     // no escape-character salvage, no try/catch around parsing. validatePlan
     // still enforces the CAPS rules on top.
     channel.sendPhase('plan', 'started');
-    const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance });
+    const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance, atpTopics });
     let plan = null;
     let planAttempts = 0;
     while (!plan && planAttempts < 2) {
