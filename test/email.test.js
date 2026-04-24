@@ -86,3 +86,51 @@ describe('sendEmail — validation', () => {
     );
   });
 });
+
+describe('sendEmail — resend driver payload shape', () => {
+  // Resend SDK v4 drops any per-send field outside its allowlist. Tracking
+  // is domain-level only (set in the dashboard). This test verifies we send
+  // the transactional tag the backend uses for categorisation.
+  let prevKey;
+
+  beforeEach(() => {
+    prevKey = process.env.RESEND_API_KEY;
+    process.env.RESEND_API_KEY = 're_test_fake';
+    process.env.EMAIL_PROVIDER = 'resend';
+    resetResendClient();
+  });
+
+  afterEach(() => {
+    if (prevKey === undefined) delete process.env.RESEND_API_KEY;
+    else process.env.RESEND_API_KEY = prevKey;
+    resetResendClient();
+  });
+
+  test('tags transactional sends and targets the Resend API', async () => {
+    const captured = [];
+    const origFetch = global.fetch;
+    global.fetch = async (url, opts) => {
+      captured.push({ url: String(url), body: JSON.parse(opts.body) });
+      return new Response(JSON.stringify({ id: 'email_mock_1' }), {
+        status: 200, headers: { 'content-type': 'application/json' },
+      });
+    };
+
+    try {
+      await sendEmail({ to: em('teacher'), subject: 'Sign in', text: 'link' });
+    } finally {
+      global.fetch = origFetch;
+    }
+
+    assert.equal(captured.length, 1, 'resend should have received exactly one call');
+    const body = captured[0].body;
+    assert.match(captured[0].url, /api\.resend\.com/);
+    assert.ok(Array.isArray(body.tags) && body.tags.length >= 1, 'tags must be included');
+    assert.equal(body.tags[0].name, 'category');
+    assert.equal(body.tags[0].value, 'transactional');
+    // SDK silently drops unknown fields on /emails, so these MUST NOT leak
+    // onto the wire — prevents anyone adding them thinking they work.
+    assert.equal(body.click_tracking, undefined);
+    assert.equal(body.open_tracking, undefined);
+  });
+});

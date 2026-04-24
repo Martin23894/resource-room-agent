@@ -162,7 +162,12 @@ for (const [route, filePath] of Object.entries(VENDOR_FILES)) {
 
 // ─── Auth routes (no requireAuth — these ARE the sign-in flow) ──
 app.post('/api/auth/request', authRequestLimiters, authRequestHandler);
+// Magic-link verify is two-step: GET shows the confirm page, POST consumes
+// the token. The POST accepts both form-urlencoded (from the confirm page's
+// <form>) and JSON (programmatic callers / tests) so we mount a dedicated
+// urlencoded parser for this route alongside the global JSON one.
 app.get('/api/auth/verify', authVerifyHandler);
+app.post('/api/auth/verify', express.urlencoded({ extended: false, limit: '4kb' }), authVerifyHandler);
 app.post('/api/auth/logout', authLogoutHandler);
 app.get('/api/auth/me', authMeHandler);
 
