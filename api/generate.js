@@ -3,7 +3,7 @@ import { Packer } from 'docx';
 import { logger as defaultLogger } from '../lib/logger.js';
 import { callAnthropic, callAnthropicTool, AnthropicError } from '../lib/anthropic.js';
 import { planTool, qualityTool, memoVerifyTool } from '../lib/tools.js';
-import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
+import { str, int, oneOf, bool, teacherGuidance as vGuidance, buildGuidanceBlock, ValidationError } from '../lib/validate.js';
 import { getCogLevels, largestRemainder, isBarretts as isBarrettsFn } from '../lib/cognitive.js';
 import { countMarks } from '../lib/marks.js';
 import { ensureAnswerSpace } from '../lib/answer-space.js';
@@ -26,7 +26,7 @@ export default async function handler(req, res) {
   const log = req.log || defaultLogger;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term, bypassCache;
+  let subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term, bypassCache, guidance;
   try {
     subject      = str(req.body?.subject,      { field: 'subject',      max: 200 });
     topic        = str(req.body?.topic,        { field: 'topic',        required: false, max: 500 });
@@ -40,6 +40,10 @@ export default async function handler(req, res) {
     bypassCache  = bool(req.body?._bypassCache);
     grade        = int(req.body?.grade, { field: 'grade', min: 4, max: 7 });
     term         = int(req.body?.term,  { field: 'term',  min: 1, max: 4 });
+    // Free-form pre-prompt. Kept short (500 char cap) and injected into
+    // the USER message only (never the system prompt) so it does not
+    // invalidate prompt caching and cannot jailbreak curriculum scope.
+    guidance     = vGuidance(req.body?.teacherGuidance);
   } catch (err) {
     if (err instanceof ValidationError) {
       return res.status(400).json({ error: err.message });
@@ -70,6 +74,7 @@ export default async function handler(req, res) {
   // retries / reloads benefit from it.
   const cacheKey = generateCacheKey({
     subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term,
+    teacherGuidance: guidance,
   });
   if (!bypassCache) {
     try {
@@ -205,6 +210,7 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     cog, cogMarks, cogTolerance,
     isBarretts,
     atpTopicList, topicInstruction,
+    teacherGuidance: guidance,
   });
 
   // ═══════════════════════════════════════

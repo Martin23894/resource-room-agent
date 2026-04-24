@@ -426,6 +426,22 @@ select:focus{outline:none;border-color:var(--t4);}
           <label class="toggle"><input type="checkbox" id="rubric"/><span class="toggle-slider"></span></label>
         </div>
       </div>
+      <!-- Teacher guidance (pre-prompt) -->
+      <div style="margin-top:12px;">
+        <div class="slabel">Focus or constraints <span style="color:var(--ink4);font-weight:400;">(optional)</span></div>
+        <textarea
+          id="guidance"
+          rows="3"
+          maxlength="500"
+          placeholder="e.g. Focus on word problems involving money. Use South African place names only. Keep vocabulary simple — many learners are ESL."
+          aria-label="Teacher guidance — optional focus or constraints for this resource"
+          style="width:100%;resize:vertical;background:var(--sur);border:1.5px solid var(--bdr2);border-radius:8px;padding:8px 10px;font-size:11px;font-family:inherit;color:var(--ink1);line-height:1.5;"
+        ></textarea>
+        <div class="lsub" style="margin-top:4px;display:flex;justify-content:space-between;">
+          <span>Guide the AI before it generates — fewer regenerations.</span>
+          <span id="guidance-count">0 / 500</span>
+        </div>
+      </div>
     </div>
     <hr class="hdiv"/>
     <div id="hist-sec" style="display:none;">
@@ -572,6 +588,7 @@ function currentSettings(){
     difficulty: diff,
     duration: document.getElementById('dur')?.value,
     includeRubric: document.getElementById('rubric')?.checked,
+    teacherGuidance: document.getElementById('guidance')?.value || '',
   };
 }
 
@@ -621,6 +638,10 @@ function applySettings(s){
     diff = s.difficulty;
   }
   if (s.includeRubric != null) document.getElementById('rubric').checked = !!s.includeRubric;
+  if (typeof s.teacherGuidance === 'string') {
+    const el = document.getElementById('guidance');
+    if (el) { el.value = s.teacherGuidance; updateGuidanceCount(); }
+  }
   // Subject / resource-type / duration are re-applied AFTER the ATP cascade
   // finishes in initFromStorage() below.
   return s;
@@ -1128,6 +1149,7 @@ async function doGenerate(bypassCache){
         includeRubric,
         grade,
         term,
+        teacherGuidance: currentGuidance(),
         _bypassCache: bypassCache === true
       })
     });
@@ -1552,7 +1574,8 @@ async function sendRefinement(){
         language: lang,
         grade: window._grade || document.getElementById('grade').value,
         term: window._term || document.getElementById('term').value,
-        difficulty: diff
+        difficulty: diff,
+        teacherGuidance: currentGuidance()
       })
     });
     const d = await r.json();
@@ -2015,9 +2038,28 @@ async function fetchAuthed(url, opts = {}){
     if (el) el.addEventListener(ev, saveSettings);
   };
   ['grade', 'term', 'subj', 'restype', 'dur', 'rubric'].forEach(id => wire(id));
+  // Teacher-guidance textarea: save on every keystroke (debounced in
+  // pushSettingsToServer) and keep the character counter fresh.
+  const guidanceEl = document.getElementById('guidance');
+  if (guidanceEl) {
+    guidanceEl.addEventListener('input', () => { updateGuidanceCount(); saveSettings(); });
+    updateGuidanceCount();
+  }
   document.querySelectorAll('.lbtn').forEach(b => b.addEventListener('click', saveSettings));
   document.querySelectorAll('.dbtn').forEach(b => b.addEventListener('click', saveSettings));
 })();
+
+function updateGuidanceCount(){
+  const el = document.getElementById('guidance');
+  const out = document.getElementById('guidance-count');
+  if (!el || !out) return;
+  out.textContent = `${el.value.length} / 500`;
+}
+
+// Read the current teacher guidance as plain text (empty string when unset).
+function currentGuidance(){
+  return (document.getElementById('guidance')?.value || '').trim();
+}
 
 
 </script>

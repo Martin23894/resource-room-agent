@@ -1,12 +1,12 @@
 import { logger as defaultLogger } from '../lib/logger.js';
 import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
-import { str, int, oneOf, ValidationError } from '../lib/validate.js';
+import { str, int, oneOf, teacherGuidance as vGuidance, buildGuidanceBlock, ValidationError } from '../lib/validate.js';
 
 export default async function handler(req, res) {
   const log = req.log || defaultLogger;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let originalContent, refinementInstruction, subject, topic, resourceType, language, grade, term;
+  let originalContent, refinementInstruction, subject, topic, resourceType, language, grade, term, guidance;
   try {
     originalContent       = str(req.body?.originalContent,       { field: 'originalContent', max: 100000 });
     refinementInstruction = str(req.body?.refinementInstruction, { field: 'refinementInstruction', max: 1000 });
@@ -16,6 +16,9 @@ export default async function handler(req, res) {
     language              = str(req.body?.language,              { field: 'language', required: false, max: 40 }) || 'English';
     grade                 = int(req.body?.grade, { field: 'grade', required: false, min: 4, max: 7 });
     term                  = int(req.body?.term,  { field: 'term',  required: false, min: 1, max: 4 });
+    // Same pre-prompt the teacher set on the Generate call, passed through
+    // so refinements stay consistent with the original constraints.
+    guidance              = vGuidance(req.body?.teacherGuidance);
   } catch (err) {
     if (err instanceof ValidationError) return res.status(400).json({ error: err.message });
     throw err;
@@ -35,6 +38,7 @@ export default async function handler(req, res) {
     '{"content":"complete updated resource text — resource only, no meta-commentary","changesSummary":"one sentence: what changed"}';
 
   const user =
+    buildGuidanceBlock(guidance) +
     'ORIGINAL RESOURCE:\n\n' + originalContent + '\n\n' +
     '---\nINSTRUCTION: "' + refinementInstruction + '"\n\n' +
     'Return the complete updated resource as JSON. The "content" field must contain ONLY the resource — no reasoning, no explanations, no meta-commentary. Keep all [DIAGRAM_N] placeholders exactly in place.';
