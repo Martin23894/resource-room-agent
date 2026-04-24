@@ -579,6 +579,9 @@ function lsSet(key, value){
 }
 
 function currentSettings(){
+  // teacherGuidance is intentionally NOT persisted — it's per-generation
+  // intent, not a setting. See doGenerate() for the post-success clear,
+  // and the init flow for the explicit skip on hydration.
   return {
     grade: document.getElementById('grade')?.value,
     term: document.getElementById('term')?.value,
@@ -588,7 +591,6 @@ function currentSettings(){
     difficulty: diff,
     duration: document.getElementById('dur')?.value,
     includeRubric: document.getElementById('rubric')?.checked,
-    teacherGuidance: document.getElementById('guidance')?.value || '',
   };
 }
 
@@ -638,10 +640,8 @@ function applySettings(s){
     diff = s.difficulty;
   }
   if (s.includeRubric != null) document.getElementById('rubric').checked = !!s.includeRubric;
-  if (typeof s.teacherGuidance === 'string') {
-    const el = document.getElementById('guidance');
-    if (el) { el.value = s.teacherGuidance; updateGuidanceCount(); }
-  }
+  // teacherGuidance is per-generation intent, not a setting. Ignore any
+  // older persisted value and always start with an empty textarea.
   // Subject / resource-type / duration are re-applied AFTER the ATP cascade
   // finishes in initFromStorage() below.
   return s;
@@ -1206,6 +1206,11 @@ async function doGenerate(bypassCache){
     const preview = finalPayload.preview || finalPayload.content || '';
     addHist(subj, topic, preview, null, grade, term);
     renderOut(subj, topic, preview, null, grade, term);
+    // Clear the teacher-guidance textarea — it's per-generation intent,
+    // not a setting. Otherwise a teacher switching to a new subject may
+    // not notice leftover text influencing the next paper.
+    const guidanceEl = document.getElementById('guidance');
+    if (guidanceEl) { guidanceEl.value = ''; updateGuidanceCount(); }
   }
   document.getElementById('gbtn').disabled = false;
 }
@@ -2038,11 +2043,12 @@ async function fetchAuthed(url, opts = {}){
     if (el) el.addEventListener(ev, saveSettings);
   };
   ['grade', 'term', 'subj', 'restype', 'dur', 'rubric'].forEach(id => wire(id));
-  // Teacher-guidance textarea: save on every keystroke (debounced in
-  // pushSettingsToServer) and keep the character counter fresh.
+  // Teacher-guidance textarea: keep the character counter fresh on every
+  // keystroke, but do NOT persist the value (see currentSettings()). The
+  // textarea is cleared after every successful generation in doGenerate().
   const guidanceEl = document.getElementById('guidance');
   if (guidanceEl) {
-    guidanceEl.addEventListener('input', () => { updateGuidanceCount(); saveSettings(); });
+    guidanceEl.addEventListener('input', updateGuidanceCount);
     updateGuidanceCount();
   }
   document.querySelectorAll('.lbtn').forEach(b => b.addEventListener('click', saveSettings));

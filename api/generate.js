@@ -13,6 +13,7 @@ import { i18n } from '../lib/i18n.js';
 import { cleanOutput } from '../lib/clean-output.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
+import { validateMemoStructure } from '../lib/memo-structure.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { generateCacheKey } from '../lib/cache-key.js';
 import { createDocxBuilder } from '../lib/docx-builder.js';
@@ -796,7 +797,14 @@ OUTPUT RULES:
     channel.sendPhase('memo_table', 'started');
     const cogLevelRef = plan.questions.map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`).join('\n');
     const memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
-    log.info(`Phase 3A: memo table generated (${memoTableRaw.length} chars)`);
+    const phase3aStructure = validateMemoStructure(memoTableRaw);
+    log.info({ len: memoTableRaw.length, hasAnswerTable: phase3aStructure.answerTable }, 'Phase 3A: memo table generated');
+    if (!phase3aStructure.answerTable) {
+      // Fires when Claude returned prose or a cog-only fragment instead of
+      // the NO. | ANSWER table. Phase 4 will try to correct but without the
+      // anchor table it usually can't. Logged loud so we can investigate.
+      log.warn({ preview: memoTableRaw.slice(0, 300) }, 'Phase 3A: memo table is missing the NO. | ANSWER header — downstream memo will likely be incomplete');
+    }
     channel.sendPhase('memo_table', 'done');
 
     // ── Phase 3B: Generate cog analysis + extension + rubric ──
@@ -857,6 +865,19 @@ Call the flag_memo_errors tool with clean=true and empty arrays if no errors exi
 
         const corrMemoSys = `You are correcting specific verified errors in a memorandum.
 Fix ONLY the rows and cells listed in the error report. Do not change anything else.
+
+STRUCTURAL REQUIREMENT — non-negotiable:
+The corrected memorandum MUST contain BOTH sections in this exact order:
+  1. The answer table: pipe-delimited rows with columns
+     "NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK" covering
+     every sub-question in the paper.
+  2. The cognitive level analysis: a pipe-delimited table headed
+     "Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %"
+     followed by a per-level breakdown paragraph.
+Never omit the answer table. Never omit the cognitive analysis.
+If the errors live in only one section, still return both — unchanged where
+they had no errors, corrected where they did.
+
 Return the complete corrected memorandum as JSON: {"content":"complete corrected memorandum"}`;
         const allErrors = [
           ...(verResult.errors || []).map(e => `Q${e.question} [${e.check}]: Answer should be "${e.correct}". ${e.fix}`),
@@ -867,13 +888,37 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
         try {
           const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 8192);
           const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
-          if (correctedMemo && correctedMemo.length > 500) {
+          // Structural guard: reject fragments. A valid corrected memo must
+          // contain BOTH the answer table (NO./NR. | ANSWER/ANTWOORD header)
+          // AND the cognitive level analysis. Older length-only guard
+          // ("> 500 chars") accepted cog-analysis-only fragments because
+          // the analysis alone is usually > 500 chars, which is how the
+          // answer table disappeared from generated memos.
+          const structure = validateMemoStructure(correctedMemo);
+          const originalStructure = validateMemoStructure(memoContent);
+          const bigEnough = correctedMemo && correctedMemo.length >= Math.max(500, Math.floor(memoContent.length * 0.7));
+
+          if (structure.complete && bigEnough) {
             verifiedMemo = correctedMemo;
             verificationStatus = 'corrected';
-            log.info(`Phase 4: memo corrected ✓`);
+            log.info({ originalLen: memoContent.length, correctedLen: correctedMemo.length }, 'Phase 4: memo corrected ✓');
             channel.sendPhase('memo_verify', 'corrected');
           } else {
-            log.info(`Phase 4: correction too short — keeping original`);
+            // Tell the operator exactly why we rejected so a bad correction
+            // doesn't look like a silent pass.
+            log.warn(
+              {
+                reason: !structure.answerTable
+                  ? 'missing answer table'
+                  : !structure.cogAnalysis
+                    ? 'missing cog analysis'
+                    : 'correction shorter than 70% of original',
+                structure, originalStructure,
+                originalLen: memoContent.length,
+                correctedLen: correctedMemo?.length || 0,
+              },
+              'Phase 4: correction rejected — keeping original memo',
+            );
             verifiedMemo = memoContent;
             verificationStatus = 'review_recommended';
             channel.sendPhase('memo_verify', 'review_recommended');
