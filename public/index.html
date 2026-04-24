@@ -183,8 +183,38 @@ select:focus{outline:none;border-color:var(--t4);}
 .err{background:#fff5f5;border:1.5px solid #f09595;border-radius:9px;padding:14px 18px;color:#A32D2D;font-size:13px;line-height:1.7;}
 /* Print */
 /* Signed-in user chip in the header */
-.user-chip{display:inline-flex;align-items:center;gap:8px;background:var(--t9);border:1px solid var(--t6);border-radius:20px;padding:4px 4px 4px 12px;font-size:11px;color:#fff;}
-.user-email{color:var(--t1);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.user-chip{display:inline-flex;align-items:center;gap:8px;background:var(--t9);border:1px solid var(--t6);border-radius:20px;padding:4px 4px 4px 4px;font-size:11px;color:#fff;}
+.user-email{color:var(--t1);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:4px;}
+.tier-badge{font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:var(--amber-on);color:#4d3400;border:1px solid var(--amber-bd);}
+.tier-badge.trial{background:#fdecc8;color:#704400;border-color:#f5c674;}
+.tier-badge.essential{background:#d6f1e2;color:#175d37;border-color:#a0d9ba;}
+.tier-badge.classroom{background:#ccdbfd;color:#183a7a;border-color:#8fa7e8;}
+.tier-badge.pro{background:#e4d1ff;color:#4a1e80;border-color:#b78df2;}
+.user-billing{background:var(--t1);color:var(--t9);border:none;border-radius:12px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;}
+.user-billing:hover{background:#b6e0c3;}
+.user-billing:disabled{opacity:0.6;cursor:wait;}
+.upgrade-modal{position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.upgrade-backdrop{position:absolute;inset:0;background:rgba(4,30,22,0.6);}
+.upgrade-card{position:relative;max-width:960px;width:100%;max-height:90vh;overflow-y:auto;background:#fff;border-radius:14px;padding:28px 32px;box-shadow:0 20px 48px rgba(0,0,0,0.28);}
+.upgrade-card h2{margin:0 0 6px 0;color:var(--green-deep);font-size:22px;}
+.upgrade-sub{margin:0 0 20px 0;color:var(--ink3);font-size:13px;}
+.upgrade-close{position:absolute;top:12px;right:12px;width:32px;height:32px;border:none;background:#f3f3f3;border-radius:50%;font-size:20px;cursor:pointer;color:#333;}
+.upgrade-close:hover{background:#e0e0e0;}
+.upgrade-tiers{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}
+.upgrade-tier{border:2px solid #e4e4e4;border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:8px;background:#fcfcfc;}
+.upgrade-tier.classroom{border-color:var(--green-deep);background:#f4fbf6;}
+.upgrade-tier-name{font-size:16px;font-weight:700;color:var(--green-deep);}
+.upgrade-tier-price{font-size:28px;font-weight:800;color:#222;}
+.upgrade-tier-price span{font-size:13px;font-weight:500;color:var(--ink3);}
+.upgrade-tier-annual{font-size:11px;color:var(--ink3);}
+.upgrade-tier-cap{font-size:12px;font-weight:600;color:#444;margin-top:4px;}
+.upgrade-tier-desc{font-size:12px;color:var(--ink3);line-height:1.4;flex:1;}
+.upgrade-tier-actions{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.upgrade-btn{background:var(--green-deep);color:#fff;border:none;border-radius:8px;padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+.upgrade-btn:hover{background:#0a6b54;}
+.upgrade-btn.secondary{background:#fff;color:var(--green-deep);border:1px solid var(--green-deep);}
+.upgrade-btn.secondary:hover{background:#f0f7f3;}
+.upgrade-btn:disabled{opacity:0.6;cursor:wait;}
 .user-logout{background:var(--t6);border:none;color:#fff;font-size:10px;font-weight:700;border-radius:14px;padding:4px 10px;cursor:pointer;font-family:inherit;}
 .user-logout:hover{background:var(--t4);color:var(--t9);}
 
@@ -272,7 +302,9 @@ select:focus{outline:none;border-color:var(--t4);}
     </div>
     <div class="badge">GR4–7 · ALL TERMS · CAPS</div>
     <div class="user-chip" id="user-chip" style="display:none;">
+      <span class="tier-badge" id="tier-badge" style="display:none;"></span>
       <span class="user-email" id="user-email"></span>
+      <button type="button" class="user-billing" id="user-billing" onclick="openBilling()" style="display:none;"></button>
       <button type="button" class="user-logout" onclick="doLogout()">Sign out</button>
     </div>
   </div>
@@ -1676,6 +1708,7 @@ function copyCover(){
 // the gate reappears if any API call returns 401 UNAUTHENTICATED (e.g. if
 // the session expires mid-session).
 let _currentUser = null;
+let _billingConfig = null; // { enabled: bool, tiers: { essential, classroom, pro } }
 
 function showAuthGate(reason){
   const gate = document.getElementById('auth-gate');
@@ -1691,22 +1724,146 @@ function hideAuthGate(){
   const gate = document.getElementById('auth-gate');
   if (gate) gate.classList.add('hidden');
 }
-function renderSignedIn(user){
+function renderSignedIn(user, billing){
   _currentUser = user;
+  _billingConfig = billing || null;
   const chip = document.getElementById('user-chip');
   const email = document.getElementById('user-email');
   if (email) email.textContent = user.email;
   if (chip) chip.style.display = 'inline-flex';
+  renderTierBadge(user.subscription);
+  renderBillingButton(user.subscription);
   hideAuthGate();
+}
+
+function renderTierBadge(sub){
+  const b = document.getElementById('tier-badge');
+  if (!b) return;
+  const tier = sub?.tier || null;
+  const status = sub?.status || null;
+  // Classes + text for each state. The badge is hidden entirely when we
+  // have nothing meaningful to show (e.g. trial has expired and they
+  // haven't subscribed — the Upgrade button carries the message then).
+  b.classList.remove('trial','essential','classroom','pro');
+  if (tier){
+    b.classList.add(tier);
+    b.textContent = tier.charAt(0).toUpperCase() + tier.slice(1) + (status === 'past_due' ? ' (past due)' : '');
+    b.style.display = 'inline-block';
+    return;
+  }
+  if (sub?.trialActive){
+    const daysLeft = Math.max(1, Math.ceil((sub.trialEndsAt - Date.now()) / (24*60*60*1000)));
+    b.classList.add('trial');
+    b.textContent = `Trial · ${daysLeft}d left`;
+    b.style.display = 'inline-block';
+    return;
+  }
+  b.style.display = 'none';
+}
+
+function renderBillingButton(sub){
+  const btn = document.getElementById('user-billing');
+  if (!btn) return;
+  if (!_billingConfig?.enabled){
+    btn.style.display = 'none';
+    return;
+  }
+  const tier = sub?.tier || null;
+  const status = sub?.status || null;
+  if (tier && (status === 'active' || status === 'trialing' || status === 'past_due')){
+    btn.textContent = 'Manage billing';
+    btn.dataset.action = 'portal';
+  } else {
+    btn.textContent = 'Upgrade';
+    btn.dataset.action = 'checkout';
+  }
+  btn.style.display = 'inline-block';
+}
+
+async function openBilling(){
+  const btn = document.getElementById('user-billing');
+  const action = btn?.dataset.action;
+  if (!action) return;
+  btn.disabled = true;
+  const originalLabel = btn.textContent;
+  btn.textContent = 'Opening…';
+  try {
+    if (action === 'portal'){
+      const r = await fetch('/api/billing/portal', { method: 'POST', credentials: 'same-origin' });
+      const d = await r.json();
+      if (!r.ok || !d.url) throw new Error(d.error || 'Could not open portal');
+      window.location.href = d.url;
+    } else {
+      // Upgrade flow: pop a simple tier picker.
+      showUpgradeModal();
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    }
+  } catch (err){
+    alert(err.message || String(err));
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+}
+
+function showUpgradeModal(){
+  const tiers = _billingConfig?.tiers || {};
+  const existing = document.getElementById('upgrade-modal');
+  if (existing) existing.remove();
+  const m = document.createElement('div');
+  m.id = 'upgrade-modal';
+  m.className = 'upgrade-modal';
+  m.innerHTML = `
+    <div class="upgrade-backdrop" onclick="document.getElementById('upgrade-modal').remove()"></div>
+    <div class="upgrade-card" role="dialog" aria-modal="true" aria-labelledby="upgrade-title">
+      <button class="upgrade-close" aria-label="Close" onclick="document.getElementById('upgrade-modal').remove()">×</button>
+      <h2 id="upgrade-title">Choose your plan</h2>
+      <p class="upgrade-sub">Your 14-day trial includes 5 generations. Upgrade any time to unlock the full product.</p>
+      <div class="upgrade-tiers">
+        ${Object.entries(tiers).map(([key, t]) => `
+          <div class="upgrade-tier ${key}">
+            <div class="upgrade-tier-name">${esc(t.name)}</div>
+            <div class="upgrade-tier-price">R${t.monthlyPriceZar}<span>/month</span></div>
+            <div class="upgrade-tier-annual">or R${t.annualPriceZar}/year (save 20%)</div>
+            <div class="upgrade-tier-cap">${t.monthlyCap} generations / month</div>
+            <div class="upgrade-tier-desc">${esc(t.description)}</div>
+            <div class="upgrade-tier-actions">
+              <button class="upgrade-btn" onclick="startCheckout('${key}','monthly')">Subscribe monthly</button>
+              <button class="upgrade-btn secondary" onclick="startCheckout('${key}','annual')">Annual · 20% off</button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  document.body.appendChild(m);
+}
+
+async function startCheckout(tier, billing){
+  const buttons = document.querySelectorAll('#upgrade-modal .upgrade-btn');
+  buttons.forEach(b => { b.disabled = true; });
+  try {
+    const r = await fetch('/api/billing/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ tier, billing }),
+    });
+    const d = await r.json();
+    if (!r.ok || !d.url) throw new Error(d.error || 'Could not start checkout');
+    window.location.href = d.url;
+  } catch (err){
+    alert(err.message || String(err));
+    buttons.forEach(b => { b.disabled = false; });
+  }
 }
 
 async function checkAuth(){
   try {
     const r = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (r.status === 200){
-      const { user } = await r.json();
-      renderSignedIn(user);
-      return user;
+      const payload = await r.json();
+      renderSignedIn(payload.user, payload.billing);
+      return payload.user;
     }
   } catch (_) {}
   showAuthGate();
@@ -1773,6 +1930,25 @@ async function fetchAuthed(url, opts = {}){
   // the moment they complete sign-in without a reload (but they can't hit
   // any Claude endpoint until then — the server enforces that).
   const user = await checkAuth();
+
+  // Stripe Checkout redirects back with ?checkout=success|cancelled.
+  // We scrub the param and flash a small toast. The webhook has either
+  // already updated the user row by the time the browser gets here (fast)
+  // or will within a few seconds (typical) — a single re-check of /me
+  // after 2s catches the common case without a page reload.
+  const params = new URLSearchParams(location.search);
+  const checkoutResult = params.get('checkout');
+  if (checkoutResult){
+    if (checkoutResult === 'success'){
+      alert('Subscription confirmed — welcome to The Resource Room.');
+      setTimeout(checkAuth, 2000);
+    } else if (checkoutResult === 'cancelled'){
+      alert('Checkout cancelled — no charge was made.');
+    }
+    params.delete('checkout');
+    const q = params.toString();
+    history.replaceState({}, '', location.pathname + (q ? '?' + q : ''));
+  }
 
   // Start from localStorage (instant); hydrate from the server in the
   // background when signed in so the most recent edits from another device

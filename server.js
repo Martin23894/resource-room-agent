@@ -22,6 +22,9 @@ import authLogoutHandler from './api/auth-logout.js';
 import authMeHandler from './api/auth-me.js';
 import userSettingsHandler from './api/user-settings.js';
 import userHistoryHandler from './api/user-history.js';
+import billingCheckoutHandler from './api/billing-checkout.js';
+import billingPortalHandler from './api/billing-portal.js';
+import stripeWebhookHandler from './api/stripe-webhook.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,6 +49,15 @@ app.use(pinoHttp({
     res: (res) => ({ statusCode: res.statusCode }),
   },
 }));
+
+// ─── Stripe webhook — MUST use raw body, so it goes before express.json() ──
+// Stripe verifies the signature against the exact bytes it sent, so any
+// middleware that re-serialises the body would break verification.
+app.post(
+  '/api/stripe/webhook',
+  express.raw({ type: 'application/json', limit: '1mb' }),
+  stripeWebhookHandler,
+);
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
@@ -174,6 +186,13 @@ app.get('/api/user/history', requireAuth, userHistoryHandler);
 app.post('/api/user/history', requireAuth, userHistoryHandler);
 app.delete('/api/user/history', requireAuth, userHistoryHandler);
 app.delete('/api/user/history/:id', requireAuth, userHistoryHandler);
+
+// ─── Billing (Phase 2.4c) ───────────────────────────────────
+// Checkout + portal return redirect URLs for the browser. The webhook
+// above is the source of truth for subscription state; these two just
+// open Stripe-hosted flows.
+app.post('/api/billing/checkout', requireAuth, billingCheckoutHandler);
+app.post('/api/billing/portal', requireAuth, billingPortalHandler);
 
 // ─── Health check (Railway uses this) ───────────────────────
 app.get('/health', (req, res) => {
