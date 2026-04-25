@@ -200,6 +200,42 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
   // hand-rolled version of extractContent. They now do the same thing.
   const safeExtractContent = extractContent;
 
+  // Detect when Phase 3B (cog analysis + extension + rubric) hit max_tokens
+  // mid-output. Conservative — only flags responses that show clear signs of
+  // being truncated mid-table. Used to trigger a single retry with a higher
+  // budget; if the retry also looks truncated we keep what we have.
+  function looksTruncated(text, withRubric) {
+    if (!text || typeof text !== 'string') return false;
+    const trimmed = text.trimEnd();
+    if (trimmed.length < 100) return true;          // suspiciously short
+    const tail = trimmed.slice(-12);
+    // Ends mid-word (no terminating whitespace, punctuation, pipe, or paren)
+    // and the last visible char looks like a letter — strong sign of cut-off.
+    if (/[A-Za-z]$/.test(trimmed) && !/[.!?\]\)|]\s*$/.test(trimmed)) {
+      return true;
+    }
+    // If a rubric was requested, the response must contain at least one full
+    // pipe-table row covering "Level 1" or its closing column. A rubric-aware
+    // section that ends without that is a truncation.
+    if (withRubric) {
+      const hasRubricHeading = /(MARKING RUBRIC|NASIENRUBRIEK|Marking Rubric)/i.test(trimmed);
+      if (hasRubricHeading) {
+        // Count pipe-rows after the rubric heading; a complete 4-criterion
+        // rubric has at least 5 rows (header + 4 criteria). Far fewer = cut off.
+        const idx = trimmed.search(/(MARKING RUBRIC|NASIENRUBRIEK|Marking Rubric)/i);
+        const rubricSection = idx >= 0 ? trimmed.slice(idx) : '';
+        const pipeRows = (rubricSection.match(/^\s*\|.*\|\s*$/gm) || []).length;
+        if (pipeRows < 4) return true;
+        // Rubric should end with a row that closes with `|`. If the last
+        // non-empty line doesn't, the table is incomplete.
+        const lines = rubricSection.split('\n').map((l) => l.trimEnd()).filter(Boolean);
+        const lastLine = lines[lines.length - 1] || '';
+        if (!/\|\s*$/.test(lastLine)) return true;
+      }
+    }
+    return false;
+  }
+
   // ═══════════════════════════════════════
   // PROMPTS — standard (non-RTT) pipeline
   // ═══════════════════════════════════════
@@ -428,18 +464,37 @@ Return JSON: {"content":"Section D text only"}`;
 Use pipe | tables only. No Unicode box characters. No markdown headings with #.
 Return JSON: {"content":"memorandum text"}`;
 
-    const rttMemoUsrA = `${secLabel[0]} QUESTIONS (${sm.a} marks):
+    const rttMemoUsrA = `READING PASSAGE:
+${passage}
+
+${secLabel[0]} QUESTIONS (${sm.a} marks):
 ${secA}
 
 Write the memo for ${secLabel[0]} ONLY:
+
 1. Answer table with columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-   - List every sub-question (1.1, 1.2 … etc)
+   - List EVERY sub-question (1.1, 1.2, 1.3, … through to the last sub-question, INCLUDING the highest-mark final question).
+   - Do NOT skip any sub-question. Do NOT truncate the table early. The answer
+     table must cover every sub-question listed above without exception.
    - COGNITIVE LEVEL must be one of: Literal | Reorganisation | Inferential | Evaluation and Appreciation
-   - Use the MARK shown in brackets on each question line
-2. After the table, write a Barrett's Taxonomy summary for ${secLabel[0]} ONLY:
+   - Use the MARK shown in brackets on each question line.
+
+2. NAMES AND FACTS — non-negotiable:
+   When a sub-question asks about characters, places, items, or events
+   from the reading passage above, your ANSWER must contain the actual
+   names / details from the passage VERBATIM. Read the passage and copy
+   the names exactly. Do NOT write placeholder text like "(name as in
+   text)" or "(naam soos in teks vermeld)" — that is invalid output.
+   If the question is "Who appeared before Sipho?" and the passage names
+   "Anri" and "Pieter", your ANSWER cell must contain "Anri" and "Pieter"
+   — not a placeholder. Same rule applies to all factual recall items.
+
+3. After the answer table, write a Barrett's Taxonomy summary for
+   ${secLabel[0]} ONLY:
    | Barrett's Level | Questions | Marks Allocated | Marks as % of Section |
    All rows must sum to exactly ${sm.a} marks. Target: Literal 20%, Reorganisation 20%, Inferential 40%, Evaluation 20%.
-3. End with: ${secLabel[0]} ${L.totalLabel}: ${sm.a} ${L.marksWord}
+
+4. End with: ${secLabel[0]} ${L.totalLabel}: ${sm.a} ${L.marksWord}
 
 Return JSON: {"content":"Section A memo"}`;
 
@@ -502,25 +557,61 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     const memoBC = cleanOutput(safeExtractContent(memoBCRaw));
     const memoD  = cleanOutput(safeExtractContent(memoDRaw));
 
+    // Localised memo header — was hard-coded English even on Afrikaans
+    // papers, which the Afrikaans HL audit caught.
+    const rttHeader = L.rttMemo || { heading: 'MEMORANDUM', subtitle: () => '', framework: '' };
+    const subjectDisplay = displaySubject || subject;
     const memoContent = [
-      'MEMORANDUM',
+      rttHeader.heading,
       '',
-      `Grade ${g} ${subject} — Response to Text — Term ${t}`,
-      `CAPS Aligned | Barrett\'s Taxonomy Framework`,
+      typeof rttHeader.subtitle === 'function' ? rttHeader.subtitle(g, subjectDisplay, t) : `Grade ${g} ${subjectDisplay} — Response to Text — Term ${t}`,
+      rttHeader.framework,
       '',
       memoA,
       '',
       memoBC,
       '',
-      memoD
+      memoD,
     ].join('\n');
 
     log.info(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} BC:${memoBCRaw.length} D:${memoDRaw.length})`);
 
+    // Per-section memo structure check. The Afrikaans HL audit caught a
+    // truncated Section A memo that dropped Q1.9 entirely. Run the same
+    // structural validator on each of the 3 RTT memo phases so we know
+    // exactly which one (if any) came back incomplete.
+    for (const [name, body] of [['Section A', memoA], ['Sections B+C', memoBC], ['Section D', memoD]]) {
+      const s = validateMemoStructure(body);
+      if (!s.answerTable) {
+        log.warn(
+          { section: name, len: body.length, tail: body.slice(-200) },
+          'RTT memo: section is missing the answer-table header — likely truncated or incomplete',
+        );
+      }
+    }
+
     const markTotal = totalMarks; // RTT papers use fixed mark total
 
+    // RTT mark-sum check. The standard pipeline runs Phase 2a mark-drift
+    // correction; the RTT pipeline did not, which let the Afrikaans HL paper
+    // ship at 47 marks while claiming 50. We don't auto-correct (4-section
+    // re-write would be expensive and risky) but we DO log a clear warning
+    // when the assembled paper drifts so the next bad generation is
+    // diagnosable from Railway logs alone.
+    try {
+      const actualMarks = countMarks(questionPaper);
+      if (actualMarks > 0 && actualMarks !== markTotal) {
+        log.warn(
+          { claimed: markTotal, counted: actualMarks, drift: actualMarks - markTotal },
+          'RTT paper: mark-sum drift between section headers and total — the paper does not actually sum to its TOTAL line',
+        );
+      }
+    } catch (e) {
+      log.info({ err: e?.message }, 'RTT mark-sum check skipped (parser error)');
+    }
+
     // Safety net: inject blank answer lines where the AI forgot them.
-    const finalPaper = ensureAnswerSpace(questionPaper);
+    const finalPaper = ensureAnswerSpace(questionPaper, { language });
     channel.sendPhase('docx_build', 'started');
 
     // Build DOCX
@@ -809,8 +900,25 @@ OUTPUT RULES:
 
     // ── Phase 3B: Generate cog analysis + extension + rubric ──
     channel.sendPhase('memo_analysis', 'started');
-    const memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
+    let memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
     log.info(`Phase 3B: cog analysis generated (${memoAnalysisRaw.length} chars)`);
+
+    // Phase 3B truncation guard.
+    // The output should end with a complete rubric — final row of the rubric
+    // table closing with a `|` and possibly trailing whitespace. If we see
+    // a clear truncation (ends mid-word, no rubric closing pipe in the last
+    // 200 chars, or the rubric heading appears but the last line isn't a
+    // complete table row), retry once with higher max_tokens. The Life Skills
+    // T4 audit caught this exact failure mode.
+    if (looksTruncated(memoAnalysisRaw, includeRubric)) {
+      log.warn({ tail: memoAnalysisRaw.slice(-200) }, 'Phase 3B: output looks truncated — retrying once with higher max_tokens');
+      try {
+        memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 16000));
+        log.info(`Phase 3B: retry generated (${memoAnalysisRaw.length} chars)`);
+      } catch (retryErr) {
+        log.warn({ err: retryErr?.message || retryErr }, 'Phase 3B: retry failed — keeping original output');
+      }
+    }
     channel.sendPhase('memo_analysis', 'done');
  
     const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
@@ -818,14 +926,39 @@ OUTPUT RULES:
     // ── Phase 4: Memo Verification + Auto-Correction ──
     // Tool-use guarantees a { clean, errors[], cogLevelErrors[] } object.
     const verSys = `You are a senior South African CAPS examiner performing a final accuracy check on a memorandum.
-Check EVERY row of the memorandum table:
+
+Check EVERY row of the memorandum table for the following error types:
+
 1. ARITHMETIC — recalculate the answer from scratch. Flag any mismatch.
 2. PROFIT_LOSS — income > cost = PROFIT; cost > income = LOSS. Flag wrong label or amount.
 3. COUNT — for stem-and-leaf or data set "how many" questions: count every leaf. Flag mismatches.
 4. ROUNDING — check rounded value matches marking guidance. Flag if answer uses different value.
-5. COG_LEVEL_TOTAL — add up MARK values per cognitive level. Compare to the analysis table. Flag mismatches.
+5. ANSWER_GUIDANCE_CONTRADICTION — for each row, compare the ANSWER cell with the
+   MARKING GUIDANCE cell of the SAME row. If the guidance computes a result that
+   contradicts the answer text, flag it. (Example: ANSWER says "Thandi is incorrect"
+   but the guidance shows working that proves Thandi correct.)
 
-Call the flag_memo_errors tool with clean=true and empty arrays if no errors exist.`;
+Then check the COGNITIVE LEVEL ANALYSIS section for THREE distinct kinds of issue:
+
+6. TABLE_ANALYSIS_MISMATCH — sum MARK values per cognitive level across the answer
+   rows. If a level's total does not equal the value shown in the cog analysis
+   TABLE, flag it.
+7. COG_BREAKDOWN_INCOMPLETE — read the breakdown text under the cog table
+   ("Knowledge (X marks): Q1.1 (1) + Q1.2 (1) + … = X marks"). Every sub-question
+   that exists in the answer table MUST appear in exactly one cog level's
+   breakdown. Flag any sub-question reference that is missing from all three
+   (or four) breakdown lists. Use kind=COG_BREAKDOWN_INCOMPLETE and put the
+   missing sub-question references in the missingItems field.
+8. COG_BREAKDOWN_MATH_ERROR — for each cog level, sum the bracketed mark values
+   listed in the breakdown text. If those listed items do NOT arithmetically
+   sum to the total claimed at the start of that breakdown line ("(X marks):
+   … = X marks"), flag it. (Example: "Middle Order (22 punte): … = 22 punte"
+   but the listed items add to 20.) Use kind=COG_BREAKDOWN_MATH_ERROR.
+
+Call the flag_memo_errors tool with clean=true and empty arrays if no errors
+exist. When reporting cogLevelErrors, ALWAYS include the kind field — set it
+to TABLE_ANALYSIS_MISMATCH for the legacy check (item 6 above), or
+COG_BREAKDOWN_INCOMPLETE / COG_BREAKDOWN_MATH_ERROR for items 7 and 8.`;
 
     const verUsr = `QUESTION PAPER:\n${questionPaper}\n\nMEMORANDUM TO VERIFY:\n${memoContent}\n\nCheck every memo row. Report ALL errors.`;
 
@@ -860,7 +993,18 @@ Call the flag_memo_errors tool with clean=true and empty arrays if no errors exi
       if (totalErrors > 0) {
         log.info(`Phase 4: ${totalErrors} error(s) detected`);
         (verResult.errors || []).forEach(e => log.info(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
-        (verResult.cogLevelErrors || []).forEach(e => log.info(`  CogLevel [${e.level}]: table=${e.foundInTable} analysis=${e.foundInAnalysis}`));
+        (verResult.cogLevelErrors || []).forEach(e => {
+          // Newer responses include kind; older "TABLE_ANALYSIS_MISMATCH" path
+          // omits it. Fall back gracefully so old responses still log usefully.
+          const kind = e.kind || 'TABLE_ANALYSIS_MISMATCH';
+          if (kind === 'COG_BREAKDOWN_INCOMPLETE') {
+            log.info(`  CogLevel [${e.level}] INCOMPLETE: missing ${e.missingItems || '(unspecified)'} from breakdown`);
+          } else if (kind === 'COG_BREAKDOWN_MATH_ERROR') {
+            log.info(`  CogLevel [${e.level}] MATH ERROR: claimed ${e.foundInTable} but items sum to ${e.foundInAnalysis}`);
+          } else {
+            log.info(`  CogLevel [${e.level}] TABLE/ANALYSIS MISMATCH: table=${e.foundInTable} analysis=${e.foundInAnalysis}`);
+          }
+        });
         channel.sendPhase('memo_verify', 'correcting', { errors: totalErrors });
 
         const corrMemoSys = `You are correcting specific verified errors in a memorandum.
@@ -880,8 +1024,25 @@ they had no errors, corrected where they did.
 
 Return the complete corrected memorandum as JSON: {"content":"complete corrected memorandum"}`;
         const allErrors = [
-          ...(verResult.errors || []).map(e => `Q${e.question} [${e.check}]: Answer should be "${e.correct}". ${e.fix}`),
-          ...(verResult.cogLevelErrors || []).map(e => `Cognitive Level table — ${e.level}: ${e.fix}`)
+          ...(verResult.errors || []).map(e => {
+            // ANSWER_GUIDANCE_CONTRADICTION needs slightly different phrasing
+            // to make clear that BOTH the answer cell and the guidance cell
+            // must align — fixing the answer alone is not enough.
+            if (e.check === 'ANSWER_GUIDANCE_CONTRADICTION') {
+              return `Q${e.question} [ANSWER ⇄ GUIDANCE contradiction]: ANSWER cell currently says "${e.found}". The MARKING GUIDANCE in the same row computes a result that proves the correct answer is "${e.correct}". Update the ANSWER cell so it agrees with the guidance. ${e.fix}`;
+            }
+            return `Q${e.question} [${e.check}]: Answer should be "${e.correct}". ${e.fix}`;
+          }),
+          ...(verResult.cogLevelErrors || []).map(e => {
+            const kind = e.kind || 'TABLE_ANALYSIS_MISMATCH';
+            if (kind === 'COG_BREAKDOWN_INCOMPLETE') {
+              return `Cognitive Level analysis — ${e.level}: breakdown is missing these sub-questions: ${e.missingItems || '(see report)'}. Add them to the ${e.level} breakdown line and update the line's total. ${e.fix}`;
+            }
+            if (kind === 'COG_BREAKDOWN_MATH_ERROR') {
+              return `Cognitive Level analysis — ${e.level}: claimed total is ${e.foundInTable} but the bracketed items sum to ${e.foundInAnalysis}. Update either the items or the claimed total so they agree. Then update the cog table at the top of the analysis section to match. ${e.fix}`;
+            }
+            return `Cognitive Level table — ${e.level}: ${e.fix}`;
+          }),
         ].join('\n');
         const corrMemoUsr = `Correct ONLY these verified errors. Do not change anything else.\n\nERRORS:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
 
@@ -940,7 +1101,7 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
     }
 
     // ── Phase 5: Safety net — inject blank answer lines the AI may have skipped ──
-    const finalPaper = ensureAnswerSpace(questionPaper);
+    const finalPaper = ensureAnswerSpace(questionPaper, { language });
     channel.sendPhase('docx_build', 'started');
 
     // ── Build DOCX ──

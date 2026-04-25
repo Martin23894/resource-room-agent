@@ -867,7 +867,7 @@
           "tasks": [
             {
               "label": "Controlled test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 25,
               "maxMarks": 50
             }
@@ -896,7 +896,7 @@
           "tasks": [
             {
               "label": "Controlled test (T3+T4)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 25,
               "maxMarks": 50
             }
@@ -928,7 +928,7 @@
           "tasks": [
             {
               "label": "Controlled test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 30,
               "maxMarks": 50
             }
@@ -957,7 +957,7 @@
           "tasks": [
             {
               "label": "Controlled test (T3+T4)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 30,
               "maxMarks": 50
             }
@@ -988,7 +988,7 @@
           "tasks": [
             {
               "label": "Controlled test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 40,
               "maxMarks": 60
             }
@@ -1017,7 +1017,7 @@
           "tasks": [
             {
               "label": "Controlled test (T3+T4)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 40,
               "maxMarks": 60
             }
@@ -1048,7 +1048,7 @@
           "tasks": [
             {
               "label": "Controlled test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 50,
               "maxMarks": 75
             }
@@ -1110,7 +1110,7 @@
           "tasks": [
             {
               "label": "Test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 25,
               "maxMarks": 40
             }
@@ -1140,7 +1140,7 @@
           "tasks": [
             {
               "label": "Test (T3+T4)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 40,
               "maxMarks": 60
             }
@@ -1178,7 +1178,7 @@
           "tasks": [
             {
               "label": "Test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 30,
               "maxMarks": 50
             }
@@ -1209,7 +1209,7 @@
           "tasks": [
             {
               "label": "Test (T3+T4)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 30,
               "maxMarks": 50
             }
@@ -1243,7 +1243,7 @@
           "tasks": [
             {
               "label": "Test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 40,
               "maxMarks": 60
             }
@@ -1275,7 +1275,7 @@
           "tasks": [
             {
               "label": "Test (T3+T4)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 40,
               "maxMarks": 60
             }
@@ -1308,7 +1308,7 @@
           "tasks": [
             {
               "label": "Controlled test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 50,
               "maxMarks": 75
             }
@@ -3397,7 +3397,7 @@
           "tasks": [
             {
               "label": "Controlled test (T1+T2)",
-              "resourceType": "Test",
+              "resourceType": "Exam",
               "minMarks": 50,
               "maxMarks": 75
             }

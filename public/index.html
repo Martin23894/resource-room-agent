@@ -1042,14 +1042,39 @@ const PHASE_LABELS = {
 
 function friendlyError(raw){
   const msg = String(raw || '').trim();
+
+  // User-cancelled — no retry hint (they meant to cancel).
   if (/aborted|cancelled/i.test(msg)) return 'Generation cancelled.';
+
+  // Server misconfigured / auth — retrying won't help; user needs to act.
   if (/ANTHROPIC_API_KEY/i.test(msg)) return 'The server is not fully configured. Contact support.';
-  if (/timed out/i.test(msg)) return 'Generation is taking unusually long. Please try again.';
+  if (/Sign in required|UNAUTHENTICATED/i.test(msg)) return 'Your session has expired. Please sign in again.';
+  if (/Not found/i.test(msg)) return 'The server rejected the request.';
+
+  // Rate limits — retrying immediately won't help; tell the user when to retry.
   if (/Too many requests|429/.test(msg)) return 'Too many requests. Please wait a minute and try again.';
   if (/Hourly limit/i.test(msg)) return 'Hourly limit reached. Please try again later.';
   if (/Daily limit/i.test(msg)) return 'Daily limit reached. Please try again tomorrow.';
-  if (/Not found/i.test(msg)) return 'The server rejected the request.';
-  return msg || 'Generation failed. Please try again.';
+
+  // Transient errors — the SDK already retried with exponential backoff and
+  // still failed. A manual retry 30+ seconds later usually works because the
+  // network blip / Anthropic overload has cleared by then. Encourage it
+  // explicitly so teachers don't think they have to start from scratch.
+  if (/timed out|timeout|TIMEOUT/i.test(msg)) {
+    return 'Generation took longer than expected — likely a network or service hiccup. Click Generate again, the issue is usually transient.';
+  }
+  if (/network error|NETWORK|fetch failed|ECONN|ETIMEDOUT|EAI_AGAIN/i.test(msg)) {
+    return 'Network hiccup connecting to the AI service. Click Generate again, the issue is usually transient.';
+  }
+  if (/overload|529|temporarily unavailable|503/i.test(msg)) {
+    return 'The AI service is briefly overloaded. Click Generate again in 10–20 seconds.';
+  }
+  if (/^HTTP 5\d\d$|API error 5\d\d|Server error/i.test(msg)) {
+    return 'The server reported a temporary error. Click Generate again, the issue is usually transient.';
+  }
+
+  // Anything else — pass through, suggest a retry as a soft fallback.
+  return (msg || 'Generation failed.') + ' Click Generate again to try once more.';
 }
 
 function phaseLi(key, label){

@@ -118,7 +118,10 @@ describe('validatePlan — topic diversity + concentration', () => {
     ]);
     const lines = [];
     assert.equal(validatePlan(plan, ctx, { info: (m) => lines.push(m) }), null);
-    assert.ok(lines.some((m) => /distinct topic/i.test(m)), 'should log topic-diversity rejection');
+    assert.ok(
+      lines.some((m) => /distinct ATP entr/i.test(m) || /distinct topic/i.test(m)),
+      'should log topic-diversity rejection',
+    );
   });
 
   test('rejects a two-topic plan when ATP has ≥ 3 topics available', () => {
@@ -168,34 +171,88 @@ describe('validatePlan — topic diversity + concentration', () => {
 });
 
 describe('planContext — topic-diversity threshold scales with ATP size', () => {
-  test('minDistinctTopics caps at 3 when ATP has 3+ topics', () => {
+  test('minDistinctAtpEntries caps at 3 when ATP has 3+ topics', () => {
     const c = planContext({
       totalMarks: 50, cog: MATHS_COG, cogMarks: MATHS_MARKS, cogTolerance: 1,
       atpTopics: ['A', 'B', 'C', 'D', 'E', 'F'],
     });
-    assert.equal(c.minDistinctTopics, 3);
+    assert.equal(c.minDistinctAtpEntries, 3);
   });
 
-  test('minDistinctTopics = 2 when ATP has exactly 2 topics', () => {
+  test('minDistinctAtpEntries = 2 when ATP has exactly 2 topics', () => {
     const c = planContext({
       totalMarks: 50, cog: MATHS_COG, cogMarks: MATHS_MARKS, cogTolerance: 1,
       atpTopics: ['A', 'B'],
     });
-    assert.equal(c.minDistinctTopics, 2);
+    assert.equal(c.minDistinctAtpEntries, 2);
   });
 
-  test('minDistinctTopics = 1 when ATP has only 1 topic', () => {
+  test('minDistinctAtpEntries = 1 when ATP has only 1 topic', () => {
     const c = planContext({
       totalMarks: 50, cog: MATHS_COG, cogMarks: MATHS_MARKS, cogTolerance: 1,
       atpTopics: ['A'],
     });
-    assert.equal(c.minDistinctTopics, 1);
+    assert.equal(c.minDistinctAtpEntries, 1);
   });
 
-  test('maxMarksPerTopic is 50% of totalMarks, rounded up', () => {
-    assert.equal(planContext({ totalMarks: 50, cog: MATHS_COG, cogMarks: MATHS_MARKS, cogTolerance: 1 }).maxMarksPerTopic, 25);
-    assert.equal(planContext({ totalMarks: 25, cog: MATHS_COG, cogMarks: largestRemainder(25, MATHS_COG.pcts), cogTolerance: 1 }).maxMarksPerTopic, 13);
-    assert.equal(planContext({ totalMarks: 100, cog: MATHS_COG, cogMarks: largestRemainder(100, MATHS_COG.pcts), cogTolerance: 1 }).maxMarksPerTopic, 50);
+  test('maxMarksPerAtpEntry is 50% of totalMarks, rounded up', () => {
+    assert.equal(planContext({ totalMarks: 50, cog: MATHS_COG, cogMarks: MATHS_MARKS, cogTolerance: 1 }).maxMarksPerAtpEntry, 25);
+    assert.equal(planContext({ totalMarks: 25, cog: MATHS_COG, cogMarks: largestRemainder(25, MATHS_COG.pcts), cogTolerance: 1 }).maxMarksPerAtpEntry, 13);
+    assert.equal(planContext({ totalMarks: 100, cog: MATHS_COG, cogMarks: largestRemainder(100, MATHS_COG.pcts), cogTolerance: 1 }).maxMarksPerAtpEntry, 50);
+  });
+});
+
+describe('validatePlan — ATP-entry diversity (catches the EMS-Final-Exam monoculture)', () => {
+  // The EMS-Final-Exam failure mode: Claude paraphrases ONE ATP entry
+  // (e.g. "history of money — barter, traditional/modern, paper money,
+  // electronic banking") into multiple plan-topic strings ("barter",
+  // "commodity money", "paper money", "electronic banking") that all
+  // collapse back to the same ATP entry. String-distinctness used to
+  // pass; ATP-entry-distinctness rejects.
+  const EMS_T1_ATP = [
+    'The economy: history of money — traditional societies; comparison of traditional and modern monetary systems; paper money; electronic banking',
+    'The economy: needs and wants — differentiating between primary and secondary needs; characteristics; unlimited wants vs limited resources',
+    'The economy: goods and services — differentiating, examples; role of producers and consumers; recycling goods',
+  ];
+
+  // Use Bloom's 30/50/20 split for SS so we don't have to reshape the
+  // plan to fit Maths's 25/45/20/10.
+  const SS_COG = { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30, 50, 20] };
+  const SS_MARKS = largestRemainder(50, SS_COG.pcts); // [15, 25, 10]
+
+  const ssCtx = planContext({
+    totalMarks: 50, cog: SS_COG, cogMarks: SS_MARKS, cogTolerance: 1,
+    atpTopics: EMS_T1_ATP,
+  });
+
+  test('rejects a plan that paraphrases ONE ATP entry as 4 different topic strings', () => {
+    // Five questions, all hitting the "history of money" ATP entry but
+    // labelled with paraphrased variants. String-distinctness would see
+    // 5 distinct strings and pass. ATP-entry-distinctness folds them
+    // back into 1 ATP entry and rejects.
+    const plan = makePlan([
+      { number: 'Q1', type: 'MCQ',          topic: 'barter system',         marks: 10, cogLevel: 'Low Order' },
+      { number: 'Q2', type: 'MCQ',          topic: 'commodity money',       marks: 5,  cogLevel: 'Low Order' },
+      { number: 'Q3', type: 'Short Answer', topic: 'paper money history',   marks: 12, cogLevel: 'Middle Order' },
+      { number: 'Q4', type: 'Short Answer', topic: 'electronic banking',    marks: 13, cogLevel: 'Middle Order' },
+      { number: 'Q5', type: 'Multi-step',   topic: 'modern monetary systems', marks: 10, cogLevel: 'High Order' },
+    ]);
+    const lines = [];
+    assert.equal(validatePlan(plan, ssCtx, { info: (m) => lines.push(m) }), null);
+    assert.ok(
+      lines.some((m) => /distinct ATP entr/i.test(m) || /max \d+/.test(m)),
+      'should log the ATP-entry diversity rejection',
+    );
+  });
+
+  test('accepts a plan that genuinely spans 3 different ATP entries', () => {
+    const plan = makePlan([
+      { number: 'Q1', type: 'MCQ',          topic: 'history of money',  marks: 15, cogLevel: 'Low Order' },
+      { number: 'Q2', type: 'Short Answer', topic: 'needs and wants',   marks: 12, cogLevel: 'Middle Order' },
+      { number: 'Q3', type: 'Short Answer', topic: 'goods and services', marks: 13, cogLevel: 'Middle Order' },
+      { number: 'Q4', type: 'Multi-step',   topic: 'producers consumers', marks: 10, cogLevel: 'High Order' },
+    ]);
+    assert.ok(validatePlan(plan, ssCtx));
   });
 });
 
