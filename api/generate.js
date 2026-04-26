@@ -21,6 +21,7 @@ import { generateCacheKey } from '../lib/cache-key.js';
 import { createDocxBuilder } from '../lib/docx-builder.js';
 import { buildPrompts } from '../lib/prompts.js';
 import { createEventChannel } from '../lib/sse.js';
+import { buildInvariantContext, runPreDeliveryGate, InvariantGateError } from '../lib/invariants.js';
 
 // ============================================================
 // MAIN HANDLER
@@ -882,15 +883,49 @@ Return JSON: {"content":"Section D memo only"}`;
     // RTT papers don't run a memo-verify step, so we'd normally report
     // them as 'clean'. Phase 1.4 promotes mark-sum drift over 'clean' so
     // a teacher receiving a 47/50 paper sees the warning, not a thumbs-up.
+    //
+    // Phase 1.6 (invariant gate): RTT pipeline runs the same pre-delivery
+    // gate as the standard pipeline. The plan argument is empty (RTT has
+    // no question-plan phase), so any plan-scoped invariants are skipped.
+    // cog/cogMarks come from getCogLevels for Barrett's framework.
+    channel.sendPhase('invariant_gate', 'started');
+    const rttGateCtx = buildInvariantContext({
+      paper:        finalPaper,
+      memo:         finalMemo,
+      plan:         { questions: [] },
+      language,
+      subject,
+      resourceType,
+      totalMarks: markTotal,
+      cog,
+      cogMarks,
+      cogTolerance,
+      pipeline:     'rtt',
+    });
+    const rttGate = runPreDeliveryGate(rttGateCtx, { logger: log });
+    channel.sendPhase('invariant_gate', rttGate.passed ? 'passed' : 'failed', {
+      mode: rttGate.mode,
+      total: rttGate.failures.length,
+      blocking: rttGate.blocking.length,
+      ids: rttGate.failures.map((f) => f.id),
+    });
+
     const preview = finalPaper + '\n\n' + finalMemo;
+    const rttBaseStatus = rttMarkSumWarning ? 'mark_sum_drift' : (rttGate.passed ? 'invariants_passed' : 'invariants_failed');
     const payload = {
       docxBase64,
       preview,
       filename,
-      verificationStatus: rttMarkSumWarning ? 'mark_sum_drift' : 'clean',
+      verificationStatus: rttBaseStatus,
       ...(rttMarkSumWarning ? { markSumWarning: rttMarkSumWarning } : {}),
+      ...(rttGate.failures.length > 0 ? { invariantFailures: rttGate.failures.map((f) => ({ id: f.id, category: f.category, scope: f.scope, message: f.message })) } : {}),
     };
-    try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
+    if (rttGate.passed) {
+      try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
+      // TODO Phase 2.4d: decrement teacher's monthly usage counter HERE.
+    } else {
+      log.warn({ ids: rttGate.failures.map((f) => f.id) }, 'RTT invariant gate did not pass — skipping cacheSet (no quota cost)');
+    }
     channel.sendResult(payload);
     return;
   }
@@ -1556,20 +1591,67 @@ they had no errors, corrected where they did.`;
     }
     channel.sendPhase('docx_build', 'done');
 
+    // ── Pre-delivery invariant gate ──
+    // Last checkpoint before we hand the paper to the teacher. The gate
+    // runs every registered invariant against the final paper+memo+plan
+    // and either reports (mode=report, default) or blocks delivery
+    // (mode=enforce). cacheSet() and the future quota decrement run ONLY
+    // after passed=true so failed regeneration attempts never consume the
+    // teacher's monthly quota. Set INVARIANT_GATE_MODE=enforce to switch.
+    channel.sendPhase('invariant_gate', 'started');
+    const gateCtx = buildInvariantContext({
+      paper:        finalPaper,
+      memo:         finalMemo,
+      plan,
+      language,
+      subject,
+      resourceType,
+      totalMarks,
+      cog,
+      cogMarks,
+      cogTolerance,
+      pipeline:     'standard',
+    });
+    const gate = runPreDeliveryGate(gateCtx, { logger: log });
+    channel.sendPhase('invariant_gate', gate.passed ? 'passed' : 'failed', {
+      mode: gate.mode,
+      total: gate.failures.length,
+      blocking: gate.blocking.length,
+      ids: gate.failures.map((f) => f.id),
+    });
+
     const preview = finalPaper + '\n\n' + finalMemo;
     // Phase 1.4: mark-sum drift takes precedence in the verificationStatus
     // because a wrong total is more visible to the teacher than a memo
     // arithmetic error. Surface the body/cover/drift figures so the UI
     // can render an accurate "review marks" badge instead of "clean".
-    const finalStatus = markSumWarning ? 'mark_sum_drift' : verificationStatus;
+    //
+    // Phase 1.6 (invariant gate): when the gate detects unfixed failures
+    // in report mode, surface them via verificationStatus so the UI can
+    // flag them and the dev team has a single field to monitor.
+    const finalStatus = markSumWarning
+      ? 'mark_sum_drift'
+      : (!gate.passed ? 'invariants_failed' : verificationStatus === 'clean' ? 'invariants_passed' : verificationStatus);
     const payload = {
       docxBase64,
       preview,
       filename,
       verificationStatus: finalStatus,
       ...(markSumWarning ? { markSumWarning } : {}),
+      ...(gate.failures.length > 0 ? { invariantFailures: gate.failures.map((f) => ({ id: f.id, category: f.category, scope: f.scope, message: f.message })) } : {}),
     };
-    try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
+    // Cache + (future) quota decrement run only on a clean gate. A failed
+    // gate in report mode still ships the paper but skips the cache so a
+    // retry doesn't get served the same broken artefact. Quota decrement
+    // (Phase 2.4d) will hook in here, gated identically.
+    if (gate.passed) {
+      try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
+      // TODO Phase 2.4d: decrement teacher's monthly usage counter HERE.
+      // Failed-regen attempts must NOT touch user state — only this
+      // success-path point may.
+    } else {
+      log.warn({ ids: gate.failures.map((f) => f.id) }, 'Invariant gate did not pass — skipping cacheSet (no quota cost)');
+    }
     channel.sendResult(payload);
     return;
 
@@ -1578,6 +1660,21 @@ they had no errors, corrected where they did.`;
     // logged at error level or surfaced as 500s.
     if (clientClosed || (err instanceof AnthropicError && err.code === 'ABORTED')) {
       log.info('Generation cancelled by client');
+      return;
+    }
+    // Invariant gate hard-error (enforce mode + cap exhausted). The
+    // teacher's quota is NEVER decremented on this path — the wiring
+    // around cacheSet ensures that. We surface a clean message so the UI
+    // can render "couldn't generate a valid paper, please try again".
+    if (err instanceof InvariantGateError) {
+      log.error(
+        { ids: err.failures.map((f) => f.id), attempts: err.attempts },
+        'Invariant gate blocked delivery — returning 500 (no quota decrement)',
+      );
+      channel.sendError(Object.assign(
+        new Error("We couldn't generate a valid paper for this configuration. Please try again — your quota was not used."),
+        { status: 500, code: 'INVARIANT_GATE_BLOCKED' },
+      ));
       return;
     }
     log.error({ err: err?.message || err, stack: err?.stack }, 'Generate error');
