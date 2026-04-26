@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
+import { cleanOutput, localiseLabels, stripLeadingMemoBanner, scrubInCellMetaCommentary } from '../lib/clean-output.js';
 
 describe('cleanOutput — drops commentary lines', () => {
   test('drops STEP N headers', () => {
@@ -470,5 +470,63 @@ describe('cleanOutput — Afrikaans META_COMMENTARY_RULES (Bug 2)', () => {
   test('drops Afrikaans VERSPREIDINGSNOTA paragraph', () => {
     const out = cleanOutput('Hierdie vraestel voldoen nie aan CAPS nie\n1.1 Vraag (1)');
     assert.doesNotMatch(out, /Hierdie vraestel voldoen nie/i);
+  });
+});
+
+describe('scrubInCellMetaCommentary — Phase 6: in-cell meta-commentary leaks', () => {
+  test('Bug 11: NOTE TO EDUCATOR phrase removed from a marking-guidance cell', () => {
+    // Resource 1 audit: the 4.7 cell included
+    // "NOTE TO EDUCATOR: The original sentence 'Lerato said,' appears
+    // incomplete in the question paper. Award marks based on the
+    // following model if the full sentence reads…"
+    const cell = 'Lerato said that she was going. NOTE TO EDUCATOR: The original sentence appears incomplete in the question paper. Award marks based on the model.';
+    const out = scrubInCellMetaCommentary(cell);
+    assert.doesNotMatch(out, /NOTE TO EDUCATOR/);
+    assert.match(out, /Lerato said that she was going/, 'legitimate cell content preserved');
+  });
+
+  test('Bug 27: "Vraag X was onvolledig" stripped from Afrikaans memo cell', () => {
+    const cell = 'Kweekhuisgasse vang hitte vas. Vraag 4.4 was onvolledig op die vraestel — beoordeel op grond van wat die leerder verstaan.';
+    const out = scrubInCellMetaCommentary(cell);
+    assert.doesNotMatch(out, /onvolledig op die vraestel/i);
+    assert.match(out, /Kweekhuisgasse/);
+  });
+
+  test('Bug 37: "(award both marks together)" parenthetical stripped', () => {
+    const cell = 'Figure 6: 30 + 12 = 42 (award both marks together for 7.2)';
+    const out = scrubInCellMetaCommentary(cell);
+    assert.doesNotMatch(out, /award both marks together/i);
+    assert.match(out, /Figure 6: 30 \+ 12 = 42/);
+  });
+
+  test('"(see report)" parenthetical stripped', () => {
+    const cell = 'Update the working (see error report).';
+    const out = scrubInCellMetaCommentary(cell);
+    assert.doesNotMatch(out, /see (?:error )?report/i);
+  });
+
+  test('legitimate text containing the word "note" is left alone', () => {
+    const cell = 'Note that the sum is 7. Also note: this is a real answer.';
+    const out = scrubInCellMetaCommentary(cell);
+    assert.match(out, /Note that the sum is 7/);
+  });
+
+  test('null/empty input is safe', () => {
+    assert.equal(scrubInCellMetaCommentary(''), '');
+    assert.equal(scrubInCellMetaCommentary(null), null);
+  });
+});
+
+describe('cleanOutput — Resource 1 Bug 10: phantom answer rows stripped', () => {
+  test('"4.8 | [No question 4.8 appears in the paper..." row is removed', () => {
+    const memo = [
+      '| 4.7 | answer | guidance | Routine | 2 |',
+      '| 4.8 | [No question 4.8 appears in the paper — marks already accounted for in 4.1–4.7 above] | N/A | N/A | — |',
+      '| TOTAL | | | | 15 |',
+    ].join('\n');
+    const out = cleanOutput(memo);
+    assert.doesNotMatch(out, /No question 4\.8 appears/);
+    // The legitimate rows are preserved
+    assert.match(out, /\| 4\.7 \| answer \|/);
   });
 });
