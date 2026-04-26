@@ -1346,7 +1346,7 @@ they had no errors, corrected where they did.`;
           // mid-string that left the JSON envelope unclosed; bumping to 16k
           // matches the Phase 3B retry budget.
           const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 16000);
-          const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
+          let correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
           // Structural guard: reject fragments. A valid corrected memo must
           // contain BOTH the answer table (NO./NR. | ANSWER/ANTWOORD header)
           // AND the cognitive level analysis. Older length-only guard
@@ -1358,6 +1358,23 @@ they had no errors, corrected where they did.`;
           const bigEnough = correctedMemo && correctedMemo.length >= Math.max(500, Math.floor(memoContent.length * 0.7));
 
           if (structure.complete && bigEnough) {
+            // Bug 5 follow-up: re-apply the deterministic cog-table
+            // reconciliation to Phase 4's corrected memo. Phase 4 asks
+            // Claude to fix specific errors but Claude can introduce new
+            // miscounts in the cog table while doing so. Phase 3C ran on
+            // the pre-correction memo; without this second pass, the
+            // post-correction cog table can ship with wrong Actual Marks.
+            const post4Fix = correctCogAnalysisTable(correctedMemo, {
+              levels: cog.levels,
+              totalMarks: markTotal,
+            });
+            if (post4Fix.changed) {
+              log.info(
+                { computedByLevel: post4Fix.computedByLevel, totalCounted: post4Fix.totalCounted },
+                'Phase 4 post: cog-table reconciled on the corrected memo (Bug 5 follow-up)',
+              );
+              correctedMemo = post4Fix.text;
+            }
             verifiedMemo = correctedMemo;
             verificationStatus = 'corrected';
             log.info({ originalLen: memoContent.length, correctedLen: correctedMemo.length }, 'Phase 4: memo corrected ✓');

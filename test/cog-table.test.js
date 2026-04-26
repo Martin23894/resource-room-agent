@@ -62,6 +62,56 @@ describe('parseMemoAnswerRows — extracts (number, level, mark) tuples', () => 
     assert.deepEqual(parseMemoAnswerRows(null), []);
     assert.deepEqual(parseMemoAnswerRows(undefined), []);
   });
+
+  test('handles "8.1(a)" parenthesised sub-letter (Paper 10 Maths memo format)', () => {
+    // Paper 10 (Grade 7 Wiskunde Eindeksamen) wrote sub-parts as
+    // "8.1(a)" / "8.1(b)" — the original ROW_NUMBER_RE only allowed
+    // bare-letter suffixes ("8.1a"), so the (a)(b) rows were silently
+    // skipped, hiding the Bug 11 over-counting from the cog reconciliation.
+    const memo = [
+      '| 8.1(a) | 7 677 | working | Roetine Prosedures | 2 |',
+      '| 8.1(b) | 5 000 | working | Roetine Prosedures | 2 |',
+      '| 8.2 | answer | working | Roetine Prosedures | 2 |',
+    ].join('\n');
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 3, 'all three Q8 sub-part rows must parse');
+    assert.equal(rows[0].number, '8.1(a)');
+    assert.equal(rows[1].number, '8.1(b)');
+    assert.equal(rows[2].number, '8.2');
+  });
+
+  test('handles "8.1 (a)" with space before paren', () => {
+    const memo = '| 8.1 (a) | answer | guidance | Routine | 1 |';
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].mark, 1);
+  });
+
+  test('keeps zero-mark rows (Bug 9: zero-marked Barrett\'s levels are valid)', () => {
+    // The Bug 9 fix prompts the model to emit ALL FOUR Barrett's levels
+    // even if a level has 0 marks. parseMemoAnswerRows must accept
+    // zero-mark rows so tallyByLevel can still see the level exists.
+    const memo = [
+      '| 1.1 | answer | guidance | Literal | 5 |',
+      '| 1.2 | answer | guidance | Reorganisation | 0 |',
+      '| 2.1 | answer | guidance | Inferential | 10 |',
+    ].join('\n');
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 3, 'zero-mark row must not be filtered out');
+    assert.equal(rows[1].mark, 0);
+    assert.equal(rows[1].level, 'Reorganisation');
+  });
+
+  test('rejects negative or non-numeric mark values', () => {
+    const memo = [
+      '| 1.1 | a | b | Level | -1 |',
+      '| 1.2 | a | b | Level | abc |',
+      '| 1.3 | a | b | Level | 2 |',
+    ].join('\n');
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0].number, '1.3');
+  });
 });
 
 describe('tallyByLevel — sums marks per cognitive level', () => {
@@ -168,6 +218,60 @@ describe('correctCogAnalysisTable — Bug 5: fixes wrong Actual Marks cells', ()
     });
     assert.equal(result.changed, false);
     assert.equal(result.text, memo);
+  });
+
+  test('reconciles an Afrikaans memo even when caller passes English level names', () => {
+    // The original design accepted a `levels` parameter and silently
+    // skipped rows whose label didn't appear there — for an Afrikaans
+    // Maths memo with "Kennis / Roetine Prosedures / …" labels, passing
+    // English ['Knowledge','Routine Procedures',…] meant Phase 3C did
+    // nothing. Now matching uses the memo's own labels, language-agnostic.
+    const memo = [
+      '| NR. | ANTWOORD | NASIENRIGLYN | KOGNITIEWE VLAK | PUNT |',
+      '|---|---|---|---|---|',
+      '| 11.1 | x | y | Komplekse Prosedures | 2 |',
+      '| 11.4 | x | y | Komplekse Prosedures | 4 |',
+      '| 12.1 | x | y | Komplekse Prosedures | 3 |',
+      '| 12.2 | x | y | Komplekse Prosedures | 2 |',
+      '| 12.3 | x | y | Komplekse Prosedures | 2 |',
+      '| 12.4 | x | y | Komplekse Prosedures | 1 |',
+      '| 12.5 | x | y | Komplekse Prosedures | 2 |',
+      '| 11.2 | x | y | Komplekse Prosedures | 2 |',
+      '| 11.3 | x | y | Komplekse Prosedures | 2 |',
+      '',
+      '| Kognitiewe Vlak | Voorgeskrewe % | Voorgeskrewe Punte | Werklike Punte | Werklike % |',
+      '|---|---|---|---|---|',
+      '| Komplekse Prosedures | 20% | 20 | 18 | 18.0% |',
+    ].join('\n');
+
+    // Caller passes ENGLISH names but the memo is Afrikaans.
+    const r = correctCogAnalysisTable(memo, {
+      levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'],
+      totalMarks: 100,
+    });
+    assert.equal(r.changed, true, 'must reconcile despite the English-vs-Afrikaans label mismatch');
+    assert.match(r.text, /\| Komplekse Prosedures \| 20% \| 20 \| 20 \| 20\.0% \|/);
+  });
+
+  test('zeros out a cog-table row whose level has no answer rows', () => {
+    // If the cog table claims "Inferential = 5" but there are no
+    // Inferential answer rows, the cell must be reset to 0.
+    const memo = [
+      '| NO. | ANSWER | GUIDANCE | LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| 1.1 | a | b | Literal | 5 |',
+      '',
+      '| Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |',
+      '|---|---|---|---|---|',
+      '| Literal | 50% | 5 | 5 | 50.0% |',
+      '| Inferential | 50% | 5 | 5 | 50.0% |',
+    ].join('\n');
+    const r = correctCogAnalysisTable(memo, { totalMarks: 10 });
+    assert.equal(r.changed, true);
+    // Inferential has no answer rows backing it — must zero out.
+    assert.match(r.text, /\| Inferential \| 50% \| 5 \| 0 \| 0\.0% \|/);
+    // Literal stays correct.
+    assert.match(r.text, /\| Literal \| 50% \| 5 \| 5 \| 50\.0% \|/);
   });
 
   test('Barrett\'s Level header (RTT pipeline) is also recognised', () => {

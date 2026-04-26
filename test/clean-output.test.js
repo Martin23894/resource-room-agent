@@ -395,6 +395,43 @@ describe('cleanOutput — Bug 21: phase-commentary preamble lines', () => {
     assert.match(out, /\| Q7\.4 \| R12 000/);
   });
 
+  test('keeps a legitimate "Q1.2: This table shows…" question stem', () => {
+    // Bug 21 regex must not over-match. A learner question that starts
+    // with "This" after the question number is real content.
+    const out = cleanOutput('Q1.2: This table shows the rainfall figures for 2024. (3)');
+    assert.match(out, /This table shows the rainfall figures/);
+  });
+
+  test('keeps a legitimate "Q3.1: The working principle of …" stem', () => {
+    // Same — "The working" inside a real question stem must not be stripped.
+    const out = cleanOutput('Q3.1: The working principle of a battery involves chemical reactions. Discuss. (4)');
+    assert.match(out, /working principle of a battery/);
+  });
+
+  test('keeps a legitimate "Q4.1: The answer is …" stem', () => {
+    const out = cleanOutput('Q4.1: The answer is below this line. (2)');
+    assert.match(out, /The answer is below this line/);
+  });
+
+  test('still drops "Q7.4: The working needs to explicitly state…" (commentary)', () => {
+    // The narrowed regex must still catch the actual Bug 21 pattern.
+    const out = cleanOutput([
+      'Q7.4: The working needs to explicitly state that Option B requires a positive monthly profit.',
+      '| 1.1 | answer |',
+    ].join('\n'));
+    assert.doesNotMatch(out, /needs to explicitly state/);
+    assert.match(out, /\| 1\.1 \| answer \|/);
+  });
+
+  test('still drops "Q7.2: The error report confirms…" (commentary)', () => {
+    const out = cleanOutput([
+      'Q7.2: The error report confirms the answer is already correct.',
+      '| 1.1 | answer |',
+    ].join('\n'));
+    assert.doesNotMatch(out, /error report confirms/);
+    assert.match(out, /\| 1\.1 \| answer \|/);
+  });
+
   test('drops a stray ```json fence line', () => {
     const out = cleanOutput('```json\n{"content":"something"\n```\n| 1.1 | answer |');
     assert.doesNotMatch(out, /```json/);
