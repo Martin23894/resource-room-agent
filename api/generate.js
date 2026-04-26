@@ -11,7 +11,7 @@ import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
 import { extractContent } from '../lib/content.js';
 import { i18n } from '../lib/i18n.js';
 import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
-import { correctCogAnalysisTable, parseMemoAnswerRows, buildCogAnalysisTable } from '../lib/cog-table.js';
+import { correctCogAnalysisTable, parseMemoAnswerRows, buildCogAnalysisTable, normaliseCogLevelLabels } from '../lib/cog-table.js';
 import { ensureSequentialSectionLetters, ensureSectionCloser } from '../lib/sections.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
@@ -639,6 +639,29 @@ Return JSON: {"content":"Section D memo only"}`;
     let memoC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoCRaw)));
     let memoD = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
 
+    // Phase 5: normalise Barrett's level labels in each section's answer
+    // table to the language canonical (Bug 23 — Resource 2 had Section A
+    // English and Section D Afrikaans inside the same memo). We pass the
+    // OTHER language's cogLevels as aliases so cells in either language
+    // are recognised and rewritten to the target.
+    {
+      const barrettCanonical = ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'];
+      const otherLang = language === 'Afrikaans' ? 'English' : 'Afrikaans';
+      const normaliseSection = (label, body) => {
+        const r = normaliseCogLevelLabels(body, {
+          canonicalLevels: barrettCanonical,
+          translations: L.cogLevels || {},
+          aliases: [i18n(otherLang).cogLevels || {}],
+        });
+        if (r.changed) log.info({ section: label, rewrites: r.rewrites }, 'RTT memo: Barrett level labels normalised to language canonical');
+        return r.text;
+      };
+      memoA = normaliseSection('A', memoA);
+      memoB = normaliseSection('B', memoB);
+      memoC = normaliseSection('C', memoC);
+      memoD = normaliseSection('D', memoD);
+    }
+
     // Per-phase retry guard. Each section gets its own retry: if the
     // returned text doesn't contain an answer-table header, retry once
     // with a larger budget. Splitting the phases means the retry can
@@ -1149,7 +1172,25 @@ OUTPUT RULES:
     // ── Phase 3A: Generate memo table ──
     channel.sendPhase('memo_table', 'started');
     const cogLevelRef = plan.questions.map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`).join('\n');
-    const memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
+    let memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
+    // Phase 5: normalise the COGNITIVE LEVEL column to the language's
+    // canonical labels. The audit (Resource 2 Bug 23) caught a memo whose
+    // Section A used English level names while Section D used Afrikaans —
+    // both legitimate per-row, but the memo as a whole looked broken.
+    // We pass the OTHER language's cogLevels as aliases so cells in
+    // either language are recognised and rewritten to the target.
+    {
+      const otherLang = language === 'Afrikaans' ? 'English' : 'Afrikaans';
+      const normd = normaliseCogLevelLabels(memoTableRaw, {
+        canonicalLevels: cog.levels,
+        translations: L.cogLevels || {},
+        aliases: [i18n(otherLang).cogLevels || {}],
+      });
+      if (normd.changed) {
+        log.info({ rewrites: normd.rewrites }, 'Phase 3A: cog-level labels normalised to language canonical (Bug 23)');
+        memoTableRaw = normd.text;
+      }
+    }
     const phase3aStructure = validateMemoStructure(memoTableRaw);
     log.info({ len: memoTableRaw.length, hasAnswerTable: phase3aStructure.answerTable }, 'Phase 3A: memo table generated');
     if (!phase3aStructure.answerTable) {

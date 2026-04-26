@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseMemoAnswerRows, tallyByLevel, correctCogAnalysisTable, buildCogAnalysisTable } from '../lib/cog-table.js';
+import { parseMemoAnswerRows, tallyByLevel, correctCogAnalysisTable, buildCogAnalysisTable, normaliseCogLevelLabels } from '../lib/cog-table.js';
 
 describe('parseMemoAnswerRows — extracts (number, level, mark) tuples', () => {
   test('parses a standard 5-column answer table', () => {
@@ -441,5 +441,73 @@ describe('buildCogAnalysisTable — deterministic emitter (Phase 1.1 refactor)',
     assert.match(out.table, /\| Routine Procedures \|.*\| 0 \|/);
     // Breakdown for empty levels uses "—" placeholder
     assert.match(out.breakdown, /Routine Procedures \(0 marks\): — = 0 marks/);
+  });
+});
+
+describe('normaliseCogLevelLabels — Bug 23: collapse mixed-language labels (Phase 5)', () => {
+  test('rewrites English level cells to Afrikaans canonical when language is Afrikaans', () => {
+    // Resource 2 case: Section A had "Literal" / "Inferential" cells while
+    // Section D had "Letterlik" / "Inferensieel" — same memo, two languages.
+    // After normalisation, every row's level cell uses the Afrikaans display.
+    const memo = [
+      '| 1.1 | answer | guidance | Literal | 2 |',
+      '| 2.1 | answer | guidance | Inferential | 3 |',
+      '| 4.1 | answer | guidance | Letterlik | 1 |',
+      '| 4.2 | answer | guidance | Evaluering en Waardering | 2 |',
+    ].join('\n');
+    const r = normaliseCogLevelLabels(memo, {
+      canonicalLevels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'],
+      translations: {
+        Literal: 'Letterlik',
+        Reorganisation: 'Herorganisasie',
+        Inferential: 'Inferensieel',
+        'Evaluation and Appreciation': 'Evaluering en Waardering',
+      },
+    });
+    assert.equal(r.changed, true);
+    assert.equal(r.rewrites, 2, 'two English-cell rows rewritten to Afrikaans');
+    assert.match(r.text, /\| 1\.1 \| answer \| guidance \| Letterlik \| 2 \|/);
+    assert.match(r.text, /\| 2\.1 \| answer \| guidance \| Inferensieel \| 3 \|/);
+    // Already-Afrikaans rows are left alone.
+    assert.match(r.text, /\| 4\.1 \| answer \| guidance \| Letterlik \| 1 \|/);
+    assert.match(r.text, /\| 4\.2 \| answer \| guidance \| Evaluering en Waardering \| 2 \|/);
+  });
+
+  test('English target: rewrites Afrikaans cells back to English when aliases supplied', () => {
+    const memo = '| 1.1 | answer | guidance | Letterlik | 2 |';
+    const r = normaliseCogLevelLabels(memo, {
+      canonicalLevels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'],
+      translations: {
+        Literal: 'Literal',
+        Reorganisation: 'Reorganisation',
+        Inferential: 'Inferential',
+        'Evaluation and Appreciation': 'Evaluation and Appreciation',
+      },
+      // Caller passes the OTHER language's labels as aliases so the
+      // function recognises "Letterlik" and rewrites it to "Literal".
+      aliases: [{
+        Literal: 'Letterlik',
+        Reorganisation: 'Herorganisasie',
+        Inferential: 'Inferensieel',
+        'Evaluation and Appreciation': 'Evaluering en Waardering',
+      }],
+    });
+    assert.equal(r.changed, true);
+    assert.match(r.text, /\| Literal \| 2 \|/);
+  });
+
+  test('leaves rows with unrecognised levels untouched', () => {
+    const memo = '| 1.1 | answer | guidance | UnknownLevel | 2 |';
+    const r = normaliseCogLevelLabels(memo, {
+      canonicalLevels: ['Literal'],
+      translations: { Literal: 'Letterlik' },
+    });
+    assert.equal(r.changed, false);
+    assert.equal(r.text, memo);
+  });
+
+  test('null/empty input is safe', () => {
+    assert.deepEqual(normaliseCogLevelLabels('', { canonicalLevels: ['Literal'] }), { text: '', changed: false, rewrites: 0 });
+    assert.deepEqual(normaliseCogLevelLabels(null, {}), { text: null, changed: false, rewrites: 0 });
   });
 });
