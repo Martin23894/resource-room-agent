@@ -54,6 +54,7 @@ select:focus{outline:none;border-color:var(--t4);}
 .lrow{display:grid;grid-template-columns:1fr 1fr;gap:4px;}
 .lbtn{padding:7px 0;border:1.5px solid var(--bdr2);border-radius:7px;font-size:12px;font-weight:600;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;}
 .lbtn.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
+.lbtn.locked{opacity:.35;cursor:not-allowed;pointer-events:none;}
 .dgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;}
 .dbtn{padding:6px 4px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:10px;font-weight:700;color:var(--ink3);background:var(--sur);cursor:pointer;text-align:center;transition:all .15s;font-family:inherit;line-height:1.3;}
 .dbtn.on.below{border-color:#BA7517;background:#FAEEDA;color:#633806;}
@@ -707,10 +708,31 @@ function onGradeChange(){
 }
 
 // ── Cascade: Subject changed ──────────────────────────────────────────────────
+// Subjects whose medium of instruction is fixed — the language toggle must
+// be locked so teachers can't generate an Afrikaans HL paper in English.
+const LANGUAGE_LOCKED = {
+  'Afrikaans Home Language':            'Afrikaans',
+  'Afrikaans First Additional Language':'Afrikaans',
+  'English Home Language':              'English',
+  'English First Additional Language':  'English',
+};
+
 function onSubjChange(){
   loadResourceTypes();
   loadTopics();
   updateCogDisplay();
+
+  // Lock / unlock the language toggle based on the selected subject.
+  const subj = decodeSubj(document.getElementById('subj').value);
+  const locked = LANGUAGE_LOCKED[subj];
+  document.querySelectorAll('.lbtn').forEach(b => {
+    if (locked) {
+      b.classList.toggle('locked', b.dataset.l !== locked);
+      if (b.dataset.l === locked) { setLang(b); }
+    } else {
+      b.classList.remove('locked');
+    }
+  });
 }
 
 // ── Cascade: Term changed ─────────────────────────────────────────────────────

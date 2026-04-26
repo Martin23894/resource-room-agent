@@ -10,7 +10,7 @@ import { ensureAnswerSpace } from '../lib/answer-space.js';
 import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
 import { extractContent } from '../lib/content.js';
 import { i18n } from '../lib/i18n.js';
-import { cleanOutput } from '../lib/clean-output.js';
+import { cleanOutput, localiseLabels } from '../lib/clean-output.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
 import { validateMemoStructure } from '../lib/memo-structure.js';
@@ -507,20 +507,39 @@ ${secC}
 
 Write the memo for ${secLabel[1]} AND ${secLabel[2]}:
 
-PART 1 — ${secLabel[1]} answer table: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-List every sub-question (2.1, 2.2 … etc). Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
-Then write Barrett's Taxonomy summary for ${secLabel[1]} ONLY (must sum to ${sm.b} marks).
+PART 1 — ${secLabel[1]} VISUAL TEXT MEMO (${sm.b} marks):
+Answer table columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
+List every visual text sub-question: 2.1, 2.2, 2.3 … Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
+After the answer table, write a Barrett's Taxonomy distribution TABLE for ${secLabel[1]} ONLY.
+IMPORTANT: this table must show QUESTION NUMBERS (2.1, 2.2, etc.) grouped by cognitive level — NOT content criteria or rubric points (those belong in Part 2 below).
+The distribution table must sum to exactly ${sm.b} marks.
 End with: ${secLabel[1]} ${L.totalLabel}: ${sm.b} ${L.marksWord}
 
-PART 2 — ${secLabel[2]} answer table: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-This section is a summary task. Award marks for: content points included (award per bullet point met) + language/structure.
-Cognitive level for summary = Reorganisation.
-Then write Barrett's Taxonomy summary for ${secLabel[2]} ONLY (must sum to ${sm.c} marks — all Reorganisation).
+---
+
+PART 2 — ${secLabel[2]} SUMMARY TASK MEMO (${sm.c} marks):
+Answer table columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
+This section awards marks for: content points covered + language/structure. All marks = Reorganisation level.
+Number the rows by content criterion (e.g. 3.1, 3.2 … or Content Point 1, 2 …).
+After the answer table, write a Barrett's Taxonomy summary for ${secLabel[2]} ONLY (all Reorganisation, sums to ${sm.c} marks).
 End with: ${secLabel[2]} ${L.totalLabel}: ${sm.c} ${L.marksWord}
 
 Return JSON: {"content":"Section B and C memo"}`;
 
     // ── RTT Memo Phase 3: Section D (Language) answers + Barrett's + combined paper table ──
+    const _bLevels = L.barretts?.levels || ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'];
+    const _bPcts   = [20, 20, 40, 20];
+    const _bMarks  = largestRemainder(totalMarks, [20, 20, 40, 20]);
+    const _bHeading = L.barretts?.combinedHeading
+      ? L.barretts.combinedHeading(totalMarks)
+      : `COMBINED BARRETT'S TAXONOMY ANALYSIS — FULL PAPER (${totalMarks} marks)`;
+    const _bColumns = L.barretts?.columns ||
+      "| Barrett's Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |";
+    const _bRows = _bLevels.map((lvl, i) =>
+      `| ${lvl} | ${_bPcts[i]}% | ${_bMarks[i]} | [sum from all sections] | [%] |`
+    ).join('\n');
+    const _bTotalLabel = language === 'Afrikaans' ? 'TOTAAL' : 'TOTAL';
+
     const rttMemoUsrD = `${secLabel[3]} QUESTIONS (${sm.d} marks):
 ${secD}
 
@@ -531,14 +550,11 @@ Write the memo for ${secLabel[3]}:
 3. End with: ${secLabel[3]} ${L.totalLabel}: ${sm.d} ${L.marksWord}
 
 Then write the COMBINED PAPER BARRETT'S ANALYSIS:
-Heading: COMBINED BARRETT'S TAXONOMY ANALYSIS — FULL PAPER (${totalMarks} marks)
-Write this pipe table:
-| Barrett's Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |
-| Literal | 20% | ${largestRemainder(totalMarks,[20,20,40,20])[0]} | [sum from all sections] | [%] |
-| Reorganisation | 20% | ${largestRemainder(totalMarks,[20,20,40,20])[1]} | [sum from all sections] | [%] |
-| Inferential | 40% | ${largestRemainder(totalMarks,[20,20,40,20])[2]} | [sum from all sections] | [%] |
-| Evaluation and Appreciation | 20% | ${largestRemainder(totalMarks,[20,20,40,20])[3]} | [sum from all sections] | [%] |
-| TOTAL | 100% | ${totalMarks} | [must equal ${totalMarks}] | 100% |
+Heading: ${_bHeading}
+Write this pipe table exactly (fill in the Actual Marks column by summing each level across all four section Barrett's tables above):
+${_bColumns}
+${_bRows}
+| ${_bTotalLabel} | 100% | ${totalMarks} | [must equal ${totalMarks}] | 100% |
 
 Actual Marks per level = sum across ALL four sections. All Actual Marks must total exactly ${totalMarks}.
 
@@ -610,8 +626,12 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
       log.info({ err: e?.message }, 'RTT mark-sum check skipped (parser error)');
     }
 
-    // Safety net: inject blank answer lines where the AI forgot them.
-    const finalPaper = ensureAnswerSpace(questionPaper, { language });
+    // Safety net: inject blank answer lines where the AI forgot them, then
+    // localise any English Answer:/Working: labels that survived as raw
+    // Claude output (the injected MCQ stub is already localised by
+    // ensureAnswerSpace, but embedded labels in maths/calculation questions
+    // come straight from the model and need a second pass).
+    const finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
     channel.sendPhase('docx_build', 'started');
 
     // Build DOCX
@@ -937,6 +957,12 @@ Check EVERY row of the memorandum table for the following error types:
    MARKING GUIDANCE cell of the SAME row. If the guidance computes a result that
    contradicts the answer text, flag it. (Example: ANSWER says "Thandi is incorrect"
    but the guidance shows working that proves Thandi correct.)
+   Pay particular attention to division: if the ANSWER cell states a remainder
+   (e.g. "1 939 res 20", "rem 5", "remainder 3"), verify the remainder value
+   against the working in MARKING GUIDANCE. If the guidance shows the division
+   is exact (no remainder, or a different remainder), flag as ANSWER_GUIDANCE_CONTRADICTION.
+   (Example: ANSWER says "1 939 res 20" but guidance shows 44 × 1 939 = 85 316 ✓
+   with no remainder — the "res 20" is wrong.)
 
 Then check the COGNITIVE LEVEL ANALYSIS section for THREE distinct kinds of issue:
 
@@ -1101,7 +1127,7 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
     }
 
     // ── Phase 5: Safety net — inject blank answer lines the AI may have skipped ──
-    const finalPaper = ensureAnswerSpace(questionPaper, { language });
+    const finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
     channel.sendPhase('docx_build', 'started');
 
     // ── Build DOCX ──
