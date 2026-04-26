@@ -11,7 +11,7 @@ import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
 import { extractContent } from '../lib/content.js';
 import { i18n } from '../lib/i18n.js';
 import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
-import { correctCogAnalysisTable, parseMemoAnswerRows } from '../lib/cog-table.js';
+import { correctCogAnalysisTable, parseMemoAnswerRows, buildCogAnalysisTable } from '../lib/cog-table.js';
 import { ensureSequentialSectionLetters } from '../lib/sections.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
@@ -1142,67 +1142,58 @@ OUTPUT RULES:
     }
     channel.sendPhase('memo_table', 'done');
 
-    // ── Phase 3B: Generate cog analysis + extension + rubric ──
+    // ── Phase 3B: Generate rubric + extension only (Phase 1.1 refactor) ──
+    // The cog analysis section is NOT requested from Claude any more; we
+    // emit it deterministically below. Phase 3B's only job is the marking
+    // rubric and the extension activity.
     channel.sendPhase('memo_analysis', 'started');
-    let memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
-    log.info(`Phase 3B: cog analysis generated (${memoAnalysisRaw.length} chars)`);
+    let memoExtraRaw = '';
+    if (includeRubric || !isWorksheet) {
+      memoExtraRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
+      log.info(`Phase 3B: rubric/extension generated (${memoExtraRaw.length} chars)`);
 
-    // Phase 3B truncation guard.
-    // The output should end with a complete rubric — final row of the rubric
-    // table closing with a `|` and possibly trailing whitespace. If we see
-    // a clear truncation (ends mid-word, no rubric closing pipe in the last
-    // 200 chars, or the rubric heading appears but the last line isn't a
-    // complete table row), retry once with higher max_tokens. The Life Skills
-    // T4 audit caught this exact failure mode.
-    if (looksTruncated(memoAnalysisRaw, includeRubric)) {
-      log.warn({ tail: memoAnalysisRaw.slice(-200) }, 'Phase 3B: output looks truncated — retrying once with higher max_tokens');
-      try {
-        memoAnalysisRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 16000));
-        log.info(`Phase 3B: retry generated (${memoAnalysisRaw.length} chars)`);
-      } catch (retryErr) {
-        log.warn({ err: retryErr?.message || retryErr }, 'Phase 3B: retry failed — keeping original output');
+      // Truncation guard — if the rubric or extension looks cut off, retry
+      // once with a larger budget. The Life Skills T4 audit caught this
+      // exact failure mode.
+      if (looksTruncated(memoExtraRaw, includeRubric)) {
+        log.warn({ tail: memoExtraRaw.slice(-200) }, 'Phase 3B: output looks truncated — retrying once with higher max_tokens');
+        try {
+          memoExtraRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 16000));
+          log.info(`Phase 3B: retry generated (${memoExtraRaw.length} chars)`);
+        } catch (retryErr) {
+          log.warn({ err: retryErr?.message || retryErr }, 'Phase 3B: retry failed — keeping original output');
+        }
       }
     }
     channel.sendPhase('memo_analysis', 'done');
 
-    // ── Phase 3C: Deterministic cog-table reconciliation (Bug 5) ──
-    // The Phase 3B prompt asks Claude to FILL the Actual Marks column by
-    // summing the answer table per level. In practice (Paper 7, 9, 10
-    // audits) Claude regularly miscounts — a row says "Actual = 18" while
-    // the bracketed-item breakdown on the same line sums to 20. The
-    // verifier in Phase 4 catches some of those, but not reliably.
-    //
-    // This pass is pure code: it parses the answer table, sums per level,
-    // and overwrites the cog analysis table's Actual Marks cells if they
-    // disagree. No regression risk — `changed: false` is the no-op path.
-    {
-      // Run the correction on memoAnalysisRaw alone — the answer table
-      // (memoTableRaw) is the source of truth for marks-per-level and is
-      // never modified. We pass a synthetic combined string so the parser
-      // sees both the answer rows and the cog table, but we only keep the
-      // corrected analysis half.
-      const joiner = '\n\n';
-      const memoCombined = memoTableRaw + joiner + memoAnalysisRaw;
-      const cogFix = correctCogAnalysisTable(memoCombined, {
-        levels: cog.levels,
-        totalMarks: markTotal,
-      });
-      if (cogFix.changed) {
-        log.info(
-          { computedByLevel: cogFix.computedByLevel, totalCounted: cogFix.totalCounted },
-          'Phase 3C: cog-table Actual Marks reconciled against answer-table sums (Bug 5)',
-        );
-        // memoTableRaw is a prefix of cogFix.text by construction (the
-        // correction only touches cog-table rows, which sit inside the
-        // memoAnalysisRaw half). Slice off that prefix to recover the
-        // corrected analysis text.
-        if (cogFix.text.startsWith(memoTableRaw + joiner)) {
-          memoAnalysisRaw = cogFix.text.slice((memoTableRaw + joiner).length);
-        }
-      }
-    }
+    // ── Phase 3C: Deterministic cog-analysis emitter (Phase 1.1 refactor) ──
+    // Build the cognitive-level analysis section from the parsed answer
+    // rows and the cover total. By construction:
+    //   - Prescribed Marks column sums to markTotal exactly
+    //   - Actual Marks per level matches the answer rows exactly
+    //   - Actual % sums to 100% iff Actual Marks sums to markTotal
+    //   - Breakdown header (X marks) equals listed-items sum equals
+    //     trailing = X marks line — they're built from one source.
+    const cogSection = buildCogAnalysisTable({
+      answerRows: parseMemoAnswerRows(memoTableRaw),
+      cog,
+      totalMarks: markTotal,
+      language,
+      isBarretts,
+      framework: taxLabel,
+    });
+    log.info(
+      { actualByLevel: cogSection.actualByLevel, totalActual: cogSection.totalActual, markTotal },
+      'Phase 3C: cog analysis section emitted from answer-row tally',
+    );
 
-    const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
+    const memoContent = [
+      memoTableRaw,
+      '',
+      cogSection.text,
+      memoExtraRaw ? '\n' + memoExtraRaw : '',
+    ].join('\n');
 
     // ── Phase 4: Memo Verification + Auto-Correction ──
     // Tool-use guarantees a { clean, errors[], cogLevelErrors[] } object.

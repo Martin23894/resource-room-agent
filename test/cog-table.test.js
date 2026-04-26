@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { parseMemoAnswerRows, tallyByLevel, correctCogAnalysisTable } from '../lib/cog-table.js';
+import { parseMemoAnswerRows, tallyByLevel, correctCogAnalysisTable, buildCogAnalysisTable } from '../lib/cog-table.js';
 
 describe('parseMemoAnswerRows — extracts (number, level, mark) tuples', () => {
   test('parses a standard 5-column answer table', () => {
@@ -298,5 +298,148 @@ describe('correctCogAnalysisTable — Bug 5: fixes wrong Actual Marks cells', ()
     assert.equal(result.computedByLevel['Inferensieel'], 10);
     assert.match(result.text, /\| Letterlik \| 20% \| 3 \| 5 \| 33\.3% \|/);
     assert.match(result.text, /\| Inferensieel \| 40% \| 6 \| 10 \| 66\.7% \|/);
+  });
+});
+
+describe('buildCogAnalysisTable — deterministic emitter (Phase 1.1 refactor)', () => {
+  test('emits a Bloom\'s Maths table with prescribed/actual/% all consistent', () => {
+    const answerRows = [
+      { number: '1.1', level: 'Knowledge', mark: 25 },
+      { number: '2.1', level: 'Routine Procedures', mark: 45 },
+      { number: '3.1', level: 'Complex Procedures', mark: 20 },
+      { number: '4.1', level: 'Problem Solving', mark: 10 },
+    ];
+    const cog = {
+      levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'],
+      pcts: [25, 45, 20, 10],
+    };
+    const out = buildCogAnalysisTable({ answerRows, cog, totalMarks: 100, language: 'English' });
+    // Heading
+    assert.match(out.heading, /COGNITIVE LEVEL ANALYSIS/i);
+    // Each level's row
+    assert.match(out.table, /\| Knowledge \| 25% \| 25 \| 25 \| 25\.0% \|/);
+    assert.match(out.table, /\| Problem Solving \| 10% \| 10 \| 10 \| 10\.0% \|/);
+    // TOTAL row sums correctly
+    assert.match(out.table, /\| TOTAL \| 100% \| 100 \| 100 \| 100% \|/);
+    // Breakdown lines
+    assert.match(out.breakdown, /Knowledge \(25 marks\): Q1\.1 \(25\) = 25 marks/);
+  });
+
+  test('Bug 38 / 28 / 49 prevention: Prescribed Marks always sums to TOTAL row', () => {
+    // Resource 4 case: 66-mark cover, but Claude wrote prescribed marks as
+    // [13, 22, 10, 5] which sum to 50. The emitter recomputes prescribed
+    // from largestRemainder(totalMarks, cog.pcts) so the column always
+    // sums to totalMarks exactly.
+    const cog = {
+      levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'],
+      pcts: [25, 45, 20, 10],
+    };
+    const out = buildCogAnalysisTable({ answerRows: [], cog, totalMarks: 66, language: 'English' });
+    // Sum the Prescribed Marks column from each non-total level row.
+    let prescribedSum = 0;
+    for (const line of out.table.split('\n')) {
+      if (!line.startsWith('|')) continue;
+      if (/TOTAL|---/i.test(line)) continue;
+      const cells = line.split('|').map((s) => s.trim()).filter(Boolean);
+      if (cells.length !== 5) continue;
+      const n = parseInt(cells[2], 10);
+      if (Number.isFinite(n)) prescribedSum += n;
+    }
+    assert.equal(prescribedSum, 66, 'prescribed marks must sum to totalMarks');
+    // And the TOTAL row's prescribed cell shows 66 too.
+    assert.match(out.table, /\| TOTAL \| 100% \| 66 \|/);
+  });
+
+  test('Bug 39 / 49 prevention: Actual % column never lies about reaching 100%', () => {
+    // Resource 4 case: 66-mark cover but body sums to 51. Claude wrote
+    // 19.7 + 33.3 + 15.2 + 9.1 = 77.3% and a TOTAL row claiming 100%.
+    // The emitter shows the genuine percentage in the TOTAL row when the
+    // actual sum doesn't reach the cover total.
+    const answerRows = [
+      { number: '1.1', level: 'Knowledge', mark: 13 },
+      { number: '2.1', level: 'Routine Procedures', mark: 22 },
+      { number: '3.1', level: 'Complex Procedures', mark: 10 },
+      { number: '4.1', level: 'Problem Solving', mark: 6 },
+    ];
+    const cog = {
+      levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'],
+      pcts: [25, 45, 20, 10],
+    };
+    const out = buildCogAnalysisTable({ answerRows, cog, totalMarks: 66, language: 'English' });
+    // Total actual is 51, not 66 — the TOTAL row's Actual % must be 77.3%, not 100%.
+    assert.match(out.table, /\| TOTAL \| 100% \| 66 \| 51 \| 77\.3% \|/);
+  });
+
+  test('Bug 47 prevention: breakdown header equals listed-items sum exactly', () => {
+    // Resource 5 case: "Middle Order (59 marks): … = 51 marks" — the
+    // bracketed header didn't match the listed items. The emitter computes
+    // both from the same answer rows so they cannot disagree.
+    const answerRows = [
+      { number: '7.1', level: 'Middle Order', mark: 2 },
+      { number: '7.2', level: 'Middle Order', mark: 2 },
+      { number: '8.1', level: 'Middle Order', mark: 2 },
+      { number: '9.1', level: 'Middle Order', mark: 4 },
+    ];
+    const cog = { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30, 50, 20] };
+    const out = buildCogAnalysisTable({ answerRows, cog, totalMarks: 30, language: 'English' });
+    // The Middle Order line: header total must equal items sum.
+    const line = out.breakdown.split('\n\n').find((l) => /Middle Order/.test(l));
+    const headerMatch = line.match(/Middle Order \((\d+) marks\)/);
+    const trailMatch = line.match(/= (\d+) marks/);
+    assert.equal(headerMatch[1], '10', 'header total = sum of bracketed items');
+    assert.equal(trailMatch[1], '10', 'trailing total = sum of bracketed items');
+  });
+
+  test('translates level names for Afrikaans output', () => {
+    const answerRows = [
+      { number: '1.1', level: 'Knowledge', mark: 5 },
+      { number: '2.1', level: 'Roetine Prosedures', mark: 10 },
+    ];
+    const cog = {
+      levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'],
+      pcts: [25, 45, 20, 10],
+    };
+    const out = buildCogAnalysisTable({ answerRows, cog, totalMarks: 15, language: 'Afrikaans' });
+    // Afrikaans column headers
+    assert.match(out.table, /\| Kognitiewe Vlak \| Voorgeskrewe %/);
+    // Afrikaans level labels
+    assert.match(out.table, /\| Kennis \|/);
+    assert.match(out.table, /\| Roetine Prosedures \|/);
+    // Mixed-language answer rows tally correctly into both labels
+    assert.equal(out.actualByLevel['Knowledge'], 5);
+    assert.equal(out.actualByLevel['Routine Procedures'], 10);
+    // Afrikaans marks word
+    assert.match(out.breakdown, /\d+ punte/);
+  });
+
+  test('Barrett\'s variant uses Barrett-specific column header', () => {
+    const answerRows = [
+      { number: '1.1', level: 'Literal', mark: 10 },
+      { number: '2.1', level: 'Inferential', mark: 20 },
+    ];
+    const cog = {
+      levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'],
+      pcts: [20, 20, 40, 20],
+    };
+    const out = buildCogAnalysisTable({
+      answerRows, cog, totalMarks: 50, language: 'English', isBarretts: true,
+    });
+    assert.match(out.table, /\| Barrett's Level \| Prescribed %/);
+  });
+
+  test('zero-mark levels are still listed (with a — placeholder breakdown)', () => {
+    const answerRows = [
+      { number: '1.1', level: 'Knowledge', mark: 30 },
+    ];
+    const cog = {
+      levels: ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'],
+      pcts: [25, 45, 20, 10],
+    };
+    const out = buildCogAnalysisTable({ answerRows, cog, totalMarks: 30, language: 'English' });
+    // All four levels appear in the table even though only Knowledge has marks
+    assert.match(out.table, /\| Knowledge \|.*\| 30 \|/);
+    assert.match(out.table, /\| Routine Procedures \|.*\| 0 \|/);
+    // Breakdown for empty levels uses "—" placeholder
+    assert.match(out.breakdown, /Routine Procedures \(0 marks\): — = 0 marks/);
   });
 });
