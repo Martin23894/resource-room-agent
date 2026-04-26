@@ -11,6 +11,8 @@ import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
 import { extractContent } from '../lib/content.js';
 import { i18n } from '../lib/i18n.js';
 import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
+import { correctCogAnalysisTable, parseMemoAnswerRows } from '../lib/cog-table.js';
+import { ensureSequentialSectionLetters } from '../lib/sections.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
 import { validateMemoStructure } from '../lib/memo-structure.js';
@@ -532,7 +534,17 @@ Return JSON: {"content":"Section A memo"}`;
     // TOTAL: 5 marks" under the SECTION B heading. The fix below uses
     // hard separators, mandates a literal distribution-table format for
     // Part 1, and forbids the rubric-criteria pattern by name.
-    const rttMemoUsrB = `${secLabel[1]} QUESTIONS (${sm.b} marks):
+    //
+    // Audit Bug 20 — the Section C memo had no access to the reading
+    // passage, so Claude invented a model summary about a different story
+    // (Paper 7: memo described sneakers + homeless child while the actual
+    // passage was about a beach trip to uMhlanga). The passage is now
+    // included verbatim so the content points the memo lists are anchored
+    // to the same passage Section A asked questions on.
+    const rttMemoUsrB = `READING PASSAGE (the source text Section C asks the learner to summarise — model answers must reference THIS passage's content, names, places and events; do NOT invent a different story):
+${passage}
+
+${secLabel[1]} QUESTIONS (${sm.b} marks):
 ${secB}
 
 ${secLabel[2]} QUESTION (${sm.c} marks):
@@ -547,18 +559,29 @@ with "${secLabel[1]} ${L.totalLabel}".
 PART 1 — ${secLabel[1]} VISUAL TEXT MEMO (${sm.b} marks)
 ═══════════════════════════════════════════════════════
 
-1. Answer table — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-   List every visual-text sub-question (2.1, 2.2, 2.3 …).
-   Use Literal / Reorganisation / Inferential / Evaluation and Appreciation.
+EMIT ALL THREE OF THESE — NEVER SKIP. The pipeline rejects any Part 1
+that arrives without an answer table (Bug 19 prevention).
+
+1. Answer table FIRST — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
+   List EVERY visual-text sub-question (2.1, 2.2, 2.3 …) on its own row.
+   Do NOT skip any sub-question. Do NOT abbreviate the table to a single
+   "see below" line. Each row must have an answer cell and a marking
+   guidance cell with real content — never empty cells.
+   Cognitive level is one of: Literal / Reorganisation / Inferential / Evaluation and Appreciation.
 
 2. Barrett's Taxonomy DISTRIBUTION TABLE for ${secLabel[1]} ONLY.
    Use EXACTLY these columns:
    | Cognitive Level | Questions | Marks |
+   This table MUST contain ALL FOUR Barrett's levels — Literal,
+   Reorganisation, Inferential, Evaluation and Appreciation — even if
+   some have 0 marks (write "—" in the Questions cell and 0 in Marks).
    The "Questions" column lists the sub-question NUMBERS at each level
    (e.g. "2.1, 2.3"). It does NOT contain "Content Point 1", "Content
    Point 2", "Language and Structure", or any rubric phrase — those
    belong in Part 2.
    The Marks column adds to EXACTLY ${sm.b} marks for this section.
+   Bug 9 prevention: do NOT emit a single-row table like
+   "| Reorganisation | … | 5 |" — that is Part 2's pattern, not Part 1's.
 
 3. Close Part 1 with this exact line:
    ${secLabel[1]} ${L.totalLabel}: ${sm.b} ${L.marksWord}
@@ -567,10 +590,19 @@ PART 1 — ${secLabel[1]} VISUAL TEXT MEMO (${sm.b} marks)
 PART 2 — ${secLabel[2]} SUMMARY TASK MEMO (${sm.c} marks)
 ═══════════════════════════════════════════════════════
 
+CRITICAL — passage anchoring (Bug 20): Every content point you list MUST
+be grounded in the READING PASSAGE shown at the top of this prompt. Use
+the actual character names, places, events and quantities from THAT
+passage. Do NOT invent a different story. If the passage is about a
+beach trip to uMhlanga, the model summary covers that beach trip — not
+shopping, sneakers, or any unrelated scenario.
+
 1. Answer table — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
    This section awards marks for: content points covered + language/structure.
    All marks count as Reorganisation level.
    Number rows by content criterion (e.g. 3.1, 3.2 … or Content Point 1, 2 …).
+   Each content-point row's ANSWER cell quotes or paraphrases the actual
+   passage — names, places and events as they appear above.
 
 2. Barrett's Taxonomy summary for ${secLabel[2]} ONLY.
    All ${sm.c} marks at Reorganisation level.
@@ -616,10 +648,19 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
 
     log.info(`RTT Memo: generating in 3 phases (A / B+C / D+combined)`);
     channel.sendPhase('rtt_memo', 'started');
+    // Token budget bump (Bug 19): the B+C phase has to fit TWO answer
+    // tables (Section B + Section C) plus two Barrett's tables in one
+    // response. At 4000 tokens it routinely truncated the Section B
+    // body — Paper 7 audit found the section had only its closing
+    // "SECTION B TOTAL: 10 marks" line and no answer table at all.
+    // Afrikaans is ~20% wordier than English so the multiplier is
+    // applied across all three phases.
+    const isAfrRtt = (language || '').toLowerCase() === 'afrikaans';
+    const rttTok = (base) => Math.round(base * (isAfrRtt ? 1.2 : 1));
     const [memoARaw, memoBCRaw, memoDRaw] = await Promise.all([
-      callClaude(rttMemoSys, rttMemoUsrA, 4000),
-      callClaude(rttMemoSys, rttMemoUsrB, 4000),
-      callClaude(rttMemoSys, rttMemoUsrD, 4000)
+      callClaude(rttMemoSys, rttMemoUsrA, rttTok(6000)),
+      callClaude(rttMemoSys, rttMemoUsrB, rttTok(7000)),
+      callClaude(rttMemoSys, rttMemoUsrD, rttTok(6000))
     ]);
     channel.sendPhase('rtt_memo', 'done');
 
@@ -627,14 +668,70 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     // below adds its own single outer banner, so phase-level reprises
     // would stack two or three "MEMORANDUM" headings on top of each other
     // (the Grade 6 Afrikaans HL audit caught a triple).
-    const memoA  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoARaw)));
-    const memoBC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoBCRaw)));
-    const memoD  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
+    let memoA  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoARaw)));
+    let memoBC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoBCRaw)));
+    let memoD  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
+
+    // Bug 19 retry: the Section B+C phase has a higher truncation /
+    // skip-the-answer-table risk because it emits two answer tables in
+    // one response. If the result has NO answer-table header (Paper 7
+    // shipped only "SECTION B TOTAL: 10 marks" with no rows), retry once
+    // with the maximum budget. This is cheap insurance — a clean first
+    // pass skips it entirely.
+    if (!validateMemoStructure(memoBC).answerTable) {
+      log.warn(
+        { len: memoBC.length, tail: memoBC.slice(-200) },
+        'RTT memo Phase BC: no answer-table header detected — retrying with max budget',
+      );
+      try {
+        const retryRaw = await callClaude(rttMemoSys, rttMemoUsrB, rttTok(12000));
+        const retryClean = stripLeadingMemoBanner(cleanOutput(safeExtractContent(retryRaw)));
+        if (validateMemoStructure(retryClean).answerTable) {
+          memoBC = retryClean;
+          log.info('RTT memo Phase BC: retry succeeded — answer table now present');
+        } else {
+          log.warn('RTT memo Phase BC: retry still missing answer table — keeping original');
+        }
+      } catch (e) {
+        log.warn({ err: e?.message || e }, 'RTT memo Phase BC: retry failed — keeping original');
+      }
+    }
 
     // Localised memo header — was hard-coded English even on Afrikaans
     // papers, which the Afrikaans HL audit caught.
     const rttHeader = L.rttMemo || { heading: 'MEMORANDUM', subtitle: () => '', framework: '' };
     const subjectDisplay = displaySubject || subject;
+
+    // ── RTT Phase D-post: Deterministic combined Barrett's reconciliation (Bug 5) ──
+    // The combined Barrett's table at the end of memoD often disagrees
+    // with the per-section answer rows scattered across memoA / memoBC /
+    // memoD (Paper 7 + Paper 9 audits). We rebuild the cog-analysis
+    // table's Actual Marks column from the union of all three memo
+    // phases' answer rows.
+    //
+    // RTT memos use language-appropriate level names — English uses the
+    // canonical Barrett's labels, Afrikaans uses the Afrikaans translations.
+    // tallyByLevel inside correctCogAnalysisTable matches case- and
+    // whitespace-insensitively so we just supply both candidate sets and
+    // keep whichever produces a non-zero tally.
+    let memoDFinal = memoD;
+    {
+      const ENG_LEVELS = ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'];
+      const AFR_LEVELS = ['Letterlik', 'Herorganisasie', 'Inferensieel', 'Evaluering en Waardering'];
+      const levels = (language === 'Afrikaans') ? AFR_LEVELS : ENG_LEVELS;
+      const allAnswerRows = (memoA || '') + '\n' + (memoBC || '') + '\n' + (memoD || '');
+      const prefix = allAnswerRows + '\n\n';
+      const synthetic = prefix + memoD;
+      const cogFix = correctCogAnalysisTable(synthetic, { levels, totalMarks });
+      if (cogFix.changed && cogFix.text.startsWith(prefix)) {
+        log.info(
+          { computedByLevel: cogFix.computedByLevel, totalCounted: cogFix.totalCounted, language },
+          'RTT combined Barrett\'s table reconciled against per-section answer rows (Bug 5)',
+        );
+        memoDFinal = cogFix.text.slice(prefix.length);
+      }
+    }
+
     const memoContent = [
       rttHeader.heading,
       '',
@@ -645,7 +742,7 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
       '',
       memoBC,
       '',
-      memoD,
+      memoDFinal,
     ].join('\n');
 
     log.info(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} BC:${memoBCRaw.length} D:${memoDRaw.length})`);
@@ -861,6 +958,23 @@ RULES FOR THE CORRECTION ITSELF:
       );
     }
 
+    // ── Phase 2a-bis: Section letter renumbering (Bug 22) ──
+    // Paper 11 (Grade 7 EMS Term 2) shipped with SECTION A → unlabelled
+    // Q2/Q3 → SECTION C → SECTION D. The prompt forbids gaps but the
+    // writer occasionally produces them anyway. Renumber in-place so the
+    // visible labels are A, B, C, D, … and cleanly sequential. We do not
+    // rewrite question text, only the SECTION/AFDELING headers themselves.
+    {
+      const sec = ensureSequentialSectionLetters(questionPaper);
+      if (sec.changed) {
+        log.warn(
+          { replacements: sec.replacements },
+          'Section letters were not sequential — renumbered in-place (Bug 22)',
+        );
+        questionPaper = sec.text;
+      }
+    }
+
     // ── Phase 2c: Cog-level balance check (pure code, no Claude call) ──
     // If the written paper drifts from the plan's cogLevel-per-question
     // assignments by more than tolerance, fire ONE Claude rewrite. The
@@ -1010,6 +1124,22 @@ OUTPUT RULES:
       // anchor table it usually can't. Logged loud so we can investigate.
       log.warn({ preview: memoTableRaw.slice(0, 300) }, 'Phase 3A: memo table is missing the NO. | ANSWER header — downstream memo will likely be incomplete');
     }
+    // Bug 11 detector: when the memo's answer rows over-count the paper
+    // (e.g. the Paper 10 case where each "8.1 (2)" parent was duplicated
+    // as two "8.1(a) (2) + 8.1(b) (2)" sub-rows of 2 marks each — total
+    // 4 instead of 2), the Phase 3C cog reconciliation will compute
+    // wrong "Actual Marks" values too. Surface this with a clear log
+    // entry so we know which sample triggered it.
+    {
+      const rows = parseMemoAnswerRows(memoTableRaw);
+      const memoSum = rows.reduce((a, r) => a + r.mark, 0);
+      if (rows.length > 0 && memoSum !== markTotal) {
+        log.warn(
+          { memoRowCount: rows.length, memoSum, paperTotal: markTotal, drift: memoSum - markTotal },
+          'Phase 3A: memo answer-row marks do NOT sum to the paper total — likely Bug 11 (sub-part over-counting)',
+        );
+      }
+    }
     channel.sendPhase('memo_table', 'done');
 
     // ── Phase 3B: Generate cog analysis + extension + rubric ──
@@ -1034,9 +1164,46 @@ OUTPUT RULES:
       }
     }
     channel.sendPhase('memo_analysis', 'done');
- 
+
+    // ── Phase 3C: Deterministic cog-table reconciliation (Bug 5) ──
+    // The Phase 3B prompt asks Claude to FILL the Actual Marks column by
+    // summing the answer table per level. In practice (Paper 7, 9, 10
+    // audits) Claude regularly miscounts — a row says "Actual = 18" while
+    // the bracketed-item breakdown on the same line sums to 20. The
+    // verifier in Phase 4 catches some of those, but not reliably.
+    //
+    // This pass is pure code: it parses the answer table, sums per level,
+    // and overwrites the cog analysis table's Actual Marks cells if they
+    // disagree. No regression risk — `changed: false` is the no-op path.
+    {
+      // Run the correction on memoAnalysisRaw alone — the answer table
+      // (memoTableRaw) is the source of truth for marks-per-level and is
+      // never modified. We pass a synthetic combined string so the parser
+      // sees both the answer rows and the cog table, but we only keep the
+      // corrected analysis half.
+      const joiner = '\n\n';
+      const memoCombined = memoTableRaw + joiner + memoAnalysisRaw;
+      const cogFix = correctCogAnalysisTable(memoCombined, {
+        levels: cog.levels,
+        totalMarks: markTotal,
+      });
+      if (cogFix.changed) {
+        log.info(
+          { computedByLevel: cogFix.computedByLevel, totalCounted: cogFix.totalCounted },
+          'Phase 3C: cog-table Actual Marks reconciled against answer-table sums (Bug 5)',
+        );
+        // memoTableRaw is a prefix of cogFix.text by construction (the
+        // correction only touches cog-table rows, which sit inside the
+        // memoAnalysisRaw half). Slice off that prefix to recover the
+        // corrected analysis text.
+        if (cogFix.text.startsWith(memoTableRaw + joiner)) {
+          memoAnalysisRaw = cogFix.text.slice((memoTableRaw + joiner).length);
+        }
+      }
+    }
+
     const memoContent = memoTableRaw + '\n\n' + memoAnalysisRaw;
- 
+
     // ── Phase 4: Memo Verification + Auto-Correction ──
     // Tool-use guarantees a { clean, errors[], cogLevelErrors[] } object.
     const verSys = `You are a senior South African CAPS examiner performing a final accuracy check on a memorandum.
@@ -1130,6 +1297,14 @@ COG_BREAKDOWN_INCOMPLETE / COG_BREAKDOWN_MATH_ERROR for items 7 and 8.`;
         const corrMemoSys = `You are correcting specific verified errors in a memorandum.
 Fix ONLY the rows and cells listed in the error report. Do not change anything else.
 
+STRICT OUTPUT RULES — NON-NEGOTIABLE (Bug 21 prevention):
+- Your response must be a SINGLE valid JSON object and nothing else.
+- Do NOT write any reasoning, planning, "Q7.x: …" notes, "The error report
+  confirms…" lines, "No change needed" remarks, or restatements of the error
+  report BEFORE or AFTER the JSON.
+- Do NOT wrap the JSON in markdown fences (no \`\`\`json, no \`\`\`).
+- The ONLY text you output is: {"content":"<complete corrected memorandum>"}.
+
 STRUCTURAL REQUIREMENT — non-negotiable:
 The corrected memorandum MUST contain BOTH sections in this exact order:
   1. The answer table: pipe-delimited rows with columns
@@ -1140,9 +1315,7 @@ The corrected memorandum MUST contain BOTH sections in this exact order:
      followed by a per-level breakdown paragraph.
 Never omit the answer table. Never omit the cognitive analysis.
 If the errors live in only one section, still return both — unchanged where
-they had no errors, corrected where they did.
-
-Return the complete corrected memorandum as JSON: {"content":"complete corrected memorandum"}`;
+they had no errors, corrected where they did.`;
         const allErrors = [
           ...(verResult.errors || []).map(e => {
             // ANSWER_GUIDANCE_CONTRADICTION needs slightly different phrasing
@@ -1167,7 +1340,12 @@ Return the complete corrected memorandum as JSON: {"content":"complete corrected
         const corrMemoUsr = `Correct ONLY these verified errors. Do not change anything else.\n\nERRORS:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
 
         try {
-          const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 8192);
+          // Phase 4 correction emits the FULL memo (answer table + cog
+          // analysis + extension + rubric) — easily > 8k tokens for big
+          // memos. The Paper 11 leak (Bug 21) was a max_tokens truncation
+          // mid-string that left the JSON envelope unclosed; bumping to 16k
+          // matches the Phase 3B retry budget.
+          const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 16000);
           const correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
           // Structural guard: reject fragments. A valid corrected memo must
           // contain BOTH the answer table (NO./NR. | ANSWER/ANTWOORD header)

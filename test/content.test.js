@@ -113,3 +113,61 @@ describe('extractContent — edge cases', () => {
     assert.equal(typeof out, 'string');
   });
 });
+
+describe('extractContent — Bug 21: phase commentary + JSON wrapper leakage', () => {
+  test('strips leading "Q7.x: ..." phase commentary lines before JSON', () => {
+    const raw =
+      'Q7.2: The error report confirms the answer is already correct (R29 000) and says "No change — calculation is correct." So Q7.2 requires no change.\n' +
+      '\n' +
+      'Q7.4: The working needs to explicitly state that Option B requires a positive monthly profit.\n' +
+      '\n' +
+      '{"content":"| NO. | ANSWER | MARKING | LEVEL | MARK |\\n| 1.1 | b | x | y | 1 |"}';
+
+    const out = extractContent(raw);
+    assert.doesNotMatch(out, /Q7\.2:/, 'leading commentary must be stripped');
+    assert.doesNotMatch(out, /Q7\.4:/, 'leading commentary must be stripped');
+    assert.match(out, /\| NO\. \| ANSWER/);
+    assert.match(out, /\| 1\.1 \| b \| x \| y \| 1 \|/);
+  });
+
+  test('extracts content from a ```json fence anywhere in the response', () => {
+    const raw =
+      'Some preamble text.\n' +
+      '\n' +
+      '```json\n' +
+      '{"content":"MEMORANDUM\\n| 1.1 | answer |"}\n' +
+      '```\n' +
+      'Some trailing text.';
+    const out = extractContent(raw);
+    assert.match(out, /MEMORANDUM/);
+    assert.match(out, /\| 1\.1 \| answer \|/);
+    assert.doesNotMatch(out, /preamble/);
+    assert.doesNotMatch(out, /trailing/);
+  });
+
+  test('recovers content even when the JSON is truncated mid-string', () => {
+    // The JSON object is unterminated (no closing "}). This is the exact
+    // failure mode that produced the Paper 11 leak — extractContent must
+    // not return the whole malformed envelope verbatim.
+    const raw =
+      'Q7.4: Some preamble note.\n' +
+      '\n' +
+      '```json\n' +
+      '{"content":"| NO. | ANSWER |\\n|---|---|\\n| 1.1 | b. Barter system | Low Order | 1 |\\n';
+    const out = extractContent(raw);
+    assert.doesNotMatch(out, /Q7\.4:/, 'preamble note must not survive');
+    assert.doesNotMatch(out, /```json/, 'fence wrapper must not survive');
+    assert.doesNotMatch(out, /^\{"content"/, 'raw JSON envelope must not survive');
+    assert.match(out, /\| 1\.1 \| b\. Barter system/, 'recovered table content present');
+  });
+
+  test('strips a stray trailing JSON close-brace pair when content is otherwise plain', () => {
+    const raw =
+      'MEMORANDUM\n' +
+      '| 1.1 | answer | guidance | level | 1 |\n' +
+      '"}';
+    const out = extractContent(raw);
+    assert.match(out, /^MEMORANDUM/);
+    assert.doesNotMatch(out, /^"\}$/m, 'the lone "} closer must be removed');
+  });
+});

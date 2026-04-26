@@ -302,6 +302,117 @@ describe('stripLeadingMemoBanner — drops leading memo headers from RTT phase o
     assert.equal(stripLeadingMemoBanner(null), null);
     assert.equal(stripLeadingMemoBanner(undefined), undefined);
   });
+
+  test('strips TWO consecutive banner blocks (Bug 4: Paper 9 leak shape)', () => {
+    // Real Paper 9 leak: model emitted an outer banner + framework, then a
+    // second banner with a passage-title reprise, then the actual answer
+    // table. Both banner blocks must be stripped — the outer assembly
+    // prepends its own single banner.
+    const input = [
+      'MEMORANDUM',
+      '',
+      'Graad 6 Afrikaans Huistaal — Reaksie op Teks — Kwartaal 2',
+      'CAPS-belyn | Barrett se Taksonomie-raamwerk',
+      '',
+      'MEMORANDUM',
+      '',
+      'Graad 6 Afrikaans Huistaal | Die Groot Skoolfees',
+      '',
+      '| NR. | ANTWOORD | NASIENRIGLYN | KOGNITIEWE VLAK | PUNT |',
+      '|---|---|---|---|---|',
+      '| 1.1 | Hoërskool Uitenhage | … | Letterlik | 1 |',
+    ].join('\n');
+    const out = stripLeadingMemoBanner(input);
+    const banners = (out.match(/^MEMORANDUM\b/gm) || []).length;
+    assert.equal(banners, 0, 'both leading MEMORANDUM banners must be stripped');
+    assert.doesNotMatch(out, /CAPS-belyn/, 'framework line stripped');
+    assert.doesNotMatch(out, /Die Groot Skoolfees/, 'passage-title reprise stripped');
+    assert.match(out, /^\| NR\.\s*\|/m, 'answer table is the first surviving content');
+    assert.match(out, /Hoërskool Uitenhage/, 'answer rows preserved');
+  });
+
+  test('preserves a "PART N —" header when it follows the banner block', () => {
+    // RTT memoBC starts with `MEMORANDUM\n\nPART 1 — AFDELING B …\n\n| NR. | …`
+    // The banner block is removed, but the PART 1 — heading stays.
+    const input = [
+      'MEMORANDUM',
+      '',
+      'PART 1 — AFDELING B: VISUELE TEKS [10]',
+      '',
+      '| NR. | ANTWOORD | … |',
+    ].join('\n');
+    const out = stripLeadingMemoBanner(input);
+    assert.doesNotMatch(out, /^MEMORANDUM/);
+    assert.match(out, /^PART 1 —/);
+  });
+
+  test('handles a third banner emitted between the framework and the body', () => {
+    const input = [
+      'MEMORANDUM',
+      '',
+      'Subtitle 1',
+      '',
+      'MEMORANDUM',
+      '',
+      'Subtitle 2',
+      '',
+      'MEMORANDUM',
+      '',
+      'Subtitle 3',
+      '',
+      '| 1.1 | a | b | level | 1 |',
+    ].join('\n');
+    const out = stripLeadingMemoBanner(input);
+    assert.doesNotMatch(out, /^MEMORANDUM/);
+    assert.match(out, /^\| 1\.1 \|/);
+  });
+});
+
+describe('cleanOutput — Bug 21: phase-commentary preamble lines', () => {
+  test('drops "Q7.2: The error report confirms…" leaked phase commentary', () => {
+    const out = cleanOutput([
+      'Q7.2: The error report confirms the answer is already correct (R29 000) and says "No change — calculation is correct." So Q7.2 requires no change.',
+      'Q7.4: The working needs to explicitly state that Option B requires a positive monthly profit.',
+      '',
+      '| 1.1 | b. Barter | Accept b only | Low Order | 1 |',
+    ].join('\n'));
+    assert.doesNotMatch(out, /Q7\.2:/);
+    assert.doesNotMatch(out, /Q7\.4:/);
+    assert.doesNotMatch(out, /error report/i);
+    assert.match(out, /\| 1\.1 \| b\. Barter/);
+  });
+
+  test('drops "Q3.1: Already correct…" style notes', () => {
+    const out = cleanOutput('Q3.1: Already correct — no change needed\n| 3.1 | answer |');
+    assert.doesNotMatch(out, /Already correct/i);
+    assert.match(out, /\| 3\.1 \| answer \|/);
+  });
+
+  test('keeps memo answer rows whose first cell is "Q7.4" (Q-prefix table rows)', () => {
+    // Some memos use "Q7.4" / "Q1.1" as the first-cell row label inside a
+    // pipe table. Those are CONTENT, not commentary — must survive.
+    const out = cleanOutput('| Q7.4 | R12 000 + R1 800 = R13 800 | Award 1 mark | High Order | 2 |');
+    assert.match(out, /\| Q7\.4 \| R12 000/);
+  });
+
+  test('drops a stray ```json fence line', () => {
+    const out = cleanOutput('```json\n{"content":"something"\n```\n| 1.1 | answer |');
+    assert.doesNotMatch(out, /```json/);
+    assert.doesNotMatch(out, /^```$/m);
+    assert.match(out, /\| 1\.1 \| answer \|/);
+  });
+
+  test('drops a stray opener {"content":" line', () => {
+    const out = cleanOutput('{"content":"\n| 1.1 | answer |');
+    assert.doesNotMatch(out, /^\{"content"/);
+    assert.match(out, /\| 1\.1 \| answer \|/);
+  });
+
+  test('drops a stray closing "} line', () => {
+    const out = cleanOutput('| 1.1 | answer |\n"}');
+    assert.match(out, /\| 1\.1 \| answer \|/);
+    assert.doesNotMatch(out, /^"\}$/m);
+  });
 });
 
 describe('cleanOutput — Afrikaans META_COMMENTARY_RULES (Bug 2)', () => {
