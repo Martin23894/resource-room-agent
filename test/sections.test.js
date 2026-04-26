@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { ensureSequentialSectionLetters } from '../lib/sections.js';
+import { ensureSequentialSectionLetters, ensureSectionCloser } from '../lib/sections.js';
 
 describe('ensureSequentialSectionLetters — Bug 22: section letters skip', () => {
   test('renumbers A → C → D to A → B → C', () => {
@@ -74,5 +74,59 @@ describe('ensureSequentialSectionLetters — Bug 22: section letters skip', () =
     const r = ensureSequentialSectionLetters(paper);
     assert.equal(r.changed, true);
     assert.match(r.text, /^SECTION A:/);
+  });
+});
+
+describe('ensureSectionCloser — Phase 1.3: deterministic section closers (Bugs 4, 16)', () => {
+  test('Bug 4 / 16: strips a foreign-section closer (SECTION C in Section B body)', () => {
+    // Resources 1 + 2 audit case: a Section B body that ended with
+    // "SECTION C TOTAL: 5 marks" because Claude collapsed the B+C phase.
+    // The deterministic closer must strip that and emit "SECTION B TOTAL: 10 marks".
+    const body = [
+      '| 2.1 | answer | guidance | Literal | 1 |',
+      '| 2.2 | answer | guidance | Literal | 1 |',
+      '',
+      '| Cognitive Level | Questions | Marks |',
+      '| Reorganisation | Content Points 1, 2, 3 | 5 |',
+      '',
+      'SECTION C TOTAL: 5 marks',
+    ].join('\n');
+    const r = ensureSectionCloser(body, 'SECTION B', 'TOTAL', 10, 'marks');
+    assert.equal(r.strippedWrong, true, 'must report a foreign closer was stripped');
+    assert.match(r.text, /SECTION B TOTAL: 10 marks\s*$/);
+    assert.doesNotMatch(r.text, /SECTION C TOTAL/i);
+  });
+
+  test('appends canonical closer when none exists', () => {
+    const body = '| 2.1 | answer | guidance | Literal | 5 |';
+    const r = ensureSectionCloser(body, 'SECTION B', 'TOTAL', 10, 'marks');
+    assert.equal(r.strippedExisting, false);
+    assert.equal(r.strippedWrong, false);
+    assert.match(r.text, /SECTION B TOTAL: 10 marks\s*$/);
+  });
+
+  test('replaces an existing closer for THIS section with the canonical one', () => {
+    // If Claude wrote "SECTION B TOTAL: 9 marks" (wrong number), we strip
+    // it and emit the canonical "SECTION B TOTAL: 10 marks".
+    const body = [
+      '| 2.1 | a | b | Literal | 5 |',
+      'SECTION B TOTAL: 9 marks',
+    ].join('\n');
+    const r = ensureSectionCloser(body, 'SECTION B', 'TOTAL', 10, 'marks');
+    assert.equal(r.strippedExisting, true);
+    assert.match(r.text, /SECTION B TOTAL: 10 marks\s*$/);
+    // The wrong "9 marks" line must be gone.
+    assert.doesNotMatch(r.text, /SECTION B TOTAL: 9 marks/);
+  });
+
+  test('Afrikaans: AFDELING / TOTAAL / punte', () => {
+    const body = '| 2.1 | answer | guidance | Letterlik | 5 |';
+    const r = ensureSectionCloser(body, 'AFDELING B', 'TOTAAL', 10, 'punte');
+    assert.match(r.text, /AFDELING B TOTAAL: 10 punte\s*$/);
+  });
+
+  test('handles null/empty input safely', () => {
+    const r = ensureSectionCloser('', 'SECTION B', 'TOTAL', 10, 'marks');
+    assert.match(r.text, /SECTION B TOTAL: 10 marks\s*$/);
   });
 });
