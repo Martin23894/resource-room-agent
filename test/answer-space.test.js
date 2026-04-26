@@ -208,4 +208,49 @@ describe('ensureAnswerSpace — reorders MCQ options misplaced after answer line
     const ansIdx = out.findIndex((l) => /^Antwoord:\s*_/.test(l));
     assert.ok(ansIdx > eIdx, 'Antwoord line must come AFTER option E');
   });
+
+  test('Nat Sci pattern: option d after stub + stem in between is recovered', () => {
+    // Real Grade 7 Afrikaans Nat Sci sample: AI emits options a/b/c for the
+    // NEXT MCQ before that MCQ's stem, then a stub, then the stem, then the
+    // stranded "d" option. The reorder must move "d" back above the stub
+    // even though the question stem and blank lines sit between them. The
+    // stem here (no leading 1.1 prefix) does NOT match SUBQ_WITH_MARKS, so
+    // the reorder loop must walk past it.
+    const input = [
+      'a. Die Indiese Oseaan',
+      'b. Die lug wat ons asemhaal',
+      'c. Die rotsgrond van die Drakensberge',
+      'Answer: ' + BLANK,
+      '',
+      "Watter een van die volgende is 'n voorbeeld van die LITOSFER? (1)",
+      '',
+      "d. 'n Wolk bo Durban",
+    ].join('\n');
+    const out = ensureAnswerSpace(input, { language: 'Afrikaans' }).split('\n');
+    const dIdx = out.findIndex((l) => l.startsWith("d. 'n Wolk"));
+    const ansIdx = out.findIndex((l) => /^Answer:\s*_/.test(l));
+    assert.ok(dIdx >= 0, 'option d must still exist');
+    assert.ok(ansIdx > dIdx, 'Answer stub must end up AFTER option d, not before');
+  });
+});
+
+describe('ensureAnswerSpace — places injected stub after the TRUE last option (a–h)', () => {
+  test('5-option sequencing: injected stub goes after E, not after D', () => {
+    // When the question stem itself uses a numbered prefix (so the main
+    // injection loop fires), the last-option search must use a-h not a-d
+    // — otherwise a sequencing question's stub gets jammed between D and E.
+    const input = [
+      '1.4 Rangskik die gebeure in volgorde. (4)',
+      'A. opt A',
+      'B. opt B',
+      'C. opt C',
+      'D. opt D',
+      'E. opt E',
+    ].join('\n');
+    const out = ensureAnswerSpace(input).split('\n');
+    const eIdx = out.findIndex((l) => l.startsWith('E. opt E'));
+    const ansIdx = out.findIndex((l) => /^Answer:\s*_/.test(l));
+    assert.ok(eIdx >= 0, 'E option preserved');
+    assert.ok(ansIdx > eIdx, 'Answer stub must follow E, not be wedged between D and E');
+  });
 });

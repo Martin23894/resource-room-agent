@@ -10,7 +10,7 @@ import { ensureAnswerSpace } from '../lib/answer-space.js';
 import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
 import { extractContent } from '../lib/content.js';
 import { i18n } from '../lib/i18n.js';
-import { cleanOutput, localiseLabels } from '../lib/clean-output.js';
+import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
 import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
 import { validateMemoStructure } from '../lib/memo-structure.js';
@@ -401,8 +401,16 @@ FORMAT:
 - Instruct learners to write a summary of the reading passage (from Section A) in their own words
 - Specify maximum word count (about 50 words for 5 marks, scale accordingly)
 - State exactly what the summary must include (e.g. main points, key ideas)
-- Mark allocation: content marks + language/structure marks
 - End with: [${sm.c}]
+
+LEARNER PAPER ONLY — non-negotiable:
+Do NOT include marking-rubric guidance on the learner paper. NEVER write
+"Award UP TO X marks for CONTENT", "Award UP TO X marks for LANGUAGE",
+"Deduct marks if…", or "Do NOT penalise for…". Marking criteria belong
+in the memo (Phase 3 below) — the learner sees only the task and the
+required content points. The total mark allocation is shown only by the
+[${sm.c}] block label at the end.
+
 Return JSON: {"content":"Section C text only"}`;
 
     const secCUsr = `READING PASSAGE (from Section A):\n${passage}\n\nWrite ${secLabel[2]} — Summary task (${sm.c} marks).`;
@@ -517,30 +525,58 @@ Write the memo for ${secLabel[0]} ONLY:
 Return JSON: {"content":"Section A memo"}`;
 
     // ── RTT Memo Phase 2: Section B (Visual Text) + Section C (Summary) answers + Barrett's ──
+    // Audit Bug 9 — earlier wording had Part 1 and Part 2 mixed in the
+    // model output: the Section B distribution table showed Section C's
+    // rubric criteria ("Content Point 1 + Language and Structure") with
+    // Section C's mark count, and the closing total said "SECTION C
+    // TOTAL: 5 marks" under the SECTION B heading. The fix below uses
+    // hard separators, mandates a literal distribution-table format for
+    // Part 1, and forbids the rubric-criteria pattern by name.
     const rttMemoUsrB = `${secLabel[1]} QUESTIONS (${sm.b} marks):
 ${secB}
 
 ${secLabel[2]} QUESTION (${sm.c} marks):
 ${secC}
 
-Write the memo for ${secLabel[1]} AND ${secLabel[2]}:
+Write the memo for ${secLabel[1]} AND ${secLabel[2]}. The two parts are
+SEPARATE. Do NOT mix Part 2's rubric criteria into Part 1's distribution
+table. Do NOT close Part 1 with "${secLabel[2]} TOTAL" — it must close
+with "${secLabel[1]} ${L.totalLabel}".
 
-PART 1 — ${secLabel[1]} VISUAL TEXT MEMO (${sm.b} marks):
-Answer table columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-List every visual text sub-question: 2.1, 2.2, 2.3 … Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
-After the answer table, write a Barrett's Taxonomy distribution TABLE for ${secLabel[1]} ONLY.
-IMPORTANT: this table must show QUESTION NUMBERS (2.1, 2.2, etc.) grouped by cognitive level — NOT content criteria or rubric points (those belong in Part 2 below).
-The distribution table must sum to exactly ${sm.b} marks.
-End with: ${secLabel[1]} ${L.totalLabel}: ${sm.b} ${L.marksWord}
+═══════════════════════════════════════════════════════
+PART 1 — ${secLabel[1]} VISUAL TEXT MEMO (${sm.b} marks)
+═══════════════════════════════════════════════════════
 
----
+1. Answer table — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
+   List every visual-text sub-question (2.1, 2.2, 2.3 …).
+   Use Literal / Reorganisation / Inferential / Evaluation and Appreciation.
 
-PART 2 — ${secLabel[2]} SUMMARY TASK MEMO (${sm.c} marks):
-Answer table columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-This section awards marks for: content points covered + language/structure. All marks = Reorganisation level.
-Number the rows by content criterion (e.g. 3.1, 3.2 … or Content Point 1, 2 …).
-After the answer table, write a Barrett's Taxonomy summary for ${secLabel[2]} ONLY (all Reorganisation, sums to ${sm.c} marks).
-End with: ${secLabel[2]} ${L.totalLabel}: ${sm.c} ${L.marksWord}
+2. Barrett's Taxonomy DISTRIBUTION TABLE for ${secLabel[1]} ONLY.
+   Use EXACTLY these columns:
+   | Cognitive Level | Questions | Marks |
+   The "Questions" column lists the sub-question NUMBERS at each level
+   (e.g. "2.1, 2.3"). It does NOT contain "Content Point 1", "Content
+   Point 2", "Language and Structure", or any rubric phrase — those
+   belong in Part 2.
+   The Marks column adds to EXACTLY ${sm.b} marks for this section.
+
+3. Close Part 1 with this exact line:
+   ${secLabel[1]} ${L.totalLabel}: ${sm.b} ${L.marksWord}
+
+═══════════════════════════════════════════════════════
+PART 2 — ${secLabel[2]} SUMMARY TASK MEMO (${sm.c} marks)
+═══════════════════════════════════════════════════════
+
+1. Answer table — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
+   This section awards marks for: content points covered + language/structure.
+   All marks count as Reorganisation level.
+   Number rows by content criterion (e.g. 3.1, 3.2 … or Content Point 1, 2 …).
+
+2. Barrett's Taxonomy summary for ${secLabel[2]} ONLY.
+   All ${sm.c} marks at Reorganisation level.
+
+3. Close Part 2 with this exact line:
+   ${secLabel[2]} ${L.totalLabel}: ${sm.c} ${L.marksWord}
 
 Return JSON: {"content":"Section B and C memo"}`;
 
@@ -587,9 +623,13 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     ]);
     channel.sendPhase('rtt_memo', 'done');
 
-    const memoA  = cleanOutput(safeExtractContent(memoARaw));
-    const memoBC = cleanOutput(safeExtractContent(memoBCRaw));
-    const memoD  = cleanOutput(safeExtractContent(memoDRaw));
+    // Strip any leading MEMORANDUM banner each phase emits — the assembly
+    // below adds its own single outer banner, so phase-level reprises
+    // would stack two or three "MEMORANDUM" headings on top of each other
+    // (the Grade 6 Afrikaans HL audit caught a triple).
+    const memoA  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoARaw)));
+    const memoBC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoBCRaw)));
+    const memoD  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
 
     // Localised memo header — was hard-coded English even on Afrikaans
     // papers, which the Afrikaans HL audit caught.
@@ -736,10 +776,34 @@ Return JSON: {"content":"Section D memo and combined Barrett's"}`;
     });
 
     // ── Phase 2: Write questions from validated plan ──
+    // Token budget: scaled to plan size + a healthy buffer for Afrikaans
+    // (which is ~15% wordier than English). The Grade 7 Afrikaans Nat Sci
+    // 85-mark Eindeksamen sample truncated mid-sentence at the old 5500-
+    // cap, dropping all of Section C.
     channel.sendPhase('writing', 'started');
-    const qTok = isWorksheet ? 3000 : (isExamType) ? 5500 : 4500;
+    const isAfr = (language || '').toLowerCase() === 'afrikaans';
+    const qTokBase = isWorksheet ? 3000 : isExamType ? 8000 : 5500;
+    const qTok = Math.round(qTokBase * (isAfr ? 1.2 : 1));
     let questionPaper = await callClaude(qSys(plan), qUsr(plan), qTok);
     questionPaper = cleanOutput(questionPaper);
+    // Truncation guard — if the paper ends without a TOTAL line AND the
+    // last block isn't a complete-looking question (no terminating mark
+    // bracket on the final non-blank line), flag it so the operator can
+    // retry. We don't auto-retry yet because Phase 2a usually salvages
+    // mark drift — but a hard truncation that drops a whole section is
+    // exactly the failure that shipped before this guard existed.
+    {
+      const tail = questionPaper.split('\n').filter((l) => l.trim()).slice(-3).join('\n');
+      const hasTotal = /\b(TOTAL|TOTAAL)\s*:/i.test(tail);
+      const endsCleanly = /[\.\?\)\]]\s*$/.test(tail) || /\(\d+\)\s*$/.test(tail);
+      if (!hasTotal && !endsCleanly) {
+        log.warn(
+          { tail: tail.slice(-200), tokens: qTok },
+          'Phase 2: paper appears TRUNCATED — no TOTAL line and ends mid-sentence. Section content may be missing.',
+        );
+        channel.sendPhase('writing', 'truncation_warning');
+      }
+    }
     channel.sendPhase('writing', 'done');
  
     // ── Phase 2a: Mark drift correction ──
@@ -784,6 +848,18 @@ RULES FOR THE CORRECTION ITSELF:
     const finalCount = countMarks(questionPaper);
     let markTotal = finalCount > 0 ? finalCount : totalMarks;
     log.info(`Final mark total: ${markTotal}`);
+
+    // Bug 11 — surface a warning if the body still doesn't sum to the
+    // cover-page total after Phase 2a tried to correct it. The DOCX cover
+    // is built from totalMarks; a residual mismatch means the printed
+    // total disagrees with the actual question marks (the Grade 7 Nat
+    // Sci 85-vs-100 case).
+    if (finalCount > 0 && finalCount !== totalMarks) {
+      log.warn(
+        { cover: totalMarks, body: finalCount, drift: finalCount - totalMarks },
+        'Standard pipeline: body mark sum does not match cover total — printed cover and content disagree',
+      );
+    }
 
     // ── Phase 2c: Cog-level balance check (pure code, no Claude call) ──
     // If the written paper drifts from the plan's cogLevel-per-question

@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { cleanOutput, localiseLabels } from '../lib/clean-output.js';
+import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
 
 describe('cleanOutput — drops commentary lines', () => {
   test('drops STEP N headers', () => {
@@ -241,6 +241,66 @@ describe('cleanOutput — Afrikaans cog table dedup (Bug 1)', () => {
     assert.equal(headers, 1, 'should keep only one Kognitiewe Vlak header');
     assert.match(out, /25%/, 'should keep the LAST table (25%)');
     assert.doesNotMatch(out, /20%/, 'should drop the first table (20%)');
+  });
+});
+
+describe('localiseLabels — tolerates leading whitespace (Bug 3 follow-up)', () => {
+  test('indented Answer: line is also localised', () => {
+    const input = '    Answer: ___\n  Working: ___';
+    const out = localiseLabels(input, 'Afrikaans');
+    assert.equal(out, '    Antwoord: ___\n  Werking: ___', 'indented stubs must localise too');
+  });
+});
+
+describe('cleanOutput — MEMORANDUM dedup (Bug 4)', () => {
+  test('drops a second MEMORANDUM banner that follows the first with only blanks', () => {
+    const input = ['MEMORANDUM', '', '', 'MEMORANDUM', '', 'NO. | ANSWER | ...'].join('\n');
+    const out = cleanOutput(input);
+    const banners = (out.match(/^MEMORANDUM$/gm) || []).length;
+    assert.equal(banners, 1, 'duplicate MEMORANDUM should collapse to one');
+  });
+
+  test('keeps a MEMORANDUM banner if real content separates the two', () => {
+    const input = [
+      'MEMORANDUM',
+      'NO. | ANSWER | ...',
+      '| 1.1 | a |',
+      '',
+      'MEMORANDUM',
+      'NO. | ANSWER | ...',
+    ].join('\n');
+    const out = cleanOutput(input);
+    const banners = (out.match(/^MEMORANDUM$/gm) || []).length;
+    assert.equal(banners, 2, 'distinct memo phases separated by content keep their banners');
+  });
+});
+
+describe('stripLeadingMemoBanner — drops leading memo headers from RTT phase output', () => {
+  test('strips a bare MEMORANDUM line and the title that follows', () => {
+    const input = [
+      'MEMORANDUM',
+      '',
+      'Grade 6 Afrikaans Huistaal — Reaksie op Teks — Kwartaal 4',
+      "CAPS-belyn | Barrett se Taksonomie-raamwerk",
+      '',
+      'NR. | ANTWOORD | NASIENRIGLYN | KOGNITIEWE VLAK | PUNT',
+      '| 1.1 | Bergzicht Primêr | … | Literal | 1 |',
+    ].join('\n');
+    const out = stripLeadingMemoBanner(input);
+    assert.doesNotMatch(out, /^MEMORANDUM/);
+    assert.doesNotMatch(out, /CAPS-belyn/);
+    assert.match(out, /^NR\./, 'first surviving line should be the answer table header');
+  });
+
+  test('passes through phase output that already starts with table content', () => {
+    const input = 'NO. | ANSWER | ...\n| 1.1 | a |';
+    assert.equal(stripLeadingMemoBanner(input), input);
+  });
+
+  test('null/empty/undefined are safe', () => {
+    assert.equal(stripLeadingMemoBanner(''), '');
+    assert.equal(stripLeadingMemoBanner(null), null);
+    assert.equal(stripLeadingMemoBanner(undefined), undefined);
   });
 });
 
