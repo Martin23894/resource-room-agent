@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { cleanOutput } from '../lib/clean-output.js';
+import { cleanOutput, localiseLabels } from '../lib/clean-output.js';
 
 describe('cleanOutput — drops commentary lines', () => {
   test('drops STEP N headers', () => {
@@ -203,5 +203,64 @@ describe('cleanOutput — preserves real content', () => {
     const out = cleanOutput(input);
     assert.match(out, /a \* b = c/);
     assert.doesNotMatch(out, /\\\*/);
+  });
+});
+
+describe('localiseLabels — Afrikaans answer/working stub localisation (Bug 3)', () => {
+  test('English papers are unchanged', () => {
+    const input = 'Working: ___\nAnswer: ___';
+    assert.equal(localiseLabels(input, 'English'), input);
+  });
+  test('Afrikaans papers get Antwoord:/Werking: at line start', () => {
+    const out = localiseLabels('Working: ___\nAnswer: ___', 'Afrikaans');
+    assert.equal(out, 'Werking: ___\nAntwoord: ___');
+  });
+  test('does NOT replace the words mid-sentence (passage text safe)', () => {
+    const input = "Sipho will answer: he doesn't know.\nThe answer: not yet given.";
+    const out = localiseLabels(input, 'Afrikaans');
+    assert.equal(out, input, 'mid-sentence "answer:" must not be touched');
+  });
+  test('null / undefined / empty input is safe', () => {
+    assert.equal(localiseLabels('', 'Afrikaans'), '');
+    assert.equal(localiseLabels(null, 'Afrikaans'), null);
+    assert.equal(localiseLabels(undefined, 'Afrikaans'), undefined);
+  });
+});
+
+describe('cleanOutput — Afrikaans cog table dedup (Bug 1)', () => {
+  test('keeps only the LAST Kognitiewe Vlak table when there are two', () => {
+    const input = [
+      '| Kognitiewe Vlak | Voorgeskrewe % |',
+      '| Letterlik | 20% |',
+      'some recount commentary',
+      '| Kognitiewe Vlak | Voorgeskrewe % |',
+      '| Letterlik | 25% |',
+    ].join('\n');
+    const out = cleanOutput(input);
+    const headers = (out.match(/Kognitiewe Vlak/g) || []).length;
+    assert.equal(headers, 1, 'should keep only one Kognitiewe Vlak header');
+    assert.match(out, /25%/, 'should keep the LAST table (25%)');
+    assert.doesNotMatch(out, /20%/, 'should drop the first table (20%)');
+  });
+});
+
+describe('cleanOutput — Afrikaans META_COMMENTARY_RULES (Bug 2)', () => {
+  test('drops "Wag —" thinking-aloud lines', () => {
+    const out = cleanOutput('Wag — laat my dit weer probeer\n1.1 Vraag (1)');
+    assert.doesNotMatch(out, /Wag —/);
+    assert.match(out, /1\.1 Vraag/);
+  });
+  test('drops "Laat my probeer" lines', () => {
+    const out = cleanOutput('Laat my probeer weer\n1.1 Vraag (1)');
+    assert.doesNotMatch(out, /Laat my probeer/);
+    assert.match(out, /1\.1 Vraag/);
+  });
+  test('drops "Eintlik —" lines', () => {
+    const out = cleanOutput('Eintlik — ek het 8 punte gemis\n1.1 Vraag (1)');
+    assert.doesNotMatch(out, /Eintlik —/);
+  });
+  test('drops Afrikaans VERSPREIDINGSNOTA paragraph', () => {
+    const out = cleanOutput('Hierdie vraestel voldoen nie aan CAPS nie\n1.1 Vraag (1)');
+    assert.doesNotMatch(out, /Hierdie vraestel voldoen nie/i);
   });
 });

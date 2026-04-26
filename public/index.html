@@ -1035,7 +1035,13 @@ function qf(g, t, s, tp, l, d){
           break;
         }
       }
-      document.querySelectorAll('.lbtn').forEach(b=>b.classList.toggle('on',b.dataset.l===l)); lang=l;
+      // If the subject locks the language, ignore the qf-supplied l and use the locked one.
+      const lockedL = LANGUAGE_LOCKED[s] || l;
+      document.querySelectorAll('.lbtn').forEach(b=>{
+        b.classList.toggle('on', b.dataset.l===lockedL);
+        b.classList.toggle('locked', !!LANGUAGE_LOCKED[s] && b.dataset.l!==lockedL);
+      });
+      lang = lockedL;
       document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d)); diff=d;
       setTimeout(doGenerate, 200);
     }, 100);
@@ -1689,8 +1695,15 @@ function loadH(i){
   // preview panel shows the stored snippet so they can remember which pack
   // this was; the full DOCX comes back instantly via the cache on
   // Regenerate.
-  rtype = h.rtype; lang = h.lang; diff = h.diff;
-  document.querySelectorAll('.lbtn').forEach(b => b.classList.toggle('on', b.dataset.l === h.lang));
+  rtype = h.rtype; diff = h.diff;
+  // If the historic entry's subject locks the language, override the saved
+  // h.lang so a stale "Afrikaans HL in English" entry can't replay the bug.
+  const lockedL = LANGUAGE_LOCKED[h.subj] || h.lang;
+  lang = lockedL;
+  document.querySelectorAll('.lbtn').forEach(b => {
+    b.classList.toggle('on', b.dataset.l === lockedL);
+    b.classList.toggle('locked', !!LANGUAGE_LOCKED[h.subj] && b.dataset.l !== lockedL);
+  });
   document.querySelectorAll('.dbtn').forEach(b => b.classList.toggle('on', b.dataset.d === h.diff));
   window._docxBase64 = null;
   window._docxFilename = null;

@@ -157,3 +157,55 @@ describe('ensureAnswerSpace — leaves non-question content alone', () => {
     assert.equal(twice, once);
   });
 });
+
+describe('ensureAnswerSpace — reorders MCQ options misplaced after answer line (Bug 6)', () => {
+  test('option E placed after Answer line is moved to before it', () => {
+    const input = [
+      '1.4 Rangskik die volgende. (4)',
+      '',
+      'A. opt A',
+      'B. opt B',
+      'C. opt C',
+      'D. opt D',
+      'Answer: ' + BLANK,
+      'E. opt E',
+    ].join('\n');
+    const out = ensureAnswerSpace(input).split('\n');
+    const eIdx = out.findIndex((l) => l.startsWith('E. opt E'));
+    const ansIdx = out.findIndex((l) => /^Answer:\s*_/.test(l));
+    assert.ok(eIdx > 0, 'E option should still be present');
+    assert.ok(ansIdx > eIdx, 'Answer line must come AFTER option E');
+  });
+
+  test('does NOT steal MCQ options from the next sub-question', () => {
+    const input = [
+      '1.5 Rangskik (4)',
+      'A. a','B. b','C. c','D. d',
+      'Answer: ' + BLANK,
+      'E. e',
+      '',
+      '1.6 Watter is korrek? (1)',
+      'A. eerste','B. tweede','C. derde','D. vierde',
+    ].join('\n');
+    const out = ensureAnswerSpace(input).split('\n');
+    // Q1.6's options must still appear AFTER the "1.6 …" header line.
+    const q16Idx = out.findIndex((l) => l.startsWith('1.6 '));
+    const aEersteIdx = out.findIndex((l) => l.includes('A. eerste'));
+    const bTweedeIdx = out.findIndex((l) => l.includes('B. tweede'));
+    assert.ok(aEersteIdx > q16Idx, '"A. eerste" must follow "1.6 …", not be hoisted before Q1.5 answer');
+    assert.ok(bTweedeIdx > q16Idx, '"B. tweede" must follow "1.6 …", not be hoisted before Q1.5 answer');
+  });
+
+  test('Afrikaans Antwoord stub also triggers the reorder', () => {
+    const input = [
+      '1.4 Rangskik (4)',
+      'A. a','B. b','C. c','D. d',
+      'Antwoord: ' + BLANK,
+      'E. e',
+    ].join('\n');
+    const out = ensureAnswerSpace(input, { language: 'Afrikaans' }).split('\n');
+    const eIdx = out.findIndex((l) => l.startsWith('E. e'));
+    const ansIdx = out.findIndex((l) => /^Antwoord:\s*_/.test(l));
+    assert.ok(ansIdx > eIdx, 'Antwoord line must come AFTER option E');
+  });
+});

@@ -45,6 +45,24 @@ export default async function handler(req, res) {
     // the USER message only (never the system prompt) so it does not
     // invalidate prompt caching and cannot jailbreak curriculum scope.
     guidance     = vGuidance(req.body?.teacherGuidance);
+
+    // Defensive lock for HL/FAL language subjects: an Afrikaans Home
+    // Language paper can never be generated in English, and vice versa.
+    // The UI greys out the wrong button, but a direct API call could
+    // still send an incoherent pair — caught here so the pipeline never
+    // sees one (the bilingual chimera observed in the audit pool).
+    const SUBJECT_FORCED_LANG = {
+      'Afrikaans Home Language':             'Afrikaans',
+      'Afrikaans First Additional Language': 'Afrikaans',
+      'English Home Language':               'English',
+      'English First Additional Language':   'English',
+    };
+    const forced = SUBJECT_FORCED_LANG[subject];
+    if (forced && language !== forced) {
+      return res.status(400).json({
+        error: `Subject "${subject}" must be generated in ${forced}, not ${language}.`,
+      });
+    }
   } catch (err) {
     if (err instanceof ValidationError) {
       return res.status(400).json({ error: err.message });
