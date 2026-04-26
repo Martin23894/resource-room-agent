@@ -1,7 +1,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
+import { validatePlan, planContext, topicDiversityRules, LOW_DEMAND_TYPES } from '../lib/plan.js';
 import { getCogLevels, largestRemainder } from '../lib/cognitive.js';
 
 // Build a plan-validator context for a Grade 6 Maths Test, 50 marks.
@@ -273,5 +273,124 @@ describe('validatePlan — rejection reasons are logged', () => {
     assert.equal(validatePlan(plan, ctx, log), null);
     assert.ok(lines.length >= 1);
     assert.match(lines[0], /Plan total 99/);
+  });
+});
+
+describe('topicDiversityRules — Final Exam scope (Phase 4)', () => {
+  test('Final Exam: requires at least 6 distinct topics on a 12-topic ATP', () => {
+    const r = topicDiversityRules({
+      totalMarks: 100,
+      atpTopics: Array.from({ length: 12 }, (_, i) => `Topic ${i + 1}`),
+      isFinalExam: true,
+    });
+    assert.equal(r.minDistinctAtpEntries, 6);
+  });
+
+  test('Final Exam: caps any single topic at 25% of marks', () => {
+    const r = topicDiversityRules({
+      totalMarks: 100,
+      atpTopics: Array.from({ length: 12 }, (_, i) => `Topic ${i + 1}`),
+      isFinalExam: true,
+    });
+    assert.equal(r.maxMarksPerAtpEntry, 25, '25% × 100 = 25');
+  });
+
+  test('Final Exam: scales per-topic cap with mark count (50-mark paper → 13)', () => {
+    const r = topicDiversityRules({
+      totalMarks: 50,
+      atpTopics: Array.from({ length: 12 }, (_, i) => `Topic ${i + 1}`),
+      isFinalExam: true,
+    });
+    assert.equal(r.maxMarksPerAtpEntry, 13, '25% × 50 = 12.5, rounded up');
+  });
+
+  test('Final Exam: minDistinct caps at the size of the ATP list', () => {
+    // If ATP only has 4 topics, minDistinct can't ask for more than 4.
+    const r = topicDiversityRules({
+      totalMarks: 60,
+      atpTopics: ['T1', 'T2', 'T3', 'T4'],
+      isFinalExam: true,
+    });
+    assert.equal(r.minDistinctAtpEntries, 4);
+  });
+
+  test('Standard (non-Final): keeps the ≥ 3 distinct, ≤ 50% per topic ruleset', () => {
+    const r = topicDiversityRules({
+      totalMarks: 100,
+      atpTopics: ['T1', 'T2', 'T3', 'T4', 'T5'],
+      isFinalExam: false,
+    });
+    assert.equal(r.minDistinctAtpEntries, 3);
+    assert.equal(r.maxMarksPerAtpEntry, 50);
+  });
+
+  test('Resource 5 regression — Bug 44: monoculture Final Exam is rejected', () => {
+    // Resource 5 audit: a Grade 7 EMS Final Exam with 12 ATP topics that
+    // shipped 100% of marks on one topic. With Final Exam scope rules
+    // engaged, validatePlan must reject this plan.
+    const cog = { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30, 50, 20] };
+    const cogMarks = largestRemainder(100, cog.pcts);
+    const atpTopics = [
+      'History of money — barter, paper, electronic banking',
+      'Needs and wants',
+      'Goods and services',
+      'Inequality and poverty',
+      'Accounting concepts',
+      'Personal statement of net worth',
+      'Personal budget',
+      'Entrepreneurship characteristics',
+      'SWOT analysis',
+      'AIDA principles of advertising',
+      'Production process',
+      'Savings and stokvels',
+    ];
+    const finalCtx = planContext({
+      totalMarks: 100, cog, cogMarks, cogTolerance: 2, atpTopics, isFinalExam: true,
+    });
+    // Make a plan where every question's topic maps to the same ATP entry —
+    // the "history of money" failure mode.
+    const monoculture = makePlan([
+      { number: 'Q1', type: 'MCQ',          topic: 'history of money',         marks: 30, cogLevel: 'Low Order' },
+      { number: 'Q2', type: 'Short Answer', topic: 'paper money',              marks: 30, cogLevel: 'Middle Order' },
+      { number: 'Q3', type: 'Word Problem', topic: 'electronic banking',       marks: 20, cogLevel: 'Middle Order' },
+      { number: 'Q4', type: 'Essay',        topic: 'barter system history',    marks: 20, cogLevel: 'High Order' },
+    ]);
+    const result = validatePlan(monoculture, finalCtx);
+    assert.equal(result, null, 'monoculture Final Exam plan must be rejected');
+  });
+
+  test('Resource 5 regression — well-spread Final Exam plan is accepted', () => {
+    const cog = { levels: ['Low Order', 'Middle Order', 'High Order'], pcts: [30, 50, 20] };
+    const cogMarks = largestRemainder(100, cog.pcts);
+    // Use distinctive content words so matchAtpEntry can route each plan
+    // topic to a different ATP entry (the matcher uses ≥ 4-char content
+    // words; "Topic 1"/"Topic 2"/etc. all share only "topic" so they'd
+    // collapse to one bucket).
+    const atpTopics = [
+      'History monetary system barter trade',
+      'Personal needs wants distinguishing primary secondary',
+      'Goods services producers consumers recycling',
+      'Inequality poverty causes socio-economic imbalances',
+      'Accounting capital assets liability income expenses',
+      'Personal statement networth savings investments',
+      'Budget definition income expenditure planning',
+      'Entrepreneurship characteristics skills profile',
+      'Buying selling profit manufacturing businesses',
+      'Production inputs outputs sustainable resources',
+      'Financial savings purpose banks accounts services',
+      'Stokvels community schemes informal banking',
+    ];
+    const finalCtx = planContext({
+      totalMarks: 100, cog, cogMarks, cogTolerance: 2, atpTopics, isFinalExam: true,
+    });
+    const wellSpread = makePlan([
+      { number: 'Q1', type: 'MCQ',          topic: 'monetary system barter',     marks: 15, cogLevel: 'Low Order' },
+      { number: 'Q2', type: 'MCQ',          topic: 'needs wants distinguishing', marks: 15, cogLevel: 'Low Order' },
+      { number: 'Q3', type: 'Short Answer', topic: 'goods services consumers',   marks: 25, cogLevel: 'Middle Order' },
+      { number: 'Q4', type: 'Short Answer', topic: 'inequality poverty causes',  marks: 25, cogLevel: 'Middle Order' },
+      { number: 'Q5', type: 'Multi-step',   topic: 'production inputs outputs',  marks: 10, cogLevel: 'High Order' },
+      { number: 'Q6', type: 'Essay',        topic: 'entrepreneurship skills',    marks: 10, cogLevel: 'High Order' },
+    ]);
+    assert.ok(validatePlan(wellSpread, finalCtx), 'spread plan must pass validation');
   });
 });

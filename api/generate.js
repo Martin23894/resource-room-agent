@@ -263,7 +263,7 @@ TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks *
     subject, topic, resourceType, language,
     grade: g, term: t, totalMarks,
     phase, difficulty, diffNote, includeRubric,
-    isWorksheet, isTest, isExamType,
+    isWorksheet, isTest, isExamType, isFinalExam,
     cog, cogMarks, cogTolerance,
     isBarretts,
     atpTopicList, topicInstruction, atpTopics,
@@ -833,7 +833,7 @@ Return JSON: {"content":"Section D memo only"}`;
     // no escape-character salvage, no try/catch around parsing. validatePlan
     // still enforces the CAPS rules on top.
     channel.sendPhase('plan', 'started');
-    const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance, atpTopics });
+    const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance, atpTopics, isFinalExam });
     let plan = null;
     let planAttempts = 0;
     while (!plan && planAttempts < 2) {
