@@ -526,47 +526,23 @@ Write the memo for ${secLabel[0]} ONLY:
 
 Return JSON: {"content":"Section A memo"}`;
 
-    // ── RTT Memo Phase 2: Section B (Visual Text) + Section C (Summary) answers + Barrett's ──
-    // Audit Bug 9 — earlier wording had Part 1 and Part 2 mixed in the
-    // model output: the Section B distribution table showed Section C's
-    // rubric criteria ("Content Point 1 + Language and Structure") with
-    // Section C's mark count, and the closing total said "SECTION C
-    // TOTAL: 5 marks" under the SECTION B heading. The fix below uses
-    // hard separators, mandates a literal distribution-table format for
-    // Part 1, and forbids the rubric-criteria pattern by name.
-    //
-    // Audit Bug 20 — the Section C memo had no access to the reading
-    // passage, so Claude invented a model summary about a different story
-    // (Paper 7: memo described sneakers + homeless child while the actual
-    // passage was about a beach trip to uMhlanga). The passage is now
-    // included verbatim so the content points the memo lists are anchored
-    // to the same passage Section A asked questions on.
-    const rttMemoUsrB = `READING PASSAGE (the source text Section C asks the learner to summarise — model answers must reference THIS passage's content, names, places and events; do NOT invent a different story):
-${passage}
-
-${secLabel[1]} QUESTIONS (${sm.b} marks):
+    // ── RTT Memo Phase 2: Section B (Visual Text) — own call (Phase 3 refactor) ──
+    // Section B and C used to be one call (rttMemoUsrB) producing two answer
+    // tables in one response. Resources 1 and 2 both shipped with Section C
+    // missing because the model collapsed them under token pressure. Each
+    // section now gets its own call so the failure mode no longer exists.
+    const rttMemoUsrB = `${secLabel[1]} QUESTIONS (${sm.b} marks):
 ${secB}
 
-${secLabel[2]} QUESTION (${sm.c} marks):
-${secC}
+Write the memo for ${secLabel[1]} ONLY. Do NOT write the memo for any
+other section here.
 
-Write the memo for ${secLabel[1]} AND ${secLabel[2]}. The two parts are
-SEPARATE. Do NOT mix Part 2's rubric criteria into Part 1's distribution
-table. Do NOT close Part 1 with "${secLabel[2]} TOTAL" — it must close
-with "${secLabel[1]} ${L.totalLabel}".
-
-═══════════════════════════════════════════════════════
-PART 1 — ${secLabel[1]} VISUAL TEXT MEMO (${sm.b} marks)
-═══════════════════════════════════════════════════════
-
-EMIT ALL THREE OF THESE — NEVER SKIP. The pipeline rejects any Part 1
-that arrives without an answer table (Bug 19 prevention).
+EMIT BOTH OF THESE — NEVER SKIP:
 
 1. Answer table FIRST — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
    List EVERY visual-text sub-question (2.1, 2.2, 2.3 …) on its own row.
-   Do NOT skip any sub-question. Do NOT abbreviate the table to a single
-   "see below" line. Each row must have an answer cell and a marking
-   guidance cell with real content — never empty cells.
+   Each row must have an answer cell and a marking guidance cell with real
+   content — never empty cells.
    Cognitive level is one of: Literal / Reorganisation / Inferential / Evaluation and Appreciation.
 
 2. Barrett's Taxonomy DISTRIBUTION TABLE for ${secLabel[1]} ONLY.
@@ -576,26 +552,33 @@ that arrives without an answer table (Bug 19 prevention).
    Reorganisation, Inferential, Evaluation and Appreciation — even if
    some have 0 marks (write "—" in the Questions cell and 0 in Marks).
    The "Questions" column lists the sub-question NUMBERS at each level
-   (e.g. "2.1, 2.3"). It does NOT contain "Content Point 1", "Content
-   Point 2", "Language and Structure", or any rubric phrase — those
-   belong in Part 2.
-   The Marks column adds to EXACTLY ${sm.b} marks for this section.
-   Bug 9 prevention: do NOT emit a single-row table like
-   "| Reorganisation | … | 5 |" — that is Part 2's pattern, not Part 1's.
+   (e.g. "2.1, 2.3"). It does NOT contain "Content Point 1", "Language
+   and Structure", or any rubric phrase — that's a different section's
+   pattern.
+   The Marks column adds to EXACTLY ${sm.b} marks.
 
-3. Close Part 1 with this exact line:
-   ${secLabel[1]} ${L.totalLabel}: ${sm.b} ${L.marksWord}
+The pipeline appends the closing "${secLabel[1]} ${L.totalLabel}" line in
+code, so do NOT write it yourself.
 
-═══════════════════════════════════════════════════════
-PART 2 — ${secLabel[2]} SUMMARY TASK MEMO (${sm.c} marks)
-═══════════════════════════════════════════════════════
+Return JSON: {"content":"Section B memo only"}`;
 
-CRITICAL — passage anchoring (Bug 20): Every content point you list MUST
-be grounded in the READING PASSAGE shown at the top of this prompt. Use
-the actual character names, places, events and quantities from THAT
-passage. Do NOT invent a different story. If the passage is about a
-beach trip to uMhlanga, the model summary covers that beach trip — not
-shopping, sneakers, or any unrelated scenario.
+    // ── RTT Memo Phase 2c: Section C (Summary) — own call (Phase 3 refactor) ──
+    // Section C must reference the actual reading passage so its content
+    // points anchor to real names/places/events (Bug 20 — Paper 7 had a
+    // memo describing a different story than the passage Section A
+    // asked questions about).
+    const rttMemoUsrC = `READING PASSAGE (the source text Section C asks the learner to summarise — model answers must reference THIS passage's content, names, places and events; do NOT invent a different story):
+${passage}
+
+${secLabel[2]} QUESTION (${sm.c} marks):
+${secC}
+
+Write the memo for ${secLabel[2]} ONLY. Every content point you list MUST
+be grounded in the READING PASSAGE shown above. Use the actual character
+names, places, events and quantities from THAT passage. Do NOT invent a
+different story.
+
+EMIT BOTH OF THESE — NEVER SKIP:
 
 1. Answer table — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
    This section awards marks for: content points covered + language/structure.
@@ -607,10 +590,10 @@ shopping, sneakers, or any unrelated scenario.
 2. Barrett's Taxonomy summary for ${secLabel[2]} ONLY.
    All ${sm.c} marks at Reorganisation level.
 
-3. Close Part 2 with this exact line:
-   ${secLabel[2]} ${L.totalLabel}: ${sm.c} ${L.marksWord}
+The pipeline appends the closing "${secLabel[2]} ${L.totalLabel}" line in
+code, so do NOT write it yourself.
 
-Return JSON: {"content":"Section B and C memo"}`;
+Return JSON: {"content":"Section C memo only"}`;
 
     // ── RTT Memo Phase 3: Section D (Language) answers + Barrett's summary ──
     // The COMBINED paper Barrett's table is no longer requested from Claude
@@ -632,21 +615,18 @@ area will be discarded.
 
 Return JSON: {"content":"Section D memo only"}`;
 
-    log.info(`RTT Memo: generating in 3 phases (A / B+C / D+combined)`);
+    log.info(`RTT Memo: generating in 4 phases (A / B / C / D) — combined Barrett's emitted in code`);
     channel.sendPhase('rtt_memo', 'started');
-    // Token budget bump (Bug 19): the B+C phase has to fit TWO answer
-    // tables (Section B + Section C) plus two Barrett's tables in one
-    // response. At 4000 tokens it routinely truncated the Section B
-    // body — Paper 7 audit found the section had only its closing
-    // "SECTION B TOTAL: 10 marks" line and no answer table at all.
+    // Per-section token budgets — smaller now that B and C are split.
     // Afrikaans is ~20% wordier than English so the multiplier is
-    // applied across all three phases.
+    // applied across all four phases.
     const isAfrRtt = (language || '').toLowerCase() === 'afrikaans';
     const rttTok = (base) => Math.round(base * (isAfrRtt ? 1.2 : 1));
-    const [memoARaw, memoBCRaw, memoDRaw] = await Promise.all([
+    const [memoARaw, memoBRaw, memoCRaw, memoDRaw] = await Promise.all([
       callClaude(rttMemoSys, rttMemoUsrA, rttTok(6000)),
-      callClaude(rttMemoSys, rttMemoUsrB, rttTok(7000)),
-      callClaude(rttMemoSys, rttMemoUsrD, rttTok(6000))
+      callClaude(rttMemoSys, rttMemoUsrB, rttTok(4500)),
+      callClaude(rttMemoSys, rttMemoUsrC, rttTok(3000)),
+      callClaude(rttMemoSys, rttMemoUsrD, rttTok(6000)),
     ]);
     channel.sendPhase('rtt_memo', 'done');
 
@@ -654,71 +634,61 @@ Return JSON: {"content":"Section D memo only"}`;
     // below adds its own single outer banner, so phase-level reprises
     // would stack two or three "MEMORANDUM" headings on top of each other
     // (the Grade 6 Afrikaans HL audit caught a triple).
-    let memoA  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoARaw)));
-    let memoBC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoBCRaw)));
-    let memoD  = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
+    let memoA = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoARaw)));
+    let memoB = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoBRaw)));
+    let memoC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoCRaw)));
+    let memoD = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
 
-    // Bug 19 retry: the Section B+C phase has a higher truncation /
-    // skip-the-answer-table risk because it emits two answer tables in
-    // one response. If the result has NO answer-table header (Paper 7
-    // shipped only "SECTION B TOTAL: 10 marks" with no rows), retry once
-    // with the maximum budget. This is cheap insurance — a clean first
-    // pass skips it entirely.
-    if (!validateMemoStructure(memoBC).answerTable) {
+    // Per-phase retry guard. Each section gets its own retry: if the
+    // returned text doesn't contain an answer-table header, retry once
+    // with a larger budget. Splitting the phases means the retry can
+    // target the broken section instead of refetching B+C as a pair.
+    async function retryRttSection(label, current, sysPrompt, usrPrompt, budgetTok) {
+      if (validateMemoStructure(current).answerTable) return current;
       log.warn(
-        { len: memoBC.length, tail: memoBC.slice(-200) },
-        'RTT memo Phase BC: no answer-table header detected — retrying with max budget',
+        { section: label, len: current.length, tail: current.slice(-200) },
+        `RTT memo ${label}: no answer-table header detected — retrying with max budget`,
       );
       try {
-        const retryRaw = await callClaude(rttMemoSys, rttMemoUsrB, rttTok(12000));
+        const retryRaw = await callClaude(sysPrompt, usrPrompt, budgetTok);
         const retryClean = stripLeadingMemoBanner(cleanOutput(safeExtractContent(retryRaw)));
         if (validateMemoStructure(retryClean).answerTable) {
-          memoBC = retryClean;
-          log.info('RTT memo Phase BC: retry succeeded — answer table now present');
-        } else {
-          log.warn('RTT memo Phase BC: retry still missing answer table — keeping original');
+          log.info(`RTT memo ${label}: retry succeeded — answer table now present`);
+          return retryClean;
         }
+        log.warn(`RTT memo ${label}: retry still missing answer table — keeping original`);
+        return current;
       } catch (e) {
-        log.warn({ err: e?.message || e }, 'RTT memo Phase BC: retry failed — keeping original');
+        log.warn({ err: e?.message || e }, `RTT memo ${label}: retry failed — keeping original`);
+        return current;
       }
     }
+    memoB = await retryRttSection('Section B', memoB, rttMemoSys, rttMemoUsrB, rttTok(9000));
+    memoC = await retryRttSection('Section C', memoC, rttMemoSys, rttMemoUsrC, rttTok(6000));
 
     // Localised memo header — was hard-coded English even on Afrikaans
     // papers, which the Afrikaans HL audit caught.
     const rttHeader = L.rttMemo || { heading: 'MEMORANDUM', subtitle: () => '', framework: '' };
     const subjectDisplay = displaySubject || subject;
 
-    // ── Phase 1.3: deterministic per-section closers ──
+    // ── Phase 1.3 + Phase 3: deterministic per-section closers ──
     // Each RTT phase emits content; we strip any closer the model wrote
     // (canonical or accidental cross-section, e.g. "SECTION C TOTAL"
     // appearing inside the Section B body — Bug 4 / Bug 16) and append
-    // the correct closer in code. memoBC closes Section B AND Section C
-    // in sequence — we treat it as two halves separated by the existing
-    // "PART 2" boundary the prompt uses.
+    // the correct closer in code. With Phase 3 (B and C split), we close
+    // each section's body in isolation.
     {
       const closeA = ensureSectionCloser(memoA, secLabel[0], L.totalLabel || 'TOTAL', sm.a, L.marksWord || 'marks');
       memoA = closeA.text;
       if (closeA.strippedWrong) log.warn({ section: secLabel[0] }, 'RTT memo: stripped a foreign-section closer from Section A body');
 
-      // Split memoBC at "PART 2" boundary (English / Afrikaans variants).
-      // Phase 3 of this refactor splits B and C into two separate calls;
-      // until then we close them as two halves of one body.
-      const PART_BOUNDARY = /(\n\s*(?:PART|DEEL)\s+2[\s—\-–:].*\n)/i;
-      const parts = memoBC.split(PART_BOUNDARY);
-      if (parts.length >= 3) {
-        // [B body, boundary line, C body]
-        const closeB = ensureSectionCloser(parts[0], secLabel[1], L.totalLabel || 'TOTAL', sm.b, L.marksWord || 'marks');
-        const closeC = ensureSectionCloser(parts.slice(2).join(''), secLabel[2], L.totalLabel || 'TOTAL', sm.c, L.marksWord || 'marks');
-        memoBC = closeB.text + '\n' + parts[1] + closeC.text;
-        if (closeB.strippedWrong) log.warn({ section: secLabel[1] }, 'RTT memo: stripped a foreign-section closer from Section B body (Bug 4/16)');
-        if (closeC.strippedWrong) log.warn({ section: secLabel[2] }, 'RTT memo: stripped a foreign-section closer from Section C body');
-      } else {
-        // No PART boundary found. Fall back to closing the whole BC body
-        // with both closers — append the C closer at the very end.
-        const closeBC = ensureSectionCloser(memoBC, secLabel[1], L.totalLabel || 'TOTAL', sm.b, L.marksWord || 'marks');
-        memoBC = closeBC.text + '\n\n' + `${secLabel[2]} ${L.totalLabel || 'TOTAL'}: ${sm.c} ${L.marksWord || 'marks'}`;
-        if (closeBC.strippedWrong) log.warn({ section: secLabel[1] }, 'RTT memo: stripped a foreign-section closer from B+C body (no PART boundary)');
-      }
+      const closeB = ensureSectionCloser(memoB, secLabel[1], L.totalLabel || 'TOTAL', sm.b, L.marksWord || 'marks');
+      memoB = closeB.text;
+      if (closeB.strippedWrong) log.warn({ section: secLabel[1] }, 'RTT memo: stripped a foreign-section closer from Section B body (Bug 4/16)');
+
+      const closeC = ensureSectionCloser(memoC, secLabel[2], L.totalLabel || 'TOTAL', sm.c, L.marksWord || 'marks');
+      memoC = closeC.text;
+      if (closeC.strippedWrong) log.warn({ section: secLabel[2] }, 'RTT memo: stripped a foreign-section closer from Section C body');
 
       const closeD = ensureSectionCloser(memoD, secLabel[3], L.totalLabel || 'TOTAL', sm.d, L.marksWord || 'marks');
       memoD = closeD.text;
@@ -731,7 +701,7 @@ Return JSON: {"content":"Section D memo only"}`;
     // standard pipeline's Phase 3C — Prescribed/Actual/% and breakdown
     // headers cannot disagree with the listed items by design.
     const allRttAnswerRows = parseMemoAnswerRows(
-      (memoA || '') + '\n' + (memoBC || '') + '\n' + (memoD || ''),
+      [memoA, memoB, memoC, memoD].filter(Boolean).join('\n'),
     );
     const combinedBarretts = buildCogAnalysisTable({
       answerRows: allRttAnswerRows,
@@ -767,20 +737,22 @@ Return JSON: {"content":"Section D memo only"}`;
       '',
       memoA,
       '',
-      memoBC,
+      memoB,
+      '',
+      memoC,
       '',
       memoD,
       '',
       combinedSection,
     ].join('\n');
 
-    log.info(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} BC:${memoBCRaw.length} D:${memoDRaw.length})`);
+    log.info(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} B:${memoBRaw.length} C:${memoCRaw.length} D:${memoDRaw.length})`);
 
     // Per-section memo structure check. The Afrikaans HL audit caught a
     // truncated Section A memo that dropped Q1.9 entirely. Run the same
-    // structural validator on each of the 3 RTT memo phases so we know
+    // structural validator on each of the 4 RTT memo phases so we know
     // exactly which one (if any) came back incomplete.
-    for (const [name, body] of [['Section A', memoA], ['Sections B+C', memoBC], ['Section D', memoD]]) {
+    for (const [name, body] of [['Section A', memoA], ['Section B', memoB], ['Section C', memoC], ['Section D', memoD]]) {
       const s = validateMemoStructure(body);
       if (!s.answerTable) {
         log.warn(
