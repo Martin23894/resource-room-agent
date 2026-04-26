@@ -112,6 +112,43 @@ describe('parseMemoAnswerRows — extracts (number, level, mark) tuples', () => 
     assert.equal(rows.length, 1);
     assert.equal(rows[0].number, '1.3');
   });
+
+  // ─── F2 regression — Section C summary content-point labels ───
+  test('F2 / Resource 5 Bug B: accepts "Content Point N" labels in Section C summary memos', () => {
+    const memo = [
+      '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| Content Point 1 | Sipho went to market | first idea | Reorganisation | 1 |',
+      '| Content Point 2 | He bought maize | second idea | Reorganisation | 1 |',
+      '| Content Point 3 | Anri arrived next | third idea | Reorganisation | 1 |',
+      '| Content Point 4 | They traded | fourth idea | Reorganisation | 1 |',
+      '| Content Point 5 | Final outcome | fifth idea | Reorganisation | 1 |',
+    ].join('\n');
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 5, 'all five content points must parse');
+    assert.equal(rows[0].number, 'Content Point 1');
+    assert.equal(rows[4].mark, 1);
+  });
+
+  test('F2: accepts "C.1" / "C 1" / "C1" short-form Section C labels', () => {
+    const memo = [
+      '| C.1 | answer | guidance | Reorganisation | 1 |',
+      '| C 2 | answer | guidance | Reorganisation | 1 |',
+      '| C3 | answer | guidance | Reorganisation | 1 |',
+    ].join('\n');
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 3);
+  });
+
+  test('F2: accepts Afrikaans "Inhoudspunt N" labels', () => {
+    const memo = [
+      '| Inhoudspunt 1 | antwoord | nasienriglyn | Herorganisasie | 1 |',
+      '| Inhoudspunt 2 | antwoord | nasienriglyn | Herorganisasie | 1 |',
+    ].join('\n');
+    const rows = parseMemoAnswerRows(memo);
+    assert.equal(rows.length, 2);
+    assert.equal(rows[0].number, 'Inhoudspunt 1');
+  });
 });
 
 describe('tallyByLevel — sums marks per cognitive level', () => {
@@ -274,6 +311,49 @@ describe('correctCogAnalysisTable — Bug 5: fixes wrong Actual Marks cells', ()
     assert.match(r.text, /\| Literal \| 50% \| 5 \| 5 \| 50\.0% \|/);
   });
 
+  // ─── F4 regression — Resource 5 Bug E ───
+  test('F4 / Resource 5 Bug E: TOTAL row shows real Actual %, never hardcoded 100%, on drifted papers', () => {
+    // R5 case: cover 126 but actual marks sum to 114. correctCogAnalysisTable
+    // used to overwrite the TOTAL row's Actual % to "100%" regardless,
+    // hiding the drift. The fix mirrors buildCogAnalysisTable's logic:
+    // 100% only when totalCounted === totalMarks.
+    const memo = [
+      '| NO. | ANSWER | GUIDANCE | LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| 1.1 | a | b | Low Order | 30 |',
+      '| 7.1 | a | b | Middle Order | 50 |',
+      '| 12.1 | a | b | High Order | 34 |',
+      '',
+      '| Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |',
+      '|---|---|---|---|---|',
+      '| Low Order | 30% | 38 | 30 | 23.8% |',
+      '| Middle Order | 50% | 63 | 50 | 39.7% |',
+      '| High Order | 20% | 25 | 34 | 27.0% |',
+      '| TOTAL | 100% | 126 | 114 | 100% |',
+    ].join('\n');
+    const r = correctCogAnalysisTable(memo, { totalMarks: 126 });
+    // 114 / 126 = 90.5% — that's what the TOTAL row must show, NOT 100%.
+    assert.match(r.text, /\| TOTAL \| 100% \| 126 \| 114 \| 90\.5% \|/);
+  });
+
+  test('F4: TOTAL row shows 100% when totalCounted equals totalMarks (no false alarm)', () => {
+    const memo = [
+      '| NO. | ANSWER | GUIDANCE | LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| 1.1 | a | b | Low Order | 5 |',
+      '| 2.1 | a | b | High Order | 5 |',
+      '',
+      '| Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |',
+      '|---|---|---|---|---|',
+      '| Low Order | 50% | 5 | 4 | 40% |',
+      '| High Order | 50% | 5 | 5 | 50% |',
+      '| TOTAL | 100% | 10 | 9 | 90% |',
+    ].join('\n');
+    const r = correctCogAnalysisTable(memo, { totalMarks: 10 });
+    // Actual sums to 10 (matches cover) — TOTAL row shows 100%.
+    assert.match(r.text, /\| TOTAL \| 100% \| 10 \| 10 \| 100% \|/);
+  });
+
   test('Barrett\'s Level header (RTT pipeline) is also recognised', () => {
     const memo = [
       "| NR. | ANTWOORD | NASIENRIGLYN | KOGNITIEWE VLAK | PUNT |",
@@ -410,6 +490,36 @@ describe('buildCogAnalysisTable — deterministic emitter (Phase 1.1 refactor)',
     assert.equal(out.actualByLevel['Routine Procedures'], 10);
     // Afrikaans marks word
     assert.match(out.breakdown, /\d+ punte/);
+  });
+
+  // ─── F3 regression — Resource 3 anglicised Afrikaans variant ───
+  test('F3 / Resource 3 Bug C: "Reorganisasie" tallies as Reorganisation', () => {
+    // Afrikaans Barrett's memo where Claude wrote "Reorganisasie"
+    // (non-canonical Afrikaans spelling) instead of "Herorganisasie".
+    // Without the alias the row was dropped from the cog tally.
+    const out = buildCogAnalysisTable({
+      answerRows: [{ number: 'Content Point 1', level: 'Reorganisasie', mark: 5 }],
+      cog: { levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'], pcts: [20, 20, 40, 20] },
+      totalMarks: 25,
+      language: 'Afrikaans',
+      isBarretts: true,
+    });
+    assert.equal(out.actualByLevel.Reorganisation, 5, 'Reorganisasie row must tally as Reorganisation');
+  });
+
+  test('F3: normaliseCogLevelLabels rewrites "Reorganisasie" to canonical Afrikaans', () => {
+    const memo = '| 1.1 | answer | guidance | Reorganisasie | 5 |';
+    const r = normaliseCogLevelLabels(memo, {
+      canonicalLevels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'],
+      translations: {
+        Literal: 'Letterlik',
+        Reorganisation: 'Herorganisasie',
+        Inferential: 'Inferensieel',
+        'Evaluation and Appreciation': 'Evaluering en Waardering',
+      },
+    });
+    assert.equal(r.changed, true, 'alias-matched cells must be rewritten');
+    assert.match(r.text, /\| Herorganisasie \| 5 \|/);
   });
 
   test('Barrett\'s variant uses Barrett-specific column header', () => {

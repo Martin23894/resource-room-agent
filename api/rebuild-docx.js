@@ -13,6 +13,7 @@ import { logger as defaultLogger } from '../lib/logger.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
 import { countMarks } from '../lib/marks.js';
 import { createDocxBuilder } from '../lib/docx-builder.js';
+import { localiseLabels } from '../lib/clean-output.js';
 
 function splitPaperAndMemo(text) {
   const lines = String(text || '').split('\n');
@@ -48,13 +49,18 @@ export default async function handler(req, res) {
 
   const isWorksheet = resourceType === 'Worksheet';
   const { paper, memo } = splitPaperAndMemo(preview);
-  const markTotal = countMarks(paper) || duration;
+  // F6 safety net: re-localise on Afrikaans rebuilds so any English
+  // "Answer:"/"Working:" labels the teacher introduced (or that pre-date
+  // the F5 broadening) get rewritten before re-rendering.
+  const localisedPaper = localiseLabels(paper, language);
+  const localisedMemo  = localiseLabels(memo, language);
+  const markTotal = countMarks(localisedPaper) || duration;
 
   try {
     const docx = createDocxBuilder({
       subject, resourceType, language, grade, term, totalMarks: duration, isWorksheet,
     });
-    const doc = docx.buildDoc(paper, memo, markTotal);
+    const doc = docx.buildDoc(localisedPaper, localisedMemo, markTotal);
     const buffer = await Packer.toBuffer(doc);
     const docxBase64 = buffer.toString('base64');
     const filename = (subject + '-' + resourceType + '-Grade' + grade + '-Term' + term)

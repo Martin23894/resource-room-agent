@@ -2,7 +2,7 @@ import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  hasAnswerTable, hasCogAnalysis, validateMemoStructure,
+  hasAnswerTable, hasCogAnalysis, validateMemoStructure, countAnswerTableRows,
 } from '../lib/memo-structure.js';
 
 // A realistic slice of a well-formed English memo.
@@ -128,5 +128,43 @@ describe('validateMemoStructure', () => {
     const r = validateMemoStructure('');
     assert.equal(r.complete, false);
     assert.equal(r.length, 0);
+  });
+
+  // ─── F7 regression — Bug A row-count check ───
+  test('F7 / Bug A: header-only memo reports answerRowCount=0 (not implicitly "table is fine")', () => {
+    const headerOnly = '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |\n|---|---|---|---|---|';
+    const r = validateMemoStructure(headerOnly);
+    assert.equal(r.answerTable, true, 'header is present');
+    assert.equal(r.answerRowCount, 0, 'but no body rows');
+  });
+
+  test('F7: validateMemoStructure counts body rows accurately', () => {
+    const memo = `| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |
+|---|---|---|---|---|
+| 1.1 | a | b | Literal | 1 |
+| 1.2 | a | b | Inferential | 2 |
+| 1.3 | a | b | Reorganisation | 3 |`;
+    const r = validateMemoStructure(memo);
+    assert.equal(r.answerTable, true);
+    assert.equal(r.answerRowCount, 3);
+  });
+
+  test('F7: countAnswerTableRows counts numbered rows AND content-point rows', () => {
+    const memo = `| 1.1 | a | b | Literal | 1 |
+| Content Point 1 | a | b | Reorganisation | 1 |
+| C.2 | a | b | Reorganisation | 1 |
+| 8.1(a) | a | b | Literal | 1 |
+| Inhoudspunt 3 | a | b | Reorganisation | 1 |`;
+    assert.equal(countAnswerTableRows(memo), 5);
+  });
+
+  test('F7: countAnswerTableRows ignores cog-table rows even though they are pipe rows', () => {
+    const memo = `| 1.1 | a | b | Literal | 1 |
+| Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |
+| Literal | 20% | 10 | 1 | 10% |
+| TOTAL | 100% | 50 | 1 | 2% |`;
+    // Only the answer-table row "1.1" counts; cog-table rows do not start
+    // with a question number / content-point label.
+    assert.equal(countAnswerTableRows(memo), 1);
   });
 });

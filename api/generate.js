@@ -662,32 +662,81 @@ Return JSON: {"content":"Section D memo only"}`;
       memoD = normaliseSection('D', memoD);
     }
 
-    // Per-phase retry guard. Each section gets its own retry: if the
-    // returned text doesn't contain an answer-table header, retry once
-    // with a larger budget. Splitting the phases means the retry can
-    // target the broken section instead of refetching B+C as a pair.
-    async function retryRttSection(label, current, sysPrompt, usrPrompt, budgetTok) {
-      if (validateMemoStructure(current).answerTable) return current;
+    // Count the sub-questions (X.Y or X.Y.Z lines ending in (mark)) that
+    // a section body promised the learner — used as the floor for the
+    // retry guard. F7: the previous guard fired only when the answer
+    // table HEADER was missing entirely, so a 1-row memo (header + one
+    // row) silently passed even when 6 rows were expected.
+    function countSectionSubQuestions(sectionText) {
+      if (typeof sectionText !== 'string' || sectionText.length === 0) return 0;
+      let n = 0;
+      for (const line of sectionText.split('\n')) {
+        // "1.1 ... (X)" / "2.3 ... (X)" / "4.5.1 ... (X)" — a sub-question
+        // line. Excludes block totals like "[10]" and the closing "TOTAL".
+        if (/^\s*\d+(?:\.\d+)*\b.*\(\d+\)\s*$/.test(line)) n++;
+      }
+      return n;
+    }
+
+    // Per-phase retry guard. Each section gets its own retry: if the memo
+    // is missing the answer-table header, OR has the header but fewer
+    // body rows than the section's question paper has sub-questions, we
+    // retry once with a larger budget. Splitting the phases means the
+    // retry can target the broken section instead of refetching as a pair.
+    async function retryRttSection(label, current, sectionQuestionText, sysPrompt, usrPrompt, budgetTok) {
+      const expectedRows = countSectionSubQuestions(sectionQuestionText);
+      const v = validateMemoStructure(current);
+      // Tolerate the question paper having one extra "stem only" line
+      // we miscounted — only retry when the gap is meaningful (≥ 2).
+      // (Bug A: include zero-row case — a header-only memo has rowCount=0
+      // and MUST trigger retry when expectedRows > 0. The earlier draft
+      // gated on `v.answerRowCount > 0` which silently let header-only
+      // memos through, defeating the whole fix.)
+      const rowsTooFew = expectedRows > 0 &&
+        expectedRows - v.answerRowCount >= 2;
+      if (v.answerTable && !rowsTooFew) return current;
       log.warn(
-        { section: label, len: current.length, tail: current.slice(-200) },
-        `RTT memo ${label}: no answer-table header detected — retrying with max budget`,
+        {
+          section: label,
+          len: current.length,
+          answerTable: v.answerTable,
+          answerRowCount: v.answerRowCount,
+          expectedRows,
+          tail: current.slice(-200),
+        },
+        `RTT memo ${label}: ${v.answerTable ? 'row count below expected' : 'no answer-table header'} — retrying with max budget`,
       );
       try {
         const retryRaw = await callClaude(sysPrompt, usrPrompt, budgetTok);
         const retryClean = stripLeadingMemoBanner(cleanOutput(safeExtractContent(retryRaw)));
-        if (validateMemoStructure(retryClean).answerTable) {
-          log.info(`RTT memo ${label}: retry succeeded — answer table now present`);
+        const r = validateMemoStructure(retryClean);
+        const stillTooFew = expectedRows > 0 &&
+          expectedRows - r.answerRowCount >= 2;
+        if (r.answerTable && !stillTooFew) {
+          log.info(
+            { answerRowCount: r.answerRowCount, expectedRows },
+            `RTT memo ${label}: retry succeeded — answer table now adequate`,
+          );
           return retryClean;
         }
-        log.warn(`RTT memo ${label}: retry still missing answer table — keeping original`);
+        // Take whichever has more rows — the retry could still be an
+        // improvement even if it's not perfect.
+        if (r.answerRowCount > v.answerRowCount) {
+          log.info(
+            { before: v.answerRowCount, after: r.answerRowCount, expectedRows },
+            `RTT memo ${label}: retry partial — using larger result`,
+          );
+          return retryClean;
+        }
+        log.warn(`RTT memo ${label}: retry still inadequate — keeping original`);
         return current;
       } catch (e) {
         log.warn({ err: e?.message || e }, `RTT memo ${label}: retry failed — keeping original`);
         return current;
       }
     }
-    memoB = await retryRttSection('Section B', memoB, rttMemoSys, rttMemoUsrB, rttTok(9000));
-    memoC = await retryRttSection('Section C', memoC, rttMemoSys, rttMemoUsrC, rttTok(6000));
+    memoB = await retryRttSection('Section B', memoB, secB, rttMemoSys, rttMemoUsrB, rttTok(9000));
+    memoC = await retryRttSection('Section C', memoC, secC, rttMemoSys, rttMemoUsrC, rttTok(6000));
 
     // Localised memo header — was hard-coded English even on Afrikaans
     // papers, which the Afrikaans HL audit caught.
@@ -811,14 +860,18 @@ Return JSON: {"content":"Section D memo only"}`;
     // Claude output (the injected MCQ stub is already localised by
     // ensureAnswerSpace, but embedded labels in maths/calculation questions
     // come straight from the model and need a second pass).
+    // F6: also localise the memo — calculation marking-guidance cells often
+    // open with "Answer: …" / "Working: …" that the question-paper-only
+    // pass left in English.
     const finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
+    const finalMemo  = localiseLabels(memoContent, language);
     channel.sendPhase('docx_build', 'started');
 
     // Build DOCX
     let docxBase64 = null;
     const filename = (subject + '-ResponseToText-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
     try {
-      const doc = buildDoc(finalPaper, memoContent, markTotal);
+      const doc = buildDoc(finalPaper, finalMemo, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
@@ -829,7 +882,7 @@ Return JSON: {"content":"Section D memo only"}`;
     // RTT papers don't run a memo-verify step, so we'd normally report
     // them as 'clean'. Phase 1.4 promotes mark-sum drift over 'clean' so
     // a teacher receiving a 47/50 paper sees the warning, not a thumbs-up.
-    const preview = finalPaper + '\n\n' + memoContent;
+    const preview = finalPaper + '\n\n' + finalMemo;
     const payload = {
       docxBase64,
       preview,
@@ -1482,14 +1535,20 @@ they had no errors, corrected where they did.`;
     }
 
     // ── Phase 5: Safety net — inject blank answer lines the AI may have skipped ──
+    // F6 (Resource 3 Bug 31 follow-up): localiseLabels is now applied to the
+    // MEMO too, not only the question paper. The memo is the most common
+    // place "Answer:" / "Working:" labels appear (calculation marking
+    // guidance cells); without this pass an Afrikaans memo shipped with
+    // English labels even when the paper itself was clean.
     const finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
+    const finalMemo  = localiseLabels(verifiedMemo, language);
     channel.sendPhase('docx_build', 'started');
 
     // ── Build DOCX ──
     let docxBase64 = null;
     const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
     try {
-      const doc = buildDoc(finalPaper, verifiedMemo, markTotal);
+      const doc = buildDoc(finalPaper, finalMemo, markTotal);
       const buffer = await Packer.toBuffer(doc);
       docxBase64 = buffer.toString('base64');
     } catch (docxErr) {
@@ -1497,7 +1556,7 @@ they had no errors, corrected where they did.`;
     }
     channel.sendPhase('docx_build', 'done');
 
-    const preview = finalPaper + '\n\n' + verifiedMemo;
+    const preview = finalPaper + '\n\n' + finalMemo;
     // Phase 1.4: mark-sum drift takes precedence in the verificationStatus
     // because a wrong total is more visible to the teacher than a memo
     // arithmetic error. Surface the body/cover/drift figures so the UI

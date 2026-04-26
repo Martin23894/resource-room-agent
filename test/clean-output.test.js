@@ -252,6 +252,46 @@ describe('localiseLabels — tolerates leading whitespace (Bug 3 follow-up)', ()
   });
 });
 
+describe('localiseLabels — F5 broadening (Resource 3 Bug 31 follow-up)', () => {
+  test('F5: case-insensitive language match — "afrikaans" works as well as "Afrikaans"', () => {
+    const input = 'Answer: ___';
+    assert.equal(localiseLabels(input, 'afrikaans'), 'Antwoord: ___');
+    assert.equal(localiseLabels(input, 'AFRIKAANS'), 'Antwoord: ___');
+    assert.equal(localiseLabels(input, 'Afrikaans'), 'Antwoord: ___');
+  });
+
+  test('F5: markdown-bold "**Answer:**" form is localised', () => {
+    const input = '**Answer:** R835\n**Working:** R850 - R15';
+    const out = localiseLabels(input, 'Afrikaans');
+    assert.match(out, /\*\*Antwoord:\*\* R835/);
+    assert.match(out, /\*\*Werking:\*\*/);
+  });
+
+  test('F5: pipe-table cell starting with "Answer:" is localised', () => {
+    // A memo marking-guidance cell often opens with "Answer: …".
+    const input = '| 1.1 | 7 cm | Answer: 7 cm. Accept rounded answers. | Routine | 2 |';
+    const out = localiseLabels(input, 'Afrikaans');
+    assert.match(out, /\| Antwoord: 7 cm/);
+  });
+
+  test('F5: bullet-list "- Answer:" is localised', () => {
+    const input = '- Answer: photosynthesis\n* Working: count chloroplasts';
+    const out = localiseLabels(input, 'Afrikaans');
+    assert.match(out, /^- Antwoord:/m);
+    assert.match(out, /^\* Werking:/m);
+  });
+
+  test('F5: still does NOT touch mid-sentence "answer:" inside a passage', () => {
+    const input = "Sipho will answer: he doesn't know.";
+    assert.equal(localiseLabels(input, 'Afrikaans'), input);
+  });
+
+  test('F5: English papers still unchanged regardless of label form', () => {
+    const input = '**Answer:** test\n| Working: 5 + 5 |\n- Answer: yes';
+    assert.equal(localiseLabels(input, 'English'), input);
+  });
+});
+
 describe('cleanOutput — MEMORANDUM dedup (Bug 4)', () => {
   test('drops a second MEMORANDUM banner that follows the first with only blanks', () => {
     const input = ['MEMORANDUM', '', '', 'MEMORANDUM', '', 'NO. | ANSWER | ...'].join('\n');

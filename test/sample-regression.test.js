@@ -14,7 +14,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildCogAnalysisTable, parseMemoAnswerRows } from '../lib/cog-table.js';
+import { buildCogAnalysisTable, parseMemoAnswerRows, correctCogAnalysisTable } from '../lib/cog-table.js';
 import { ensureSectionCloser, ensureSequentialSectionLetters } from '../lib/sections.js';
 import { stripLeadingMemoBanner, cleanOutput, localiseLabels } from '../lib/clean-output.js';
 import { hasAnswerTable, hasCogAnalysis, validateMemoStructure } from '../lib/memo-structure.js';
@@ -309,6 +309,117 @@ describe('Resource 5 — Final Exam regressions', () => {
     });
     // 100/103 = 97.1% — the TOTAL row must show that, not a fabricated 100%.
     assert.match(out.table, /\| TOTAL \| 100% \| 103 \| 100 \| 97\.1% \|/);
+  });
+});
+
+// ─── Resource 5 follow-up — five-resource audit (Sonnet review pass) ──
+
+describe('Resource 5 follow-up — Sonnet review pass fixes', () => {
+  test('Bug A: validateMemoStructure exposes answerRowCount so retry guard can act on it', () => {
+    // F7: previously a header-only memo passed retryRttSection's check
+    // because answerTable === true, even with zero rows below.
+    const headerOnly = [
+      '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |',
+      '|---|---|---|---|---|',
+    ].join('\n');
+    const r = validateMemoStructure(headerOnly);
+    assert.equal(r.answerTable, true);
+    assert.equal(r.answerRowCount, 0,
+      'header-only memo must report 0 body rows so the retry guard fires');
+  });
+
+  test('Bug B: Section C summary memo with Content Point N labels tallies marks correctly', () => {
+    // F2: parseMemoAnswerRows accepts content-point labels — without this,
+    // every Section C summary memo's marks vanished from the cog tally.
+    const memo = [
+      '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| Content Point 1 | Sipho went to market | first idea | Reorganisation | 1 |',
+      '| Content Point 2 | He bought maize | second idea | Reorganisation | 1 |',
+      '| Content Point 3 | Anri arrived next | third idea | Reorganisation | 1 |',
+      '| Content Point 4 | Trade happened | fourth idea | Reorganisation | 1 |',
+      '| Content Point 5 | Outcome | fifth idea | Reorganisation | 1 |',
+    ].join('\n');
+    const out = buildCogAnalysisTable({
+      answerRows: parseMemoAnswerRows(memo),
+      cog: { levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'], pcts: [20, 20, 40, 20] },
+      totalMarks: 5,
+      language: 'English',
+      isBarretts: true,
+    });
+    assert.equal(out.actualByLevel.Reorganisation, 5,
+      'all five content points must tally as Reorganisation marks');
+  });
+
+  test('Bug C: Afrikaans "Reorganisasie" rows tally as Reorganisation', () => {
+    // F3: alias map accepts the anglicised Afrikaans spelling Claude
+    // sometimes emits; without it the rows were silently dropped.
+    const out = buildCogAnalysisTable({
+      answerRows: [{ number: '1.1', level: 'Reorganisasie', mark: 5 }],
+      cog: { levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'], pcts: [20, 20, 40, 20] },
+      totalMarks: 25,
+      language: 'Afrikaans',
+      isBarretts: true,
+    });
+    assert.equal(out.actualByLevel.Reorganisation, 5);
+  });
+
+  test('Bug D: Afrikaans memo with markdown-bold "Answer:" labels gets localised', () => {
+    // F5+F6: localiseLabels covers markdown-bold form AND is applied to
+    // the memo (not only the question paper).
+    const memoCell = '**Answer:** R835';
+    assert.match(localiseLabels(memoCell, 'Afrikaans'), /\*\*Antwoord:\*\* R835/);
+    assert.match(localiseLabels(memoCell, 'afrikaans'), /\*\*Antwoord:\*\*/,
+      'lowercase language tag works too (case-insensitive match)');
+  });
+
+  test('Bug E: TOTAL row Actual % is honest when actual marks differ from cover', () => {
+    // F4: correctCogAnalysisTable no longer hardcodes the TOTAL row's
+    // Actual % to 100% when there is mark drift.
+    const memo = [
+      '| NO. | ANSWER | GUIDANCE | LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| 1.1 | a | b | Low Order | 30 |',
+      '',
+      '| Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual % |',
+      '|---|---|---|---|---|',
+      '| Low Order | 30% | 38 | 30 | 100% |',
+      '| Middle Order | 50% | 63 | 0 | 0% |',
+      '| High Order | 20% | 25 | 0 | 0% |',
+      '| TOTAL | 100% | 126 | 30 | 100% |',
+    ].join('\n');
+    // Import-on-demand so this block doesn't depend on file order.
+    // (parseMemoAnswerRows / correctCogAnalysisTable already imported above.)
+    // 30 / 126 = 23.8% — that's what the TOTAL row should show, NOT 100%.
+    const r = correctCogAnalysisTable(memo, { totalMarks: 126 });
+    assert.match(r.text, /\| TOTAL \| 100% \| 126 \| 30 \| 23\.8% \|/);
+  });
+
+  test('R5 hierarchical mark count: countMarks returns the true sub-question total', () => {
+    // F1: parent (X) is skipped when it has lettered children with their
+    // own (X). The R5 Q12+Q13 shape used to be inflated by 14+ marks.
+    const r5SectionC = [
+      'Question 12',
+      '',
+      '12.1 (a) Identify three. (3)',
+      '(b) Explain advantage. (3)',
+      '',
+      '12.2 Old trading system. (4)',
+      '(a) Name. (1)',
+      '(b) Two reasons. (3)',
+      '',
+      '12.3 EFT details. (4)',
+      '(a) What is EFT? (1)',
+      '(b) Calc R850-R15. (1)',
+      '(c) Reason. (2)',
+      '',
+      '12.4 Evaluate. (3)',
+      '',
+      '[10]',
+    ].join('\n');
+    // Q12.1: 3+3=6 (no parent total), Q12.2: 4 (parent skipped, 1+3=4),
+    // Q12.3: 4 (parent skipped, 1+1+2=4), Q12.4: 3. Total: 6+4+4+3=17.
+    assert.equal(countMarks(r5SectionC), 17);
   });
 });
 
