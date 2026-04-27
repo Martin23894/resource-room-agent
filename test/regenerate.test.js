@@ -41,7 +41,7 @@ const GOOD_MEMO = [
   '| Routine Procedures | 40% | 1 | 0 | 0.0% |',
   '| Complex Procedures | 20% | 0 | 0 | 0.0% |',
   '| Problem Solving | 10% | 0 | 0 | 0.0% |',
-  '| TOTAL | 100% | 1 | 1 | 100.0% |',
+  '| TOTAL | 100% | 1 | 1 | 100% |',
 ].join('\n');
 
 function ctx(overrides = {}) {
