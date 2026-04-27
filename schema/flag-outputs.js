@@ -27,8 +27,8 @@ const THRESHOLDS = {
   normal: {
     cogDriftMax: 1,        // marks off prescribed before flagging
     rebalanceMax: 5,       // nudges before flagging high-rebalance
-    minStemChars: 12,      // suspiciously short stem
-    minMemoChars: 8,       // suspiciously short memo answer
+    minStemChars: 12,      // suspiciously short stem (top-level only)
+    minMemoChars: 3,       // catches empty/placeholder answers, not legitimate one-word answers
     maxDuplicateStems: 0,  // any duplicate is suspicious
     maxBlankStimuli: 0,    // a stimulus with no body/description
   },
@@ -36,11 +36,15 @@ const THRESHOLDS = {
     cogDriftMax: 0,
     rebalanceMax: 3,
     minStemChars: 20,
-    minMemoChars: 16,
+    minMemoChars: 8,
     maxDuplicateStems: 0,
     maxBlankStimuli: 0,
   },
 };
+
+// Answer-space kinds where short memo answers are correct by design
+// (MCQ option labels, fill-in-the-blank, math numeric answers).
+const SHORT_ANSWER_KINDS = new Set(['options', 'inlineBlank', 'workingPlusAnswer']);
 
 function parseArgs(argv) {
   const args = { strict: false, json: false };
@@ -85,11 +89,11 @@ function listJsonFiles(grade) {
 
 function leafQuestions(resource) {
   const out = [];
-  const walk = (q) => {
-    if (Array.isArray(q.subQuestions)) q.subQuestions.forEach(walk);
-    else out.push(q);
+  const walk = (q, parent) => {
+    if (Array.isArray(q.subQuestions)) q.subQuestions.forEach((sq) => walk(sq, q));
+    else out.push({ q, parent });
   };
-  for (const s of resource.sections || []) for (const q of s.questions || []) walk(q);
+  for (const s of resource.sections || []) for (const q of s.questions || []) walk(q, null);
   return out;
 }
 
@@ -98,8 +102,10 @@ function inspect(resource, thresholds) {
   const cog = resource.meta?.cognitiveFramework;
   const tally = tallyCogLevels(resource);
   const totalMarks = resource.meta?.totalMarks || 0;
-  const leaves = leafQuestions(resource);
+  const leafEntries = leafQuestions(resource);
+  const leaves = leafEntries.map((e) => e.q);
   const memo = resource.memo?.answers || [];
+  const leafByNumber = new Map(leafEntries.map((e) => [e.q.number, e]));
 
   // 1. Cog distribution drift
   if (cog) {
@@ -132,21 +138,34 @@ function inspect(resource, thresholds) {
   if (missing.length) flags.push({ kind: 'memo_missing', detail: missing.join(', ') });
   if (extra.length)   flags.push({ kind: 'memo_extra',   detail: extra.join(', ') });
 
-  // 4. Suspicious stem lengths
-  const shortStems = leaves.filter((q) => (q.stem || '').trim().length < thresholds.minStemChars);
+  // 4. Suspicious stem lengths — only flag when the parent is NOT a
+  // composite. Match-up sub-questions like Q12.2 stem='Limpopo' are
+  // valid: the parent stem ('Match each province...') provides context.
+  const shortStems = leafEntries.filter(({ q, parent }) => {
+    if (parent) return false; // sub-question of a composite — context lives in parent
+    return (q.stem || '').trim().length < thresholds.minStemChars;
+  }).map((e) => e.q);
   if (shortStems.length) {
     flags.push({
       kind: 'short_stem',
-      detail: `${shortStems.length} leaf stem(s) under ${thresholds.minStemChars} chars: ${shortStems.slice(0, 3).map((q) => q.number).join(', ')}${shortStems.length > 3 ? ', …' : ''}`,
+      detail: `${shortStems.length} top-level stem(s) under ${thresholds.minStemChars} chars: ${shortStems.slice(0, 3).map((q) => q.number).join(', ')}${shortStems.length > 3 ? ', …' : ''}`,
     });
   }
 
-  // 5. Suspicious memo answer lengths
-  const shortMemos = memo.filter((a) => (a.answer || '').trim().length < thresholds.minMemoChars);
+  // 5. Suspicious memo answer lengths — skip MCQ ('options') and
+  // 'inlineBlank' answer spaces where short answers are correct
+  // (e.g. 'b) 62', '4', 'Limpopo').
+  const shortMemos = memo.filter((a) => {
+    if ((a.answer || '').trim().length >= thresholds.minMemoChars) return false;
+    const entry = leafByNumber.get(a.questionNumber);
+    const kind = entry?.q?.answerSpace?.kind;
+    if (SHORT_ANSWER_KINDS.has(kind)) return false;
+    return true;
+  });
   if (shortMemos.length) {
     flags.push({
       kind: 'short_memo',
-      detail: `${shortMemos.length} memo answer(s) under ${thresholds.minMemoChars} chars: ${shortMemos.slice(0, 3).map((a) => a.questionNumber).join(', ')}${shortMemos.length > 3 ? ', …' : ''}`,
+      detail: `${shortMemos.length} non-MCQ memo answer(s) under ${thresholds.minMemoChars} chars: ${shortMemos.slice(0, 3).map((a) => a.questionNumber).join(', ')}${shortMemos.length > 3 ? ', …' : ''}`,
     });
   }
 
@@ -166,8 +185,15 @@ function inspect(resource, thresholds) {
     });
   }
 
-  // 7. Blank stimuli (declared but no content)
-  const blanks = (resource.stimuli || []).filter((s) => !s.body && !s.description && !(s.rows && s.rows.length));
+  // 7. Blank stimuli (declared but no content). dataSet stimuli store
+  // rows under .table.rows, not .rows — check both shapes.
+  const blanks = (resource.stimuli || []).filter((s) => {
+    if (s.body && s.body.trim()) return false;
+    if (s.description && s.description.trim()) return false;
+    if (s.rows && s.rows.length) return false;
+    if (s.table?.rows?.length) return false;
+    return true;
+  });
   if (blanks.length > thresholds.maxBlankStimuli) {
     flags.push({
       kind: 'blank_stimulus',
