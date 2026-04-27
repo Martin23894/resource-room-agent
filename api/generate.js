@@ -866,8 +866,8 @@ Return JSON: {"content":"Section D memo only"}`;
     // F6: also localise the memo — calculation marking-guidance cells often
     // open with "Answer: …" / "Working: …" that the question-paper-only
     // pass left in English.
-    const finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
-    const finalMemo  = localiseLabels(memoContent, language);
+    let finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
+    let finalMemo  = localiseLabels(memoContent, language);
     channel.sendPhase('docx_build', 'started');
 
     // Build DOCX
@@ -882,38 +882,134 @@ Return JSON: {"content":"Section D memo only"}`;
     }
     channel.sendPhase('docx_build', 'done');
 
-    // RTT papers don't run a memo-verify step, so we'd normally report
-    // them as 'clean'. Phase 1.4 promotes mark-sum drift over 'clean' so
-    // a teacher receiving a 47/50 paper sees the warning, not a thumbs-up.
-    //
-    // Phase 1.6 (invariant gate): RTT pipeline runs the same pre-delivery
-    // gate as the standard pipeline. The plan argument is empty (RTT has
-    // no question-plan phase), so any plan-scoped invariants are skipped.
-    // cog/cogMarks come from getCogLevels for Barrett's framework.
+    // Phase 1.6 (invariant gate + regen loop): RTT pipeline runs the same
+    // pre-delivery gate as the standard pipeline, then the same corrective-
+    // regeneration loop. The plan argument is empty (RTT has no question-plan
+    // phase). cog/cogMarks come from getCogLevels for Barrett's framework.
+    // NOTE: we call runPreDeliveryGate in 'report' mode first so the gate
+    // never throws before the regen loop has a chance to run. After the loop
+    // we re-check and throw InvariantGateError if enforce mode is active.
     channel.sendPhase('invariant_gate', 'started');
-    const rttGateCtx = buildInvariantContext({
+    let rttGateCtx = buildInvariantContext({
       paper:        finalPaper,
       memo:         finalMemo,
       plan:         { questions: [] },
       language,
       subject,
       resourceType,
-      totalMarks: markTotal,
+      totalMarks:   markTotal,
       cog,
       cogMarks,
       cogTolerance,
       pipeline:     'rtt',
-    });
-    const rttGate = runPreDeliveryGate(rttGateCtx, { logger: log });
-    channel.sendPhase('invariant_gate', rttGate.passed ? 'passed' : 'failed', {
-      mode: rttGate.mode,
-      total: rttGate.failures.length,
-      blocking: rttGate.blocking.length,
-      ids: rttGate.failures.map((f) => f.id),
+      grade:        g,
     });
 
+    // Auto-fixes (same as standard pipeline — repairs phantom rows,
+    // memo mark alignment, MCQ shuffles before the gate even runs).
+    {
+      const fix = runAutoFixes(rttGateCtx, { logger: log });
+      if (fix.applied.length > 0) {
+        channel.sendPhase('autofix', 'applied', { ids: fix.applied });
+        rttGateCtx = fix.ctx;
+        const paperChanged = rttGateCtx.paper !== finalPaper;
+        const memoChanged  = rttGateCtx.memo  !== finalMemo;
+        if (paperChanged) finalPaper = rttGateCtx.paper;
+        if (memoChanged)  finalMemo  = rttGateCtx.memo;
+        if (paperChanged || memoChanged) {
+          try {
+            const doc = buildDoc(finalPaper, finalMemo, markTotal);
+            const buf = await Packer.toBuffer(doc);
+            docxBase64 = buf.toString('base64');
+          } catch (docxErr) {
+            log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX rebuild error (post auto-fix)');
+          }
+        }
+      }
+    }
+
+    let rttGate = runPreDeliveryGate(rttGateCtx, { mode: 'report', logger: log });
+    let rttAttemptsByPhase = { plan: 0, paper: 0, memo: 0 };
+    let rttCapExhausted    = [];
+
+    const hasRttRegeneratableFailures = !rttGate.passed && rttGate.blocking.some(
+      (f) => f.regeneratePhase === 'paper' || f.regeneratePhase === 'memo',
+    );
+    if (hasRttRegeneratableFailures) {
+      channel.sendPhase('invariant_gate', 'regenerating', {
+        initialBlocking: rttGate.blocking.length,
+        ids: rttGate.blocking.map((f) => f.id),
+      });
+      const rttRegen = await runRegenerationLoop({
+        ctx:          rttGateCtx,
+        regenerators: {
+          paper: makeClaudeRegenerator({
+            callClaude,
+            cleanFn:   (raw) => localiseLabels(ensureAnswerSpace(cleanOutput(raw), { language }), language),
+            maxTokens: 8192,
+            phase:     'paper',
+          }),
+          memo: makeClaudeRegenerator({
+            callClaude,
+            cleanFn:   (raw) => localiseLabels(stripLeadingMemoBanner(cleanOutput(raw)), language),
+            maxTokens: 8192,
+            phase:     'memo',
+          }),
+        },
+        logger:  log,
+        channel,
+        signal,
+      });
+      rttGateCtx         = rttRegen.ctx;
+      rttGate            = rttRegen.gate;
+      rttAttemptsByPhase = rttRegen.attemptsByPhase;
+      rttCapExhausted    = rttRegen.capExhausted;
+      const paperChanged = rttGateCtx.paper !== finalPaper;
+      const memoChanged  = rttGateCtx.memo  !== finalMemo;
+      if (paperChanged) finalPaper = rttGateCtx.paper;
+      if (memoChanged)  finalMemo  = rttGateCtx.memo;
+      if (paperChanged || memoChanged) {
+        try {
+          const doc = buildDoc(finalPaper, finalMemo, markTotal);
+          const buf = await Packer.toBuffer(doc);
+          docxBase64 = buf.toString('base64');
+        } catch (docxErr) {
+          log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX rebuild error (post regen)');
+        }
+      }
+    }
+
+    channel.sendPhase('invariant_gate', rttGate.passed ? 'passed' : 'failed', {
+      mode:            rttGate.mode,
+      total:           rttGate.failures.length,
+      blocking:        rttGate.blocking.length,
+      ids:             rttGate.failures.map((f) => f.id),
+      attemptsByPhase: rttAttemptsByPhase,
+      capExhausted:    rttCapExhausted,
+    });
+
+    // Enforce mode: throw after the regen loop so Claude had a chance to
+    // self-correct first. Mirrors lines 1709-1715 of the standard pipeline.
+    const rttGateMode = process.env.INVARIANT_GATE_MODE || 'report';
+    if (!rttGate.passed && rttGateMode === 'enforce') {
+      throw new InvariantGateError({
+        failures: rttGate.blocking,
+        attempts: 1 + Math.max(0, ...Object.values(rttAttemptsByPhase)),
+      });
+    }
+
+    // Recompute mark-sum warning against the (possibly regen-fixed) paper.
+    try {
+      const actualMarks = countMarks(finalPaper);
+      rttMarkSumWarning = (actualMarks > 0 && actualMarks !== markTotal)
+        ? { cover: markTotal, body: actualMarks, drift: actualMarks - markTotal }
+        : null;
+    } catch (_e) { /* keep original rttMarkSumWarning */ }
+
     const preview = finalPaper + '\n\n' + finalMemo;
-    const rttBaseStatus = rttMarkSumWarning ? 'mark_sum_drift' : (rttGate.passed ? 'invariants_passed' : 'invariants_failed');
+    const rttBaseStatus = rttMarkSumWarning
+      ? 'mark_sum_drift'
+      : (rttGate.passed ? 'invariants_passed' : 'invariants_failed');
     const payload = {
       docxBase64,
       preview,
@@ -926,7 +1022,10 @@ Return JSON: {"content":"Section D memo only"}`;
       try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
       // TODO Phase 2.4d: decrement teacher's monthly usage counter HERE.
     } else {
-      log.warn({ ids: rttGate.failures.map((f) => f.id) }, 'RTT invariant gate did not pass — skipping cacheSet (no quota cost)');
+      log.warn(
+        { ids: rttGate.failures.map((f) => f.id), capExhausted: rttCapExhausted },
+        'RTT invariant gate did not pass — skipping cacheSet (no quota cost)',
+      );
     }
     channel.sendResult(payload);
     return;
