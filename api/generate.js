@@ -22,6 +22,7 @@ import { createDocxBuilder } from '../lib/docx-builder.js';
 import { buildPrompts } from '../lib/prompts.js';
 import { createEventChannel } from '../lib/sse.js';
 import { buildInvariantContext, runPreDeliveryGate, InvariantGateError } from '../lib/invariants.js';
+import { runRegenerationLoop, makeClaudeRegenerator } from '../lib/regenerate.js';
 
 // ============================================================
 // MAIN HANDLER
@@ -1575,31 +1576,46 @@ they had no errors, corrected where they did.`;
     // place "Answer:" / "Working:" labels appear (calculation marking
     // guidance cells); without this pass an Afrikaans memo shipped with
     // English labels even when the paper itself was clean.
-    const finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
-    const finalMemo  = localiseLabels(verifiedMemo, language);
-    channel.sendPhase('docx_build', 'started');
+    //
+    // Post-processors are isolated as named functions so the regeneration
+    // loop (lib/regenerate.js) can apply the SAME passes to its corrective
+    // outputs before the gate sees them — otherwise the gate would re-flag
+    // answer_space_present on raw Claude regen output.
+    const postProcessPaper = (rawPaper) => localiseLabels(ensureAnswerSpace(rawPaper, { language }), language);
+    const postProcessMemo  = (rawMemo)  => localiseLabels(rawMemo, language);
+    let finalPaper = postProcessPaper(questionPaper);
+    let finalMemo  = postProcessMemo(verifiedMemo);
 
-    // ── Build DOCX ──
     let docxBase64 = null;
     const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
-    try {
-      const doc = buildDoc(finalPaper, finalMemo, markTotal);
-      const buffer = await Packer.toBuffer(doc);
-      docxBase64 = buffer.toString('base64');
-    } catch (docxErr) {
-      log.error({ err: docxErr?.message || docxErr }, 'DOCX build error');
+    async function rebuildDocx() {
+      channel.sendPhase('docx_build', 'started');
+      try {
+        const doc = buildDoc(finalPaper, finalMemo, markTotal);
+        const buffer = await Packer.toBuffer(doc);
+        docxBase64 = buffer.toString('base64');
+      } catch (docxErr) {
+        log.error({ err: docxErr?.message || docxErr }, 'DOCX build error');
+      }
+      channel.sendPhase('docx_build', 'done');
     }
-    channel.sendPhase('docx_build', 'done');
+    await rebuildDocx();
 
-    // ── Pre-delivery invariant gate ──
+    // ── Pre-delivery invariant gate (+ regeneration loop) ──
     // Last checkpoint before we hand the paper to the teacher. The gate
-    // runs every registered invariant against the final paper+memo+plan
-    // and either reports (mode=report, default) or blocks delivery
-    // (mode=enforce). cacheSet() and the future quota decrement run ONLY
-    // after passed=true so failed regeneration attempts never consume the
-    // teacher's monthly quota. Set INVARIANT_GATE_MODE=enforce to switch.
+    // runs every registered invariant against the final paper+memo+plan;
+    // when REGENERATE failures fire, runRegenerationLoop() reissues the
+    // failing phase (paper or memo) up to INVARIANT_GATE_MAX_REGEN_ATTEMPTS
+    // times (default 2) with corrective feedback. AUTO_FIX failures that
+    // weren't already repaired surface as telemetry but are not regenerated
+    // (they indicate a bug in the upstream phase, not a hallucination).
+    //
+    // cacheSet() and the future quota decrement run ONLY after gate.passed
+    // === true so failed regeneration attempts never consume the teacher's
+    // monthly quota. INVARIANT_GATE_MODE=enforce flips report-mode (log +
+    // ship) to hard-error mode (return 500 with "couldn't generate" msg).
     channel.sendPhase('invariant_gate', 'started');
-    const gateCtx = buildInvariantContext({
+    let gateCtx = buildInvariantContext({
       paper:        finalPaper,
       memo:         finalMemo,
       plan,
@@ -1611,14 +1627,70 @@ they had no errors, corrected where they did.`;
       cogMarks,
       cogTolerance,
       pipeline:     'standard',
+      grade:        g,
     });
-    const gate = runPreDeliveryGate(gateCtx, { logger: log });
+    let gate = runPreDeliveryGate(gateCtx, { logger: log });
+    let attemptsByPhase = { plan: 0, paper: 0, memo: 0 };
+    let capExhausted = [];
+
+    const hasRegeneratableFailures = !gate.passed && gate.blocking.some(
+      (f) => f.regeneratePhase === 'paper' || f.regeneratePhase === 'memo',
+    );
+    if (hasRegeneratableFailures) {
+      channel.sendPhase('invariant_gate', 'regenerating', {
+        initialBlocking: gate.blocking.length,
+        ids: gate.blocking.map((f) => f.id),
+      });
+      const regen = await runRegenerationLoop({
+        ctx: gateCtx,
+        regenerators: {
+          paper: makeClaudeRegenerator({
+            callClaude,
+            cleanFn:   (raw) => postProcessPaper(cleanOutput(raw)),
+            maxTokens: qTok,
+            phase:     'paper',
+          }),
+          memo: makeClaudeRegenerator({
+            callClaude,
+            cleanFn:   (raw) => postProcessMemo(stripLeadingMemoBanner(cleanOutput(raw))),
+            maxTokens: 8192,
+            phase:     'memo',
+          }),
+        },
+        logger:  log,
+        channel,
+        signal,
+      });
+      gateCtx          = regen.ctx;
+      gate             = regen.gate;
+      attemptsByPhase  = regen.attemptsByPhase;
+      capExhausted     = regen.capExhausted;
+      // Re-render the docx if regen produced new paper/memo strings.
+      const paperChanged = gateCtx.paper !== finalPaper;
+      const memoChanged  = gateCtx.memo  !== finalMemo;
+      if (paperChanged) finalPaper = gateCtx.paper;
+      if (memoChanged)  finalMemo  = gateCtx.memo;
+      if (paperChanged || memoChanged) await rebuildDocx();
+    }
+
     channel.sendPhase('invariant_gate', gate.passed ? 'passed' : 'failed', {
-      mode: gate.mode,
-      total: gate.failures.length,
-      blocking: gate.blocking.length,
-      ids: gate.failures.map((f) => f.id),
+      mode:            gate.mode,
+      total:           gate.failures.length,
+      blocking:        gate.blocking.length,
+      ids:             gate.failures.map((f) => f.id),
+      attemptsByPhase,
+      capExhausted,
     });
+
+    // Enforce mode: throw the gate error so the catch block returns 500
+    // with a teacher-friendly message AND no quota decrement runs.
+    const gateMode = process.env.INVARIANT_GATE_MODE || 'report';
+    if (!gate.passed && gateMode === 'enforce') {
+      throw new InvariantGateError({
+        failures: gate.blocking,
+        attempts: 1 + Math.max(0, ...Object.values(attemptsByPhase)),
+      });
+    }
 
     const preview = finalPaper + '\n\n' + finalMemo;
     // Phase 1.4: mark-sum drift takes precedence in the verificationStatus
@@ -1643,14 +1715,15 @@ they had no errors, corrected where they did.`;
     // Cache + (future) quota decrement run only on a clean gate. A failed
     // gate in report mode still ships the paper but skips the cache so a
     // retry doesn't get served the same broken artefact. Quota decrement
-    // (Phase 2.4d) will hook in here, gated identically.
+    // (Phase 2.4d) will hook in here, gated identically — failed regen
+    // attempts cost API spend but never the teacher's monthly allowance.
     if (gate.passed) {
       try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
       // TODO Phase 2.4d: decrement teacher's monthly usage counter HERE.
       // Failed-regen attempts must NOT touch user state — only this
       // success-path point may.
     } else {
-      log.warn({ ids: gate.failures.map((f) => f.id) }, 'Invariant gate did not pass — skipping cacheSet (no quota cost)');
+      log.warn({ ids: gate.failures.map((f) => f.id), capExhausted }, 'Invariant gate did not pass — skipping cacheSet (no quota cost)');
     }
     channel.sendResult(payload);
     return;
@@ -1665,14 +1738,15 @@ they had no errors, corrected where they did.`;
     // Invariant gate hard-error (enforce mode + cap exhausted). The
     // teacher's quota is NEVER decremented on this path — the wiring
     // around cacheSet ensures that. We surface a clean message so the UI
-    // can render "couldn't generate a valid paper, please try again".
+    // can render the "we'll fix it on our side" notice without exposing
+    // implementation details.
     if (err instanceof InvariantGateError) {
       log.error(
         { ids: err.failures.map((f) => f.id), attempts: err.attempts },
         'Invariant gate blocked delivery — returning 500 (no quota decrement)',
       );
       channel.sendError(Object.assign(
-        new Error("We couldn't generate a valid paper for this configuration. Please try again — your quota was not used."),
+        new Error("We couldn't generate a valid paper for this configuration. Please try again — our developers are working on a fix and your quota was not used."),
         { status: 500, code: 'INVARIANT_GATE_BLOCKED' },
       ));
       return;
