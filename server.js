@@ -11,6 +11,7 @@ import { parseSession, requireAuth } from './lib/auth.js';
 
 // Import route handlers
 import generateHandler from './api/generate.js';
+import generateV2Handler from './api/generate-v2.js';
 import refineHandler from './api/refine.js';
 import coverHandler from './api/cover.js';
 import testHandler from './api/test.js';
@@ -173,6 +174,7 @@ app.get('/api/auth/me', authMeHandler);
 
 // ─── API Routes — Claude-backed endpoints require sign-in ───
 app.post('/api/generate', requireAuth, apiLimiters, generateHandler);
+app.post('/api/generate-v2', requireAuth, apiLimiters, generateV2Handler);
 app.post('/api/refine', requireAuth, apiLimiters, refineHandler);
 app.post('/api/cover', requireAuth, apiLimiters, coverHandler);
 // Rebuild a DOCX from edited preview text — no Claude calls, only the
