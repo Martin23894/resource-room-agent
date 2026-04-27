@@ -152,14 +152,16 @@ function inspect(resource, thresholds) {
     });
   }
 
-  // 5. Suspicious memo answer lengths — skip MCQ ('options') and
-  // 'inlineBlank' answer spaces where short answers are correct
-  // (e.g. 'b) 62', '4', 'Limpopo').
+  // 5. Suspicious memo answer lengths — skip MCQ / inlineBlank /
+  // workingPlusAnswer kinds, plus any purely numeric answer (e.g. "16",
+  // "R150", "1990"), where short answers are correct by design.
+  const NUMERIC_ANSWER = /^[\d.,RrUuSsDd$€£\s\-/x×]+$/;
   const shortMemos = memo.filter((a) => {
     if ((a.answer || '').trim().length >= thresholds.minMemoChars) return false;
     const entry = leafByNumber.get(a.questionNumber);
     const kind = entry?.q?.answerSpace?.kind;
     if (SHORT_ANSWER_KINDS.has(kind)) return false;
+    if (NUMERIC_ANSWER.test((a.answer || '').trim())) return false;
     return true;
   });
   if (shortMemos.length) {
