@@ -192,7 +192,7 @@ export async function generateV2(req, opts = {}) {
   const system = buildSystemPrompt(ctx);
   const user = buildUserPrompt(ctx);
 
-  const resource = await callAnthropicTool({
+  const raw = await callAnthropicTool({
     system,
     user,
     tool,
@@ -204,10 +204,35 @@ export async function generateV2(req, opts = {}) {
     phase: 'generate-v2',
   });
 
+  const resource = unwrapStringifiedBranches(raw);
   const validation = assertResource(resource);
 
   return { resource, validation, model: SONNET_4_6, ctx };
 }
 
+/**
+ * Sonnet 4.6 occasionally emits deeply-nested object branches as
+ * JSON-encoded strings inside a tool input. Day-2 spike showed every one
+ * of the six configurations returned meta/cover/memo as stringified JSON
+ * while sections/stimuli came back as proper objects. The fix is mechanical:
+ * if a top-level Resource property is a string and parses as an object,
+ * use the parsed value. Idempotent — already-object values pass through.
+ */
+function unwrapStringifiedBranches(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const TOP_KEYS = ['meta', 'cover', 'stimuli', 'sections', 'memo'];
+  for (const k of TOP_KEYS) {
+    if (typeof obj[k] === 'string') {
+      try {
+        const parsed = JSON.parse(obj[k]);
+        if (parsed && (typeof parsed === 'object')) obj[k] = parsed;
+      } catch {
+        // leave as-is; assertResource will surface the type error.
+      }
+    }
+  }
+  return obj;
+}
+
 // Exposed for the spike runner.
-export const __internals = { buildContext, topicScopeFor, parseDurationMinutes };
+export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches };
