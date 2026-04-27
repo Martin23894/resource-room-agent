@@ -177,6 +177,13 @@ describe('Invariants — mark arithmetic', () => {
     assert.equal(f.sum, 20);
   });
 
+  test('section_brackets_sum_to_total does not double-count [N] in section headers', () => {
+    // "SECTION A [10]" has [10] embedded — must not be counted alongside the
+    // standalone [10] block-total line that follows the section body.
+    const paper = 'SECTION A [10]\n1.1 q (5)\n1.2 q (5)\n[10]\nTOTAL: 10 marks';
+    assert.equal(findFailure(runInvariants(ctx({ paper, totalMarks: 10 })), 'section_brackets_sum_to_total'), null);
+  });
+
   test('paper_marks_match_memo_marks fails when memo total ≠ paper total', () => {
     const paper = '1.1 q (5)\n1.2 q (5)\nTOTAL: 10 marks';
     const memo = [
@@ -263,6 +270,13 @@ describe('Invariants — language and hygiene', () => {
     assert.ok(f.offenders.length >= 2);
   });
 
+  test('no_meta_commentary_leak catches leaked arithmetic workings', () => {
+    const paper = '1.1 q (5)\n1.2 q (5)\nTotal: 5+5+5+5+5=25\nTOTAL: 25 marks';
+    const f = findFailure(runInvariants(ctx({ paper, totalMarks: 25 })), 'no_meta_commentary_leak');
+    assert.ok(f, 'expected no_meta_commentary_leak to fire on arithmetic workings');
+    assert.ok(f.offenders.some((o) => /\d+\+\d+/.test(o)));
+  });
+
   test('no_phantom_apology_rows fires on apology in memo cell', () => {
     const memo = '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |\n|---|---|---|---|---|\n| 1.1 | I cannot generate this | g | Knowledge | 1 |';
     const f = findFailure(runInvariants(ctx({ memo })), 'no_phantom_apology_rows');
@@ -273,6 +287,26 @@ describe('Invariants — language and hygiene', () => {
     const memo = '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |\n|---|---|---|---|---|\n| 1.1 | a | [Note: revise wording] | Knowledge | 1 |';
     const f = findFailure(runInvariants(ctx({ memo })), 'no_in_cell_meta_commentary');
     assert.ok(f);
+  });
+
+  test('no_in_cell_meta_commentary catches unbracketed NOTE TO MARKER in cells', () => {
+    const memo = [
+      '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| 1.1 | a | NOTE TO MARKER: accept equivalent | Knowledge | 1 |',
+    ].join('\n');
+    const f = findFailure(runInvariants(ctx({ memo })), 'no_in_cell_meta_commentary');
+    assert.ok(f, 'expected no_in_cell_meta_commentary to fire on NOTE TO MARKER');
+  });
+
+  test('no_in_cell_meta_commentary catches "appears to be incomplete" in cells', () => {
+    const memo = [
+      '| NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK |',
+      '|---|---|---|---|---|',
+      '| 2.3 | This question appears to be incomplete | — | Knowledge | 1 |',
+    ].join('\n');
+    const f = findFailure(runInvariants(ctx({ memo })), 'no_in_cell_meta_commentary');
+    assert.ok(f, 'expected no_in_cell_meta_commentary to fire on "appears to be incomplete"');
   });
 });
 
