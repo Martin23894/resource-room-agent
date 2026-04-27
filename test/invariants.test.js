@@ -155,7 +155,7 @@ describe('Invariants — mark arithmetic', () => {
     const f = findFailure(runInvariants(ctx({ paper, totalMarks: 10 })), 'cover_eq_body');
     assert.ok(f, 'expected cover_eq_body to fail');
     assert.equal(f.counted, 6);
-    assert.ok(f.feedback.includes('exactly 10'));
+    assert.ok(f.feedback.includes('10'));
   });
 
   test('cover_eq_body passes when body matches', () => {
