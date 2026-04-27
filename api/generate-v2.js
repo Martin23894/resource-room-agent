@@ -9,12 +9,18 @@
 // matrix?". No DOCX rendering, no validation feedback loop, no frontend
 // wiring here. Day 3+ work is conditional on the answer.
 
+import { Packer } from 'docx';
+
 import { callAnthropicTool } from '../lib/anthropic.js';
 import { getCogLevels, isBarretts, marksToTime, largestRemainder } from '../lib/cognitive.js';
 import { ATP, EXAM_SCOPE } from '../lib/atp.js';
 import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
-import { narrowSchemaForRequest, assertResource } from '../schema/resource.schema.js';
+import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schema/resource.schema.js';
 import { rebalanceMarks } from '../lib/rebalance.js';
+import { renderResource } from '../lib/render-v2.js';
+import { createEventChannel } from '../lib/sse.js';
+import { str, int, oneOf, ValidationError } from '../lib/validate.js';
+import { logger as defaultLogger } from '../lib/logger.js';
 
 const SONNET_4_6 = 'claude-sonnet-4-6';
 
@@ -239,3 +245,160 @@ function unwrapStringifiedBranches(obj) {
 
 // Exposed for the spike runner.
 export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches };
+
+// ─────────────────────────────────────────────────────────────────────
+// EXPRESS HANDLER (Day 5)
+//
+// Mounted at POST /api/generate-v2. Same input shape as /api/generate so
+// the frontend only needs to swap the URL. Pipeline:
+//
+//   validate input → generateV2 (Claude tool call → unwrap → rebalance →
+//   assertResource) → renderResource (DOCX) → respond.
+//
+// Speaks SSE when the client sends Accept: text/event-stream, otherwise
+// plain JSON. Result payload matches the legacy contract:
+//   { docxBase64, preview, filename, verificationStatus }
+// ─────────────────────────────────────────────────────────────────────
+export default async function handler(req, res) {
+  const log = req.log || defaultLogger;
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  let parsed;
+  try {
+    parsed = parseRequest(req.body || {});
+  } catch (err) {
+    if (err instanceof ValidationError) {
+      return res.status(400).json({ error: err.message, field: err.field });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+
+  const channel = createEventChannel(req, res);
+  const abort = new AbortController();
+  channel.onClose(() => abort.abort());
+
+  try {
+    channel.sendPhase('generate_v2', 'started');
+    const result = await generateV2(parsed, { logger: log, signal: abort.signal });
+    const { resource, validation, rebalance, ctx } = result;
+    channel.sendPhase('generate_v2', 'done', {
+      leafSum: rebalance.finalSum,
+      targetSum: rebalance.targetSum,
+      nudges: rebalance.adjustments.length,
+      tally: tallyCogLevels(resource),
+    });
+
+    if (!validation.ok) {
+      log.warn({ errors: validation.errors }, 'generate-v2: assertResource failed');
+      channel.sendError(Object.assign(new Error('Schema validation failed after rebalance'), {
+        status: 502, code: 'SCHEMA_INVALID', detail: validation.errors,
+      }));
+      return;
+    }
+
+    channel.sendPhase('docx_render', 'started');
+    const doc = renderResource(resource);
+    const buf = await Packer.toBuffer(doc);
+    channel.sendPhase('docx_render', 'done', { bytes: buf.length });
+
+    const verificationStatus = !rebalance.converged
+      ? 'mark_sum_drift'
+      : 'invariants_passed';
+
+    const filename = buildFilename(parsed);
+    const preview = buildTextPreview(resource);
+
+    channel.sendResult({
+      docxBase64: buf.toString('base64'),
+      preview,
+      filename,
+      verificationStatus,
+      _meta: {
+        pipeline: 'v2',
+        rebalanceNudges: rebalance.adjustments.length,
+        framework: ctx.frameworkName,
+      },
+    });
+  } catch (err) {
+    log.error({ err: err?.message || err }, 'generate-v2 failed');
+    if (channel.isSSE) channel.sendError(err);
+    else if (!res.headersSent) {
+      res.status(err?.status || 500).json({ error: err?.message || 'Server error' });
+    }
+  }
+}
+
+function parseRequest(body) {
+  const subject      = str(body.subject,      { field: 'subject', max: 200 });
+  const resourceType = oneOf(body.resourceType, ['Worksheet', 'Test', 'Exam', 'Final Exam', 'Investigation', 'Project', 'Practical', 'Assignment'], { field: 'resourceType' });
+  const language     = oneOf(body.language, ['English', 'Afrikaans'], { field: 'language' });
+  const grade        = int(body.grade, { field: 'grade', min: 4, max: 7 });
+  const term         = int(body.term,  { field: 'term',  min: 1, max: 4 });
+  const totalMarks   = int(body.duration, { field: 'duration', required: false, min: 5, max: 200 }) || 50;
+  const difficulty   = oneOf(body.difficulty || 'on', ['below', 'on', 'above'], { field: 'difficulty' });
+  return { subject, grade, term, language, resourceType, totalMarks, difficulty };
+}
+
+function buildFilename({ subject, resourceType, grade, term }) {
+  return `${subject}-${resourceType}-Grade${grade}-Term${term}`.replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+}
+
+// Plain-text preview synthesised from the Resource. Used by the frontend
+// preview pane; not the DOCX. Walks sections + leaves in document order.
+function buildTextPreview(resource) {
+  const lines = [];
+  const { meta, cover, stimuli = [], sections = [], memo } = resource;
+
+  lines.push(cover.resourceTypeLabel || resourceType);
+  lines.push(cover.subjectLine);
+  lines.push(`${cover.gradeLine}  |  ${cover.termLine}  |  ${meta.totalMarks} marks`);
+  lines.push('');
+
+  const renderedStimuli = new Set();
+  for (const sec of sections) {
+    for (const ref of sec.stimulusRefs || []) {
+      if (renderedStimuli.has(ref)) continue;
+      const st = stimuli.find((s) => s.id === ref);
+      if (st) {
+        lines.push(`[${(st.heading || st.kind).toUpperCase()}]`);
+        if (st.body) lines.push(st.body);
+        if (st.description) lines.push(st.description);
+        lines.push('');
+        renderedStimuli.add(ref);
+      }
+    }
+
+    const sumMarks = leafSumIn(sec.questions);
+    lines.push(`${sec.letter ? `SECTION ${sec.letter}: ` : ''}${sec.title}  (${sumMarks} marks)`);
+    if (sec.instructions) lines.push(sec.instructions);
+    for (const q of sec.questions) appendQuestionPreview(lines, q);
+    lines.push('');
+  }
+
+  lines.push(`TOTAL: ${meta.totalMarks} marks`);
+  lines.push('');
+  lines.push('— MEMORANDUM —');
+  for (const a of memo?.answers || []) {
+    lines.push(`${a.questionNumber}. ${a.answer}  [${a.cognitiveLevel}, ${a.marks}]`);
+  }
+  return lines.join('\n');
+}
+
+function appendQuestionPreview(lines, q) {
+  if (Array.isArray(q.subQuestions)) {
+    lines.push(`${q.number}  ${q.stem}`);
+    for (const sq of q.subQuestions) appendQuestionPreview(lines, sq);
+    return;
+  }
+  lines.push(`${q.number}  ${q.stem}  [${q.marks}]`);
+}
+
+function leafSumIn(questions) {
+  let n = 0;
+  const walk = (q) => {
+    if (Array.isArray(q.subQuestions)) q.subQuestions.forEach(walk);
+    else n += q.marks || 0;
+  };
+  questions.forEach(walk);
+  return n;
+}
