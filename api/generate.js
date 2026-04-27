@@ -23,6 +23,7 @@ import { buildPrompts } from '../lib/prompts.js';
 import { createEventChannel } from '../lib/sse.js';
 import { buildInvariantContext, runPreDeliveryGate, InvariantGateError } from '../lib/invariants.js';
 import { runRegenerationLoop, makeClaudeRegenerator } from '../lib/regenerate.js';
+import { runAutoFixes } from '../lib/auto-fix.js';
 
 // ============================================================
 // MAIN HANDLER
@@ -1629,6 +1630,27 @@ they had no errors, corrected where they did.`;
       pipeline:     'standard',
       grade:        g,
     });
+
+    // ── Pre-gate auto-fixes ──
+    // Deterministic repairs for AUTO_FIX failures whose cause is
+    // mechanical (MCQ label distribution, phantom memo rows, memo↔
+    // paper mark mismatches). Runs before the gate so we don't waste
+    // a regen attempt on something a code repair can fix instantly.
+    // The runner is no-op when nothing applies, so the only cost on
+    // the happy path is one regex sweep over paper + memo.
+    {
+      const fix = runAutoFixes(gateCtx, { logger: log });
+      if (fix.applied.length > 0) {
+        channel.sendPhase('autofix', 'applied', { ids: fix.applied });
+        gateCtx = fix.ctx;
+        const paperChanged = gateCtx.paper !== finalPaper;
+        const memoChanged  = gateCtx.memo  !== finalMemo;
+        if (paperChanged) finalPaper = gateCtx.paper;
+        if (memoChanged)  finalMemo  = gateCtx.memo;
+        if (paperChanged || memoChanged) await rebuildDocx();
+      }
+    }
+
     let gate = runPreDeliveryGate(gateCtx, { logger: log });
     let attemptsByPhase = { plan: 0, paper: 0, memo: 0 };
     let capExhausted = [];
