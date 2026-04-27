@@ -560,3 +560,60 @@ export function tallyCogLevels(resource) {
   }
   return tally;
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// PER-REQUEST SCHEMA NARROWING
+//
+// The base schema accepts the full CAPS matrix. For one specific generation
+// we narrow string fields to closed enums so the model literally cannot emit
+// out-of-scope values. The Anthropic tool API enforces these enums at the
+// JSON-Schema level, so violations are rejected before they ever reach
+// assertResource.
+//
+// Narrowed fields:
+//   meta.subject                              → [ctx.subject]
+//   meta.language                             → [ctx.language]
+//   meta.resourceType                         → [ctx.resourceType]
+//   meta.cognitiveFramework.levels[*].name    → ctx.cognitiveLevels
+//   sections[*].questions[*].cognitiveLevel   → ctx.cognitiveLevels (recursive via $ref)
+//   sections[*].questions[*].topic            → ctx.topics          (recursive via $ref)
+//   memo.answers[*].cognitiveLevel            → ctx.cognitiveLevels
+//
+// ctx must supply: { subject, language, resourceType, cognitiveLevels, topics }.
+// ─────────────────────────────────────────────────────────────────────
+export function narrowSchemaForRequest(ctx) {
+  const { subject, language, resourceType, cognitiveLevels, topics } = ctx;
+  if (!subject || !language || !resourceType) {
+    throw new Error('narrowSchemaForRequest: subject, language, resourceType required');
+  }
+  if (!Array.isArray(cognitiveLevels) || cognitiveLevels.length < 3) {
+    throw new Error('narrowSchemaForRequest: cognitiveLevels must be an array of ≥3 strings');
+  }
+  if (!Array.isArray(topics) || topics.length === 0) {
+    throw new Error('narrowSchemaForRequest: topics must be a non-empty array');
+  }
+
+  // Deep-clone so the base schema export stays untouched across calls.
+  const s = JSON.parse(JSON.stringify(resourceSchema));
+
+  // meta.* enums
+  const meta = s.$defs.meta.properties;
+  meta.subject = { ...meta.subject, enum: [subject] };
+  meta.language = { ...meta.language, enum: [language] };
+  meta.resourceType = { ...meta.resourceType, enum: [resourceType] };
+
+  // meta.cognitiveFramework.levels[*].name enum
+  const levelItem = meta.cognitiveFramework.properties.levels.items;
+  levelItem.properties.name = { ...levelItem.properties.name, enum: cognitiveLevels };
+
+  // questions (recursive via $ref) — narrow once on the $defs.question shape
+  const q = s.$defs.question.properties;
+  q.cognitiveLevel = { ...q.cognitiveLevel, enum: cognitiveLevels };
+  q.topic = { ...q.topic, enum: topics };
+
+  // memo.answers[*].cognitiveLevel
+  const ans = s.$defs.memo.properties.answers.items.properties;
+  ans.cognitiveLevel = { ...ans.cognitiveLevel, enum: cognitiveLevels };
+
+  return s;
+}
