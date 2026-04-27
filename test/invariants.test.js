@@ -45,10 +45,10 @@ function ctx(overrides = {}) {
 // ─── runner & gate ───────────────────────────────────────────────────────
 
 describe('Invariants — runner core', () => {
-  test('all 23 AUTO_FIX, 9 REGENERATE, 3 DEV_ONLY invariants registered', () => {
+  test('all 6 AUTO_FIX, 26 REGENERATE, 3 DEV_ONLY invariants registered', () => {
     const byCat = INVARIANTS.reduce((a, i) => { a[i.category] = (a[i.category] || 0) + 1; return a; }, {});
-    assert.equal(byCat[CATEGORIES.AUTO_FIX], 23);
-    assert.equal(byCat[CATEGORIES.REGENERATE], 9);
+    assert.equal(byCat[CATEGORIES.AUTO_FIX], 6);
+    assert.equal(byCat[CATEGORIES.REGENERATE], 26);
     assert.equal(byCat[CATEGORIES.DEV_ONLY], 3);
   });
 
@@ -147,7 +147,7 @@ describe('Invariants — runner core', () => {
   });
 });
 
-// ─── AUTO_FIX — mark arithmetic ─────────────────────────────────────────
+// ─── mark arithmetic ─────────────────────────────────────────────────────
 
 describe('Invariants — mark arithmetic', () => {
   test('cover_eq_body fails when body sums to wrong total', () => {
@@ -192,7 +192,7 @@ describe('Invariants — mark arithmetic', () => {
   });
 });
 
-// ─── AUTO_FIX — structure ────────────────────────────────────────────────
+// ─── structure ────────────────────────────────────────────────────────────
 
 describe('Invariants — structure', () => {
   test('section_letters_sequential flags A → C gap', () => {
@@ -235,7 +235,7 @@ describe('Invariants — structure', () => {
   });
 });
 
-// ─── AUTO_FIX — language / hygiene ───────────────────────────────────────
+// ─── language / hygiene ───────────────────────────────────────────────────
 
 describe('Invariants — language and hygiene', () => {
   test('no_english_labels_on_afrikaans fires on Afrikaans paper with "Answer:"', () => {
