@@ -14,6 +14,7 @@ import { getCogLevels, isBarretts, marksToTime, largestRemainder } from '../lib/
 import { ATP, EXAM_SCOPE } from '../lib/atp.js';
 import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
 import { narrowSchemaForRequest, assertResource } from '../schema/resource.schema.js';
+import { rebalanceMarks } from '../lib/rebalance.js';
 
 const SONNET_4_6 = 'claude-sonnet-4-6';
 
@@ -131,7 +132,7 @@ function buildSystemPrompt(ctx) {
     `1. Every question is EITHER a LEAF (has marks, cognitiveLevel, answerSpace) OR a COMPOSITE (has subQuestions). Never both.`,
     `2. Composite marks are computed from leaves; do NOT put marks on composites.`,
     `3. Every leaf has exactly one matching memo.answer (matched on questionNumber). marks and cognitiveLevel must agree.`,
-    `4. Sum of leaf marks across the whole paper MUST equal meta.totalMarks (${totalMarks}).`,
+    `4. Sum of leaf marks across the whole paper MUST equal meta.totalMarks (${totalMarks}). Before you emit the tool call, mentally add up every leaf's marks and verify the total is exactly ${totalMarks}; if it isn't, adjust mark allocations on individual leaves until it is.`,
     `5. Stimuli are first-class. If a question references a passage/visual/data, declare it once in stimuli[] and reference it via stimulusRef.`,
     `6. Question numbers are dotted decimals: "1", "1.1", "1.1.1".`,
     ``,
@@ -205,9 +206,10 @@ export async function generateV2(req, opts = {}) {
   });
 
   const resource = unwrapStringifiedBranches(raw);
+  const rebalance = rebalanceMarks(resource);
   const validation = assertResource(resource);
 
-  return { resource, validation, model: SONNET_4_6, ctx };
+  return { resource, validation, rebalance, model: SONNET_4_6, ctx };
 }
 
 /**

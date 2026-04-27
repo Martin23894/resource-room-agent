@@ -50,7 +50,7 @@ const CONFIGS = [
 
 function summarise(name, result, t0) {
   const ms = Date.now() - t0;
-  const { resource, validation, ctx } = result;
+  const { resource, validation, rebalance, ctx } = result;
   const leafCount = countLeaves(resource);
   const leafSum = leafSumMarks(resource);
   const sectionCount = (resource.sections || []).length;
@@ -61,9 +61,17 @@ function summarise(name, result, t0) {
     .join(' ');
 
   const status = validation.ok ? 'OK   ' : 'FAIL ';
+  const rebalanceStr = rebalance && rebalance.adjustments.length > 0
+    ? ` rebalance=${rebalance.adjustments.length}nudges`
+    : '';
   console.log(
-    `${status} ${name.padEnd(30)} sections=${sectionCount} stimuli=${stimulusCount} leaves=${leafCount} sum=${leafSum}/${ctx.totalMarks} ${cogStr}  (${ms}ms)`,
+    `${status} ${name.padEnd(30)} sections=${sectionCount} stimuli=${stimulusCount} leaves=${leafCount} sum=${leafSum}/${ctx.totalMarks} ${cogStr}${rebalanceStr}  (${ms}ms)`,
   );
+  if (rebalance && rebalance.adjustments.length > 0) {
+    for (const a of rebalance.adjustments) {
+      console.log(`        ↳ rebalance ${a.questionNumber} (${a.level}): ${a.before}→${a.after}`);
+    }
+  }
   if (!validation.ok) {
     for (const e of validation.errors.slice(0, 8)) {
       console.log(`        ↳ ${e.path}: ${e.message}`);
