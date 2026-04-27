@@ -150,6 +150,7 @@ function buildSystemPrompt(ctx) {
     `## Language and labels`,
     `- All learner-facing strings (cover, section titles, instructions, question stems, memo answers) MUST be written in ${language}.`,
     `- Cover: resourceTypeLabel="${localResourceLabel}", subjectLine="${subjectDisplay}", gradeLine="${language === 'Afrikaans' ? `Graad ${grade}` : `Grade ${grade}`}", termLine="${language === 'Afrikaans' ? `Kwartaal ${term}` : `Term ${term}`}".`,
+    `- learnerInfoFields MUST include all of these in this order: name, surname, date, examiner, time, total. For Worksheets you MAY omit examiner and time. For non-Worksheet resources include all six. Use bare labels (e.g. "Time", "Total") — the renderer adds the value.`,
     `- Section titles should be in ${language}, upper-cased.`,
     ``,
     `## Output`,

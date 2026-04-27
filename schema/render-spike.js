@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Packer } from 'docx';
 
-import { renderQuestionPaper } from '../lib/render-v2.js';
+import { renderResource } from '../lib/render-v2.js';
 import { assertResource } from './resource.schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -39,7 +39,7 @@ async function renderOne(name) {
       return { ok: false };
     }
 
-    const doc = renderQuestionPaper(fixture);
+    const doc = renderResource(fixture);
     const buf = await Packer.toBuffer(doc);
     mkdirSync(OUT_DIR, { recursive: true });
     const out = join(OUT_DIR, `${name}.docx`);
