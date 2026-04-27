@@ -289,7 +289,7 @@ describe('auto-fix — runAutoFixes', () => {
 
   test('FIXES array exposes ordering for fuzz/diagnostic introspection', () => {
     const ids = _FIXES.map((f) => f.id);
-    assert.deepEqual(ids, ['phantom_memo_rows', 'memo_marks', 'mcq_label_shuffle']);
+    assert.deepEqual(ids, ['section_brackets', 'paper_footer', 'phantom_memo_rows', 'memo_marks', 'mcq_label_shuffle']);
   });
 });
 
