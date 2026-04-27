@@ -163,6 +163,28 @@ describe('Invariants — mark arithmetic', () => {
     assert.equal(findFailure(runInvariants(ctx({ paper, totalMarks: 10 })), 'cover_eq_body'), null);
   });
 
+  test('cover_eq_body handles block-only sections (opsomming / holistic marking)', () => {
+    // Section B has no per-line (N) marks — only a [5] block total.
+    // cover_eq_body must supplement with the block total and not misfire.
+    const paper = [
+      'AFDELING A',
+      '1.1 q (5)',
+      '_______________________________________________',
+      '[5]',
+      'AFDELING B',
+      'Skryf jou opsomming hier.',
+      '_______________________________________________',
+      '[5]',
+      'TOTAAL: 10 marks',
+    ].join('\n');
+    assert.equal(findFailure(runInvariants(ctx({ paper, totalMarks: 10 })), 'cover_eq_body'), null);
+  });
+
+  test('footer_matches_cover handles score-box format (TOTAAL: _____ / 50 punte)', () => {
+    const paper = '1.1 q (50)\nTOTAAL: _____ / 50 punte';
+    assert.equal(findFailure(runInvariants(ctx({ paper, totalMarks: 50 })), 'footer_matches_cover'), null);
+  });
+
   test('footer_matches_cover fails when footer != cover', () => {
     const paper = '1.1 q (10)\nTOTAL: 47 marks';
     const f = findFailure(runInvariants(ctx({ paper, totalMarks: 50 })), 'footer_matches_cover');
