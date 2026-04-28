@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Packer } from 'docx';
 
-import { renderResource } from '../lib/render-v2.js';
+import { renderResource } from '../lib/render.js';
 import { assertResource } from './resource.schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

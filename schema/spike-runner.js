@@ -1,6 +1,6 @@
 // v2 pipeline test runner.
 //
-// Iterates the test matrix (schema/test-matrix.js), calls generateV2 on
+// Iterates the test matrix (schema/test-matrix.js), calls generate on
 // each filtered case, writes the JSON output and renders the DOCX. One
 // folder per grade so review is tractable: schema/spike-outputs/g4/ etc.
 //
@@ -20,7 +20,7 @@
 //   --samples N         samples per combo (default: 1)
 //   --dry-run           list what would run, no API calls
 //   --parallel          fire all calls concurrently (default: sequential)
-//   --bypass-cache      pass _bypassCache through to generateV2
+//   --bypass-cache      pass _bypassCache through to generate
 //
 // Requires ANTHROPIC_API_KEY in the environment unless --dry-run.
 
@@ -29,8 +29,8 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Packer } from 'docx';
 
-import { generateV2 } from '../api/generate-v2.js';
-import { renderResource } from '../lib/render-v2.js';
+import { generate } from '../api/generate.js';
+import { renderResource } from '../lib/render.js';
 import { assertResource, tallyCogLevels } from './resource.schema.js';
 import { TEST_MATRIX, filterMatrix, estimateCost } from './test-matrix.js';
 
@@ -142,7 +142,7 @@ async function runOne(testCase, sampleIndex, totalSamples, args) {
   const outDir = join(OUT_DIR, `g${grade}`);
 
   try {
-    const result = await generateV2({ ...testCase.request, _bypassCache: args.bypassCache });
+    const result = await generate({ ...testCase.request, _bypassCache: args.bypassCache });
     mkdirSync(outDir, { recursive: true });
     writeFileSync(join(outDir, `${outName}.json`), JSON.stringify(result.resource, null, 2));
 

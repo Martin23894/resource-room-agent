@@ -11,7 +11,6 @@ import { parseSession, requireAuth } from './lib/auth.js';
 
 // Import route handlers
 import generateHandler from './api/generate.js';
-import generateV2Handler from './api/generate-v2.js';
 import refineHandler from './api/refine.js';
 import coverHandler from './api/cover.js';
 import testHandler from './api/test.js';
@@ -89,7 +88,8 @@ app.use((req, res, next) => {
 });
 
 // ─── Rate limiters — stacked (minute / hour / day) ──────────
-// Each /api/generate request triggers ~10 Anthropic calls, so keep these tight.
+// Each /api/generate request triggers one Anthropic tool call. Limits are
+// kept tight against accidental burst abuse, not pipeline cost.
 // All Claude-backed endpoints are auth-gated, so req.user is always set by
 // the time we hit these limiters. We key on the user id — a signed-in teacher
 // sharing a school network IP with colleagues gets their own bucket.
@@ -174,7 +174,6 @@ app.get('/api/auth/me', authMeHandler);
 
 // ─── API Routes — Claude-backed endpoints require sign-in ───
 app.post('/api/generate', requireAuth, apiLimiters, generateHandler);
-app.post('/api/generate-v2', requireAuth, apiLimiters, generateV2Handler);
 app.post('/api/refine', requireAuth, apiLimiters, refineHandler);
 app.post('/api/cover', requireAuth, apiLimiters, coverHandler);
 // Rebuild a DOCX from edited preview text — no Claude calls, only the

@@ -1,1880 +1,464 @@
+// Schema-first generation pipeline.
+//
+// One Claude tool call (Sonnet 4.6, forced tool use). The tool's
+// input_schema is the per-request narrowed Resource schema in
+// schema/resource.schema.js. Sonnet returns a single structured object;
+// we unwrap stringified branches, rebalance leaf marks to the prescribed
+// totals, run assertResource for structural validity, then render the
+// DOCX from the validated Resource. No markdown, no regex repair, no
+// post-hoc cog-table reconstruction.
+
 import { Packer } from 'docx';
 
-import { logger as defaultLogger } from '../lib/logger.js';
-import { callAnthropic, callAnthropicTool, AnthropicError, TOOL_MODEL } from '../lib/anthropic.js';
-import { planTool, qualityTool, memoVerifyTool } from '../lib/tools.js';
-import { str, int, oneOf, bool, teacherGuidance as vGuidance, buildGuidanceBlock, ValidationError } from '../lib/validate.js';
-import { getCogLevels, largestRemainder, isBarretts as isBarrettsFn } from '../lib/cognitive.js';
-import { countMarks } from '../lib/marks.js';
-import { ensureAnswerSpace } from '../lib/answer-space.js';
-import { ATP, EXAM_SCOPE, getATPTopics } from '../lib/atp.js';
-import { extractContent } from '../lib/content.js';
-import { i18n } from '../lib/i18n.js';
-import { cleanOutput, localiseLabels, stripLeadingMemoBanner } from '../lib/clean-output.js';
-import { correctCogAnalysisTable, parseMemoAnswerRows, buildCogAnalysisTable, normaliseCogLevelLabels } from '../lib/cog-table.js';
-import { ensureSequentialSectionLetters, ensureSectionCloser } from '../lib/sections.js';
-import { validatePlan, planContext, LOW_DEMAND_TYPES } from '../lib/plan.js';
-import { verifyCogBalance, formatImbalances } from '../lib/cog-balance.js';
-import { validateMemoStructure } from '../lib/memo-structure.js';
-import { cacheGet, cacheSet } from '../lib/cache.js';
-import { generateCacheKey } from '../lib/cache-key.js';
-import { createDocxBuilder } from '../lib/docx-builder.js';
-import { buildPrompts } from '../lib/prompts.js';
+import { callAnthropicTool } from '../lib/anthropic.js';
+import { getCogLevels, isBarretts, marksToTime, largestRemainder } from '../lib/cognitive.js';
+import { ATP, EXAM_SCOPE } from '../lib/atp.js';
+import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
+import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schema/resource.schema.js';
+import { rebalanceMarks } from '../lib/rebalance.js';
+import { renderResource } from '../lib/render.js';
 import { createEventChannel } from '../lib/sse.js';
-import { buildInvariantContext, runPreDeliveryGate, InvariantGateError } from '../lib/invariants.js';
-import { runRegenerationLoop, makeClaudeRegenerator } from '../lib/regenerate.js';
-import { runAutoFixes } from '../lib/auto-fix.js';
+import { str, int, oneOf, ValidationError } from '../lib/validate.js';
+import { logger as defaultLogger } from '../lib/logger.js';
 
-// ============================================================
-// MAIN HANDLER
-// ============================================================
+const SONNET_4_6 = 'claude-sonnet-4-6';
+
+/**
+ * Build the topic scope (terms covered + ATP topics) for a request.
+ * - Worksheet/Test       → [t]              term-only content
+ * - Exam (T2, T4)        → EXAM_SCOPE[t]    cross-term per CAPS
+ * - Exam (T1, T3)        → [t]              single-term exams
+ * - Final Exam           → [1,2,3,4]        full year
+ */
+function topicScopeFor(subject, grade, term, resourceType) {
+  let coversTerms;
+  if (resourceType === 'Final Exam') coversTerms = [1, 2, 3, 4];
+  else if (resourceType === 'Exam') coversTerms = EXAM_SCOPE[term] || [term];
+  else coversTerms = [term];
+
+  const topics = coversTerms.flatMap((t) => ATP[subject]?.[grade]?.[t] || []);
+  // De-dup while preserving order — different terms occasionally repeat a topic.
+  const seen = new Set();
+  const unique = [];
+  for (const t of topics) {
+    if (seen.has(t)) continue;
+    seen.add(t);
+    unique.push(t);
+  }
+  return { coversTerms, topics: unique };
+}
+
+/**
+ * Build the per-request context object the spike needs:
+ * cognitive framework, prescribed marks, topic scope, derived labels.
+ */
+function buildContext(req) {
+  const { subject, grade, term, language, resourceType, totalMarks, difficulty = 'on' } = req;
+
+  const cog = getCogLevels(subject);
+  const frameworkName = isBarretts(cog) ? "Barrett's" : "Bloom's";
+  const prescribedMarks = largestRemainder(totalMarks, cog.pcts);
+  const cogLevels = cog.levels.map((name, i) => ({
+    name,
+    percent: cog.pcts[i],
+    prescribedMarks: prescribedMarks[i],
+  }));
+
+  const { coversTerms, topics } = topicScopeFor(subject, grade, term, resourceType);
+  if (topics.length === 0) {
+    throw new Error(`No ATP topics for subject="${subject}" grade=${grade} term=${term}`);
+  }
+
+  const durationMin = parseDurationMinutes(marksToTime(totalMarks));
+  const localisedDurationLabel = localiseDuration(marksToTime(totalMarks), language);
+  const subjectDisplay = subjectDisplayName(subject, language);
+  const localResourceLabel = resourceTypeLabel(resourceType, language);
+
+  return {
+    subject, grade, term, language, resourceType, totalMarks, difficulty,
+    frameworkName, cogLevels,
+    cognitiveLevelNames: cogLevels.map((l) => l.name),
+    coversTerms, topics,
+    durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
+  };
+}
+
+function parseDurationMinutes(label) {
+  // marksToTime returns strings like "45 minutes", "1 hour", "1 hour 30 minutes".
+  let mins = 0;
+  const hoursMatch = label.match(/(\d+)\s*hour/);
+  const minsMatch = label.match(/(\d+)\s*minute/);
+  if (hoursMatch) mins += parseInt(hoursMatch[1], 10) * 60;
+  if (minsMatch) mins += parseInt(minsMatch[1], 10);
+  return mins || 60;
+}
+
+function buildSystemPrompt(ctx) {
+  const {
+    subject, grade, term, language, resourceType, totalMarks, difficulty,
+    frameworkName, cogLevels, coversTerms, topics,
+    durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
+  } = ctx;
+
+  const cogTable = cogLevels
+    .map((l) => `  - ${l.name}: ${l.percent}% = ${l.prescribedMarks} marks`)
+    .join('\n');
+  const topicList = topics.map((t) => `  - ${t}`).join('\n');
+  const isRTT = subject.includes('Home Language') || subject.includes('First Additional')
+    || subject.includes('Huistaal') || subject.includes('Addisionele') || subject.includes('Eerste');
+  const isExamType = resourceType === 'Exam' || resourceType === 'Final Exam';
+  const isGeography = subject.includes('Geography') || subject.includes('Geografie');
+  const isHistory  = subject.includes('History')   || subject.includes('Geskiedenis');
+  const isIntermediatePhase = grade >= 4 && grade <= 6;
+
+  const subjectGuidance = buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isIntermediatePhase });
+
+  return [
+    `You are a CAPS-aligned exam-paper author for South African Grades 4–7.`,
+    `Your job is to call the build_resource tool with a complete, structurally-valid Resource for the requested paper.`,
+    ``,
+    `## Request`,
+    `- Subject:        ${subject} (display in ${language}: ${subjectDisplay})`,
+    `- Grade:          ${grade}`,
+    `- Term:           ${term}`,
+    `- Resource type:  ${resourceType} (label "${localResourceLabel}")`,
+    `- Language:       ${language}`,
+    `- Total marks:    ${totalMarks}`,
+    `- Duration:       ${durationMin} minutes (display "${localisedDurationLabel}")`,
+    `- Difficulty:     ${difficulty} grade level`,
+    ``,
+    `## CAPS topic scope`,
+    `This paper covers term${coversTerms.length > 1 ? 's' : ''} ${coversTerms.join(', ')} content.`,
+    `Every question.topic MUST be one of these ATP topics:`,
+    topicList,
+    ``,
+    `## Cognitive framework: ${frameworkName}`,
+    `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,
+    cogTable,
+    `Every leaf question's cognitiveLevel MUST be one of: ${cogLevels.map((l) => l.name).join(', ')}.`,
+    `The actual mark distribution across cognitive levels should match the prescribed marks within ±${Math.max(1, Math.round(totalMarks * 0.02))} marks per level.`,
+    ``,
+    `## Structural rules (the schema enforces these — violations are rejected)`,
+    `1. Every question is EITHER a LEAF (has marks, cognitiveLevel, answerSpace) OR a COMPOSITE (has subQuestions). Never both.`,
+    `2. Composite marks are computed from leaves; do NOT put marks on composites.`,
+    `3. Every leaf has exactly one matching memo.answer (matched on questionNumber). marks and cognitiveLevel must agree.`,
+    `4. Sum of leaf marks across the whole paper MUST equal meta.totalMarks (${totalMarks}). Before you emit the tool call, mentally add up every leaf's marks and verify the total is exactly ${totalMarks}; if it isn't, adjust mark allocations on individual leaves until it is.`,
+    `5. Stimuli are first-class. If a question references a passage/visual/data, declare it once in stimuli[] and reference it via stimulusRef.`,
+    `6. Question numbers are dotted decimals: "1", "1.1", "1.1.1".`,
+    ``,
+    `## Resource-type guidance`,
+    isRTT && isExamType
+      ? `- This is a Response-to-Text (RTT) ${resourceType}. Section A MUST contain a passage stimulus (kind="passage") with the full body and a wordCount. Comprehension questions in Section A MUST stimulusRef that passage. RTT papers also typically include a Section B (summary, ~5 marks) referencing the same passage, and a Section C (language structures + visual text). The visual text in Section C is a separate stimulus (kind="visualText" with a verbal description, since we cannot generate images).`
+      : isRTT
+      ? `- This is a language ${resourceType}. Use stimuli where appropriate (passages for comprehension, visual texts for visual-literacy items).`
+      : resourceType === 'Worksheet'
+      ? `- A Worksheet is a single-section practice instrument; one section with letter=null is fine. Aim for short, focused items. ${totalMarks} marks total.`
+      : resourceType === 'Test'
+      ? `- A Test typically has 2–4 sections progressing from MCQ/short answer to extended response. ${totalMarks} marks total.`
+      : `- An ${resourceType} typically has 3–5 sections progressing from short answer to extended response, with the harder cognitive levels concentrated in later sections. ${totalMarks} marks total.`,
+    ``,
+    ...(subjectGuidance ? [subjectGuidance, ''] : []),
+    `## Language and labels`,
+    `- All learner-facing strings (cover, section titles, instructions, question stems, memo answers) MUST be written in ${language}.`,
+    `- Cover: resourceTypeLabel="${localResourceLabel}", subjectLine="${subjectDisplay}", gradeLine="${language === 'Afrikaans' ? `Graad ${grade}` : `Grade ${grade}`}", termLine="${language === 'Afrikaans' ? `Kwartaal ${term}` : `Term ${term}`}".`,
+    `- learnerInfoFields MUST include all of these in this order: name, surname, date, examiner, time, total. For Worksheets you MAY omit examiner and time. For non-Worksheet resources include all six. Use bare labels (e.g. "Time", "Total") — the renderer adds the value.`,
+    `- Section titles should be in ${language}, upper-cased.`,
+    ``,
+    `## Output`,
+    `Call build_resource with the Resource object. Do not output anything else.`,
+  ].join('\n');
+}
+
+// Subject-specific cognitive guidance blocks. These are appended to the
+// system prompt only when the relevant subject/grade combination has a
+// known drift pattern, so we don't bloat the prompts for subjects that
+// already produce balanced cog distributions (Maths, NST, Tech, EMS).
+//
+// Patterns confirmed across a 26-paper / 4-grade live sweep:
+//   • RTT (HL languages): all 8 papers over-supplied Literal+Reorg and
+//     under-supplied Inferential. Stem-pattern catalog by level fixes this.
+//   • Geography Intermediate Phase: 3/3 papers severely over-supplied
+//     Low Order. Explicit cap on identification questions fixes this.
+//   • History Intermediate Phase: 3/3 under-supplied Middle Order. Stem
+//     patterns for Middle Order ("explain why", "compare", "describe
+//     consequences") fix this. (Grade 7 already lands clean — skipped.)
+function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isIntermediatePhase }) {
+  const blocks = [];
+
+  if (isRTT && isExamType) {
+    blocks.push([
+      `## Cognitive-level stem patterns (RTT comprehension)`,
+      `RTT papers commonly over-supply Literal/Reorganisation and under-supply Inferential/Evaluation. To prevent this, draft each comprehension question using a stem that matches its cognitive level:`,
+      `  - Literal: "What does the passage say about ___?", "Find the word/phrase that means ___.", "Where/when does ___?", "Quote the line that ___."`,
+      `  - Reorganisation: "Summarise ___ in your own words.", "List THREE/FOUR ___.", "Explain in your own words what is meant by ___."`,
+      `  - Inferential: "Why do you think ___?", "What does the writer suggest by ___?", "How would the character feel about ___? Explain.", "What can you infer about ___ from ___?"`,
+      `  - Evaluation and Appreciation: "Do you agree with ___? Justify with evidence from the passage.", "Is the title suitable? Why?", "How effective is the writer's use of ___?", "Would you recommend ___? Give reasons."`,
+      ``,
+      `Before emitting the tool call: count your comprehension stems by cognitive level and confirm they match the prescribed marks. If Inferential or Evaluation is under-supplied, REPLACE Literal/Reorganisation questions with Inferential/Evaluation ones — do not just add more questions.`,
+    ].join('\n'));
+  }
+
+  if (isGeography && isIntermediatePhase) {
+    blocks.push([
+      `## Geography-specific cognitive guidance (Intermediate Phase)`,
+      `Geography assessment at this phase is frequently mis-pitched as memorisation. Direct identification of features (naming capitals, defining terms, recognising map symbols) MUST NOT exceed 30% of total marks. The remaining ~70% must require:`,
+      `  - Map interpretation: using a legend, calculating distance/direction, comparing regions on a map.`,
+      `  - Real-world application: predicting consequences of geographic phenomena, explaining cause-effect chains.`,
+      `  - Analysis: why X occurs here but not there, what does Y data pattern suggest.`,
+      ``,
+      `Stem patterns by cognitive level:`,
+      `  - Low Order: "Name the capital of ___.", "Identify the symbol for ___.", "Define ___."`,
+      `  - Middle Order: "Explain why ___ is found in ___.", "Compare ___ and ___.", "Use the map/legend to ___.", "Describe the relationship between ___ and ___."`,
+      `  - High Order: "Predict what would happen if ___.", "Evaluate the impact of ___ on ___.", "Justify whether ___ is a good location for ___."`,
+    ].join('\n'));
+  }
+
+  if (isHistory && isIntermediatePhase) {
+    blocks.push([
+      `## History-specific cognitive guidance (Intermediate Phase)`,
+      `History papers at this phase commonly under-supply Middle Order. To balance the paper, ensure Middle Order content uses these stem patterns:`,
+      `  - Low Order: names, dates, definitions, "list three ___".`,
+      `  - Middle Order: "Explain why ___ happened.", "Describe the consequences of ___.", "Compare ___ and ___.", "Outline the steps that led to ___.", "What was the impact of ___?"`,
+      `  - High Order: "Evaluate ___.", "Was ___ justified? Argue both sides.", "How did ___ change ___?"`,
+    ].join('\n'));
+  }
+
+  return blocks.length ? blocks.join('\n\n') : null;
+}
+
+function buildUserPrompt(ctx) {
+  return [
+    `Generate the ${ctx.resourceType} described in the system prompt.`,
+    `Set meta.schemaVersion="1.0", meta.subject="${ctx.subject}", meta.grade=${ctx.grade}, meta.term=${ctx.term}, meta.language="${ctx.language}", meta.resourceType="${ctx.resourceType}", meta.totalMarks=${ctx.totalMarks}, meta.duration.minutes=${ctx.durationMin}, meta.difficulty="${ctx.difficulty}".`,
+    `meta.topicScope.coversTerms=[${ctx.coversTerms.join(',')}], meta.topicScope.topics must be exactly the ATP topic list given above.`,
+    `Ensure the leaf-mark sum equals ${ctx.totalMarks} and that every leaf has a corresponding memo answer.`,
+  ].join('\n');
+}
+
+/**
+ * Run the spike for a single request. Returns:
+ *   { resource, validation, model, usage }
+ * - resource: the parsed object the model passed to build_resource (always
+ *             schema-shape valid by API guarantee)
+ * - validation: assertResource(resource) result
+ */
+export async function generate(req, opts = {}) {
+  const { logger, signal } = opts;
+  const ctx = buildContext(req);
+  const inputSchema = narrowSchemaForRequest({
+    subject: ctx.subject,
+    language: ctx.language,
+    resourceType: ctx.resourceType,
+    cognitiveLevels: ctx.cognitiveLevelNames,
+    topics: ctx.topics,
+  });
+
+  const tool = {
+    name: 'build_resource',
+    description: 'Emit one structured Resource object describing the entire paper (cover + stimuli + sections + memo). The harness renders DOCX and the cog-analysis table from this object — do not include those artifacts here.',
+    input_schema: inputSchema,
+  };
+
+  const system = buildSystemPrompt(ctx);
+  const user = buildUserPrompt(ctx);
+
+  const raw = await callAnthropicTool({
+    system,
+    user,
+    tool,
+    model: SONNET_4_6,
+    maxTokens: 16000,
+    cacheSystem: false, // spike: configurations differ; cache won't help much
+    logger,
+    signal,
+    phase: 'generate',
+  });
+
+  const resource = unwrapStringifiedBranches(raw);
+  const rebalance = rebalanceMarks(resource);
+  const validation = assertResource(resource);
+
+  return { resource, validation, rebalance, model: SONNET_4_6, ctx };
+}
+
+/**
+ * Sonnet 4.6 occasionally emits deeply-nested object branches as
+ * JSON-encoded strings inside a tool input. Day-2 spike showed every one
+ * of the six configurations returned meta/cover/memo as stringified JSON
+ * while sections/stimuli came back as proper objects. The fix is mechanical:
+ * if a top-level Resource property is a string and parses as an object,
+ * use the parsed value. Idempotent — already-object values pass through.
+ */
+function unwrapStringifiedBranches(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const TOP_KEYS = ['meta', 'cover', 'stimuli', 'sections', 'memo'];
+  for (const k of TOP_KEYS) {
+    if (typeof obj[k] === 'string') {
+      try {
+        const parsed = JSON.parse(obj[k]);
+        if (parsed && (typeof parsed === 'object')) obj[k] = parsed;
+      } catch {
+        // leave as-is; assertResource will surface the type error.
+      }
+    }
+  }
+  return obj;
+}
+
+// Exposed for the spike runner.
+export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches };
+
+// ─────────────────────────────────────────────────────────────────────
+// EXPRESS HANDLER
+//
+// Mounted at POST /api/generate. Pipeline:
+//   validate input → generate (Claude tool call → unwrap → rebalance →
+//   assertResource) → renderResource (DOCX) → respond.
+//
+// Speaks SSE when the client sends Accept: text/event-stream, otherwise
+// plain JSON. Result payload matches the legacy contract:
+//   { docxBase64, preview, filename, verificationStatus }
+// ─────────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   const log = req.log || defaultLogger;
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  let subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term, bypassCache, guidance;
+  let parsed;
   try {
-    subject      = str(req.body?.subject,      { field: 'subject',      max: 200 });
-    topic        = str(req.body?.topic,        { field: 'topic',        required: false, max: 500 });
-    resourceType = str(req.body?.resourceType, { field: 'resourceType', max: 50 });
-    language     = str(req.body?.language,     { field: 'language',     max: 40 });
-    duration     = int(req.body?.duration,     { field: 'duration',     required: false, min: 10, max: 200 }) || 50;
-    difficulty   = oneOf(req.body?.difficulty || 'on', ['below', 'on', 'above'], { field: 'difficulty' });
-    includeRubric = bool(req.body?.includeRubric);
-    // _bypassCache is optional — set to true by the Regenerate button so
-    // teachers get fresh content instead of the cached version.
-    bypassCache  = bool(req.body?._bypassCache);
-    grade        = int(req.body?.grade, { field: 'grade', min: 4, max: 7 });
-    term         = int(req.body?.term,  { field: 'term',  min: 1, max: 4 });
-    // Free-form pre-prompt. Kept short (500 char cap) and injected into
-    // the USER message only (never the system prompt) so it does not
-    // invalidate prompt caching and cannot jailbreak curriculum scope.
-    guidance     = vGuidance(req.body?.teacherGuidance);
-
-    // Defensive lock for HL/FAL language subjects: an Afrikaans Home
-    // Language paper can never be generated in English, and vice versa.
-    // The UI greys out the wrong button, but a direct API call could
-    // still send an incoherent pair — caught here so the pipeline never
-    // sees one (the bilingual chimera observed in the audit pool).
-    const SUBJECT_FORCED_LANG = {
-      'Afrikaans Home Language':             'Afrikaans',
-      'Afrikaans First Additional Language': 'Afrikaans',
-      'English Home Language':               'English',
-      'English First Additional Language':   'English',
-    };
-    const forced = SUBJECT_FORCED_LANG[subject];
-    if (forced && language !== forced) {
-      return res.status(400).json({
-        error: `Subject "${subject}" must be generated in ${forced}, not ${language}.`,
-      });
-    }
+    parsed = parseRequest(req.body || {});
   } catch (err) {
     if (err instanceof ValidationError) {
-      return res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message, field: err.field });
     }
-    throw err;
+    return res.status(400).json({ error: err.message });
   }
 
-  // ── Event channel + cancellation plumbing ──
-  // SSE mode (Accept: text/event-stream) streams phase updates; plain
-  // JSON mode keeps the original request/response API. A client disconnect
-  // aborts the AbortController, which propagates into every in-flight
-  // Claude call and halts the pipeline.
   const channel = createEventChannel(req, res);
-  const abortController = new AbortController();
-  const signal = abortController.signal;
-  let clientClosed = false;
-  channel.onClose(() => {
-    clientClosed = true;
-    log.info('Client disconnected — aborting generation');
-    abortController.abort();
-  });
+  const abort = new AbortController();
+  channel.onClose(() => abort.abort());
 
-  // ── Cache short-circuit ──
-  // Identical generation params within the TTL window return instantly
-  // at zero Anthropic cost. Default TTL is 1h (CACHE_TTL_SECONDS env).
-  // The Regenerate button sends _bypassCache=true so teachers can force a
-  // fresh paper; we still WRITE the fresh result to the cache so downstream
-  // retries / reloads benefit from it.
-  const cacheKey = generateCacheKey({
-    subject, topic, resourceType, language, duration, difficulty, includeRubric, grade, term,
-    teacherGuidance: guidance,
-  });
-  if (!bypassCache) {
-    try {
-      const hit = cacheGet(cacheKey);
-      if (hit) {
-        log.info({ cacheKey }, 'Cache hit — serving stored response');
-        channel.sendPhase('cache', 'hit');
-        channel.sendResult({ ...hit, cached: true });
-        return;
-      }
-    } catch (cacheErr) {
-      log.warn({ err: cacheErr?.message || cacheErr }, 'Cache read failed — continuing with live generation');
-    }
-  } else {
-    log.info({ cacheKey }, 'Cache bypass requested — generating fresh');
-  }
-
-  const g = grade;
-  const t = term;
-  const phase = g <= 3 ? 'Foundation' : g <= 6 ? 'Intermediate' : 'Senior';
-  const isExam = resourceType === 'Exam';
-  const isFinalExam = resourceType === 'Final Exam';
-  const isWorksheet = resourceType === 'Worksheet';
-  const isTest = resourceType === 'Test';
-  const isExamType = isExam || isFinalExam;
- 
-  const totalMarks = parseInt(duration) || 50;
- 
-  // ── ATP topic lookup — replaces allTopics from UI ──
-  // Always use the database; topic field is now just a focus hint
-  const atpTopics = isFinalExam
-    ? [1, 2, 3, 4].flatMap(tm => (ATP[subject]?.[g]?.[tm]) || [])
-    : getATPTopics(subject, g, t, isExamType);
- 
-  const atpTopicList = atpTopics.length > 0
-    ? atpTopics.join('\n- ')
-    : (topic || subject);
- 
-  const focusHint = topic && topic !== subject
-    ? `\nFOCUS: The teacher has requested emphasis on: ${topic}\n(This is a specific focus within the above topic list — do not limit to only this topic)`
-    : '';
- 
-  const L = i18n(language);
-  const docx = createDocxBuilder({ subject, resourceType, language, grade: g, term: t, totalMarks, isWorksheet });
-  const { buildDoc, displaySubject, timeAllocation } = docx;
-  const diffNote = difficulty === 'below' ? 'Below grade level' : difficulty === 'above' ? 'Above grade level' : 'On grade level';
- 
-  const cog = getCogLevels(subject);
-  const isBarretts = isBarrettsFn(cog);
-  const cogMarks = largestRemainder(totalMarks, cog.pcts);
-  const cogTolerance = Math.max(1, Math.round(totalMarks * 0.02));
-  const cogTable = cog.levels.map((l, i) => l + ' ' + cog.pcts[i] + '% = ' + cogMarks[i] + ' marks').join('\n');
- 
-  // Build topic instruction using ATP database
-  let topicInstruction = '';
-  // Build separate T1 and T2 topic lists for exam terms so the split is explicit
-  const examTerm1Topics = isExam && t === 2 ? (ATP[subject]?.[g]?.[1] || []) : [];
-  const examTerm2Topics = isExam && t === 2 ? (ATP[subject]?.[g]?.[2] || []) : [];
-  const examTerm3Topics = isExam && t === 4 ? (ATP[subject]?.[g]?.[3] || []) : [];
-  const examTerm4Topics = isExam && t === 4 ? (ATP[subject]?.[g]?.[4] || []) : [];
-
-  if (isFinalExam) {
-    topicInstruction = `FINAL EXAM — covers ALL topics from the entire year (Terms 1, 2, 3 and 4).\nEnsure questions are spread across these topics:\n- ${atpTopicList}${focusHint}`;
-  } else if (isExam && t === 2) {
-    const t1List = examTerm1Topics.join('\n  - ');
-    const t2List = examTerm2Topics.join('\n  - ');
-    topicInstruction = `TERM 2 EXAM — THIS IS AN EXAM TERM. CAPS requires BOTH Term 1 AND Term 2 content.
-
-⚠️ CRITICAL SPLIT RULE — NON-NEGOTIABLE:
-Approximately 50% of marks must come from Term 1 topics and 50% from Term 2 topics.
-The difference between the two terms must NEVER exceed 70%/30%.
-A paper using ONLY Term 1 topics is WRONG and will be rejected.
-A paper using ONLY Term 2 topics is WRONG and will be rejected.
-You MUST include questions from BOTH lists below.
-
-TERM 1 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
-  - ${t1List}
-
-TERM 2 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
-  - ${t2List}${focusHint}`;
-  } else if (isExam && t === 4) {
-    const t3List = examTerm3Topics.join('\n  - ');
-    const t4List = examTerm4Topics.join('\n  - ');
-    topicInstruction = `TERM 4 EXAM — THIS IS AN EXAM TERM. CAPS requires BOTH Term 3 AND Term 4 content.
-
-⚠️ CRITICAL SPLIT RULE — NON-NEGOTIABLE:
-Approximately 50% of marks must come from Term 3 topics and 50% from Term 4 topics.
-The difference between the two terms must NEVER exceed 70%/30%.
-A paper using ONLY Term 3 topics is WRONG and will be rejected.
-A paper using ONLY Term 4 topics is WRONG and will be rejected.
-You MUST include questions from BOTH lists below.
-
-TERM 3 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
-  - ${t3List}
-
-TERM 4 TOPICS for Grade ${g} ${subject} (approximately ${Math.round(totalMarks * 0.5)} marks from here):
-  - ${t4List}${focusHint}`;
-  } else {
-    topicInstruction = `TERM ${t} ASSESSMENT — covers ONLY Term ${t} topics (CAPS rule: Term 1 and Term 3 assessments test only that term's work).\nQuestions MUST be drawn ONLY from these CAPS-prescribed Grade ${g} Term ${t} topics:\n- ${atpTopicList}${focusHint}\n\nDO NOT include topics from other terms — this is a strict CAPS compliance requirement.`;
-  }
- 
-  // ═══════════════════════════════════════
-  // CLAUDE API — delegates to shared wrapper (retries + 180s timeout);
-  // this thin adapter preserves the legacy content-extraction behaviour
-  // (JSON.content if present, else raw text with escape chars unescaped).
-  // Structured-output migration is Phase 1.5.
-  // ═══════════════════════════════════════
-  async function callClaude(system, user, maxTok) {
-    let raw;
-    try {
-      raw = await callAnthropic({ system, user, maxTokens: maxTok, logger: log, signal });
-    } catch (err) {
-      if (err instanceof AnthropicError && err.code === 'TIMEOUT') {
-        throw new Error('Generation is taking longer than usual. Please try again — complex resources can take up to 3 minutes.');
-      }
-      throw err;
-    }
-    return extractContent(raw);
-  }
-
-  // Thin alias kept for legacy call sites — safeExtractContent was the old
-  // hand-rolled version of extractContent. They now do the same thing.
-  const safeExtractContent = extractContent;
-
-  // Detect when Phase 3B (cog analysis + extension + rubric) hit max_tokens
-  // mid-output. Conservative — only flags responses that show clear signs of
-  // being truncated mid-table. Used to trigger a single retry with a higher
-  // budget; if the retry also looks truncated we keep what we have.
-  function looksTruncated(text, withRubric) {
-    if (!text || typeof text !== 'string') return false;
-    const trimmed = text.trimEnd();
-    if (trimmed.length < 100) return true;          // suspiciously short
-    const tail = trimmed.slice(-12);
-    // Ends mid-word (no terminating whitespace, punctuation, pipe, or paren)
-    // and the last visible char looks like a letter — strong sign of cut-off.
-    if (/[A-Za-z]$/.test(trimmed) && !/[.!?\]\)|]\s*$/.test(trimmed)) {
-      return true;
-    }
-    // If a rubric was requested, the response must contain at least one full
-    // pipe-table row covering "Level 1" or its closing column. A rubric-aware
-    // section that ends without that is a truncation.
-    if (withRubric) {
-      const hasRubricHeading = /(MARKING RUBRIC|NASIENRUBRIEK|Marking Rubric)/i.test(trimmed);
-      if (hasRubricHeading) {
-        // Count pipe-rows after the rubric heading; a complete 4-criterion
-        // rubric has at least 5 rows (header + 4 criteria). Far fewer = cut off.
-        const idx = trimmed.search(/(MARKING RUBRIC|NASIENRUBRIEK|Marking Rubric)/i);
-        const rubricSection = idx >= 0 ? trimmed.slice(idx) : '';
-        const pipeRows = (rubricSection.match(/^\s*\|.*\|\s*$/gm) || []).length;
-        if (pipeRows < 4) return true;
-        // Rubric should end with a row that closes with `|`. If the last
-        // non-empty line doesn't, the table is incomplete.
-        const lines = rubricSection.split('\n').map((l) => l.trimEnd()).filter(Boolean);
-        const lastLine = lines[lines.length - 1] || '';
-        if (!/\|\s*$/.test(lastLine)) return true;
-      }
-    }
-    return false;
-  }
-
-  // ═══════════════════════════════════════
-  // PROMPTS — standard (non-RTT) pipeline
-  // ═══════════════════════════════════════
-  const { planSys, planUsr, qSys, qUsr, mSys, mUsrA, mUsrB, taxLabel } = buildPrompts({
-    subject, topic, resourceType, language,
-    grade: g, term: t, totalMarks,
-    phase, difficulty, diffNote, includeRubric,
-    isWorksheet, isTest, isExamType, isFinalExam,
-    cog, cogMarks, cogTolerance,
-    isBarretts,
-    atpTopicList, topicInstruction, atpTopics,
-    teacherGuidance: guidance,
-  });
-
-  // ═══════════════════════════════════════
-  // RESPONSE TO TEXT — 4-SECTION PIPELINE
-  // Runs instead of the standard pipeline for English HL/FAL
-  // and Afrikaans HL/FAL Response to Text papers
-  // ═══════════════════════════════════════
-  const isResponseToText = isBarretts && !isWorksheet;
-
-  // Barrett's marks per section for a Response to Text paper:
-  // Section A: Comprehension 20 marks  → own Barrett's
-  // Section B: Visual text  10 marks  → own Barrett's
-  // Section C: Summary       5 marks  → Reorganisation only
-  // Section D: Language     15 marks  → own Barrett's
-  // Total = 50 marks (standard). For non-50 papers, scale proportionally.
-  function getRTTSectionMarks(total) {
-    if (total === 50) return { a: 20, b: 10, c: 5, d: 15 };
-    // Scale proportionally, round to whole numbers
-    const scale = total / 50;
-    const a = Math.round(20 * scale);
-    const b = Math.round(10 * scale);
-    const d = Math.round(15 * scale);
-    const c = total - a - b - d;
-    return { a, b, c: Math.max(c, 3), d };
-  }
-
-  // Barrett's marks per level for a given section total
-  function getBarrettMarks(sectionTotal, includeSummaryOnly = false) {
-    if (includeSummaryOnly) {
-      // Summary is purely Reorganisation level
-      return [0, sectionTotal, 0, 0];
-    }
-    return largestRemainder(sectionTotal, [20, 20, 40, 20]);
-  }
-
-  async function generateResponseToText() {
-    const lang = language;
-    const isAfrikan = subject.toLowerCase().includes('afrikaans');
-    const secLabel = isAfrikan
-      ? ['AFDELING A', 'AFDELING B', 'AFDELING C', 'AFDELING D']
-      : ['SECTION A', 'SECTION B', 'SECTION C', 'SECTION D'];
-    const sm = getRTTSectionMarks(totalMarks);
-
-    // Shared passage — one literary or non-literary reading passage for Section A & C
-    const passageSys = `You are a South African CAPS ${phase} Phase ${lang} teacher.
-Write a reading passage suitable for Grade ${g} learners in ${lang}.
-Use South African context, names (Sipho, Ayanda, Zanele, Thandi, Pieter, Anri), SA places, SA currency (rands).
-The passage must be:
-- A ${isAfrikan ? 'literêre of nie-literêre teks' : 'literary or non-literary text'}
-- Appropriate reading level for Grade ${g}
-- Between 250 and 350 words long
-- Interesting and relevant to South African learners
-- NOT about diagrams, maps or images (text only)
-Return ONLY the passage text — no title instructions or commentary.`;
-    const passageUsr = `Write the reading passage for a Grade ${g} ${subject} Term ${t} Response to Text paper.
-Topic must align with CAPS Term ${t} ${subject} reading content.
-Return only the passage.`;
-
-    channel.sendPhase('rtt_passage', 'started');
-    let passage = '';
-    try {
-      passage = await callClaude(passageSys, passageUsr, 1200);
-      passage = passage.replace(/^```.*\n?/, '').replace(/```$/, '').trim();
-      channel.sendPhase('rtt_passage', 'done');
-    } catch (e) {
-      passage = '';
-      channel.sendPhase('rtt_passage', 'failed');
-    }
-
-    // Helper: build Barrett's table for a section
-    function barretts(marks, includeSummaryOnly = false) {
-      const bm = getBarrettMarks(marks, includeSummaryOnly);
-      const levels = ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'];
-      const pcts = [20, 20, 40, 20];
-      if (includeSummaryOnly) {
-        return `| Cognitive Level | Prescribed % | Marks |\n|---|---|---|\n| Reorganisation | 100% | ${marks} |`;
-      }
-      return `| Cognitive Level | Prescribed % | Marks |\n|---|---|---|\n` +
-        levels.map((l, i) => `| ${l} | ${pcts[i]}% | ${bm[i]} |`).join('\n');
-    }
-
-    // SECTION A — Comprehension (20 marks)
-    const secASys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[0]} of a Response to Text exam in ${lang}.
-DIFFICULTY: ${diffNote}
-This section tests COMPREHENSION ONLY — NO language/grammar questions here.
-Language questions belong ONLY in Section D.
-The reading passage is provided. All questions must refer to it.
-
-Barrett's Taxonomy cognitive levels for this section (${sm.a} marks total):
-${barretts(sm.a)}
-
-FORMAT:
-- Heading: ${secLabel[0]}: ${isAfrikan ? 'BEGRIP' : 'COMPREHENSION'} [${sm.a}]
-- Sub-heading: ${isAfrikan ? 'Lees die gegewe teks en beantwoord die vrae wat volg.' : 'Read the passage and answer the questions that follow.'}
-- Questions numbered 1.1, 1.2 … with mark in brackets (X) on same line
-- Progress from Literal → Reorganisation → Inferential → Evaluation and Appreciation
-- End with: [${sm.a}]
-- NO grammar, vocabulary, figure of speech, or language structure questions
-Return JSON: {"content":"Section A text only"}`;
-
-    const secAUsr = `READING PASSAGE:\n${passage}\n\nWrite ${secLabel[0]} — Comprehension questions (${sm.a} marks) following the instructions exactly.`;
-
-    // SECTION B — Visual Text (10 marks)
-    const secBSys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[1]} of a Response to Text exam in ${lang}.
-This section tests VISUAL TEXT comprehension ONLY — NO language/grammar questions here.
-Language questions belong ONLY in Section D.
-
-IMPORTANT — NO DIAGRAMS RULE: This system cannot display actual images or posters.
-Instead, describe a visual text in words (e.g. "Study the advertisement described below:" then describe layout, text, images, colours in words). Learners answer questions about the described visual.
-
-Barrett's Taxonomy cognitive levels for this section (${sm.b} marks total):
-${barretts(sm.b)}
-
-FORMAT:
-- Heading: ${secLabel[1]}: ${isAfrikan ? 'VISUELE TEKS' : 'VISUAL TEXT'} [${sm.b}]
-- Describe the visual text in words (advertisement, poster, or cartoon)
-- Sub-heading: ${isAfrikan ? 'Bestudeer die visuele teks hieronder en beantwoord die vrae.' : 'Study the visual text below and answer the questions.'}
-- Questions numbered 2.1, 2.2 … with mark in brackets (X) on same line
-- End with: [${sm.b}]
-- NO grammar, vocabulary, or language structure questions
-Return JSON: {"content":"Section B text only"}`;
-
-    const secBUsr = `Write ${secLabel[1]} — Visual Text questions (${sm.b} marks) for Grade ${g} ${subject} Term ${t}.
-Use SA context. Describe a visual in words (advertisement, poster or cartoon about an SA topic relevant to Grade ${g}).`;
-
-    // SECTION C — Summary (5 marks)
-    const secCSys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[2]} of a Response to Text exam in ${lang}.
-This section is a SUMMARY WRITING task ONLY — one question only.
-Barrett's Taxonomy: This is a Reorganisation level task (selecting and organising key information).
-
-FORMAT:
-- Heading: ${secLabel[2]}: ${isAfrikan ? 'OPSOMMING' : 'SUMMARY'} [${sm.c}]
-- Instruct learners to write a summary of the reading passage (from Section A) in their own words
-- Specify maximum word count (about 50 words for 5 marks, scale accordingly)
-- State exactly what the summary must include (e.g. main points, key ideas)
-- End with: [${sm.c}]
-
-LEARNER PAPER ONLY — non-negotiable:
-Do NOT include marking-rubric guidance on the learner paper. NEVER write
-"Award UP TO X marks for CONTENT", "Award UP TO X marks for LANGUAGE",
-"Deduct marks if…", or "Do NOT penalise for…". Marking criteria belong
-in the memo (Phase 3 below) — the learner sees only the task and the
-required content points. The total mark allocation is shown only by the
-[${sm.c}] block label at the end.
-
-Return JSON: {"content":"Section C text only"}`;
-
-    const secCUsr = `READING PASSAGE (from Section A):\n${passage}\n\nWrite ${secLabel[2]} — Summary task (${sm.c} marks).`;
-
-    // SECTION D — Language Structures and Conventions
-    const secDSys = `You are a South African CAPS Grade ${g} ${subject} teacher writing ${secLabel[3]} of a Response to Text exam in ${lang}.
-THIS IS THE ONLY SECTION WHERE LANGUAGE/GRAMMAR QUESTIONS ARE ASKED.
-Do NOT include comprehension questions here — only language structures and conventions.
-
-Barrett's Taxonomy for this section (${sm.d} marks total):
-${barretts(sm.d)}
-
-CAPS Grade ${g} ${subject} Term ${t} Language topics to draw from:
-${atpTopicList}
-
-QUESTION TYPES (mix these — do not repeat the same type more than twice):
-- Parts of speech (nouns, verbs, adjectives, adverbs, pronouns)
-- Tense (change sentence from present to past, etc.)
-- Active/Passive voice
-- Direct/Indirect speech
-- Punctuation and capitalisation
-- Synonyms and antonyms
-- Prefixes and suffixes
-- Figures of speech (simile, metaphor, personification)
-- Sentence structure (combine sentences, identify subject/predicate)
-- Vocabulary in context
-AVOID: conditional sentences and other Grade 7+ structures for Grade 6.
-
-FORMAT:
-- Heading: ${secLabel[3]}: ${isAfrikan ? 'TAALSTRUKTURE EN -KONVENSIES' : 'LANGUAGE STRUCTURES AND CONVENTIONS'} [${sm.d}]
-- Questions numbered 4.1, 4.2 … with mark in brackets (X) on same line
-- Mix question types — provide context sentences for each
-- End with: [${sm.d}]
-Return JSON: {"content":"Section D text only"}`;
-
-    const secDUsr = `Write ${secLabel[3]} — Language Structures and Conventions (${sm.d} marks) for Grade ${g} ${subject} Term ${t} in ${lang}.`;
-
-    // Generate all 4 sections in parallel
-    log.info(`RTT Pipeline: generating 4 sections in parallel (${sm.a}+${sm.b}+${sm.c}+${sm.d}=${sm.a+sm.b+sm.c+sm.d} marks)`);
-    channel.sendPhase('rtt_sections', 'started');
-    const [secARaw, secBRaw, secCRaw, secDRaw] = await Promise.all([
-      callClaude(secASys, secAUsr, 3000),
-      callClaude(secBSys, secBUsr, 2000),
-      callClaude(secCSys, secCUsr, 1000),
-      callClaude(secDSys, secDUsr, 2500)
-    ]);
-    channel.sendPhase('rtt_sections', 'done');
-
-    const secA = cleanOutput(safeExtractContent(secARaw));
-    const secB = cleanOutput(safeExtractContent(secBRaw));
-    const secC = cleanOutput(safeExtractContent(secCRaw));
-    const secD = cleanOutput(safeExtractContent(secDRaw));
-
-    // Assemble the full paper
-    const passageHeading = isAfrikan ? 'LEESSTUK:' : 'READING PASSAGE:';
-    const questionPaper = [
-      passageHeading,
-      '',
-      passage,
-      '',
-      secA,
-      '',
-      secB,
-      '',
-      secC,
-      '',
-      secD,
-      '',
-      `${L.totalLabel}: _____ / ${totalMarks} ${L.marksWord}`
-    ].join('\n');
-
-    log.info(`RTT Pipeline: paper assembled (${questionPaper.length} chars)`);
-
-    // ── RTT Memo Phase 1: Section A (Comprehension) answers + Barrett's ──
-    // Deliberately separate from the question paper generation to stay within token limits
-    const rttMemoSys = `You are a South African CAPS Grade ${g} ${subject} teacher creating a memorandum for a Response to Text exam in ${lang}.
-Use pipe | tables only. No Unicode box characters. No markdown headings with #.
-Return JSON: {"content":"memorandum text"}`;
-
-    const rttMemoUsrA = `READING PASSAGE:
-${passage}
-
-${secLabel[0]} QUESTIONS (${sm.a} marks):
-${secA}
-
-Write the memo for ${secLabel[0]} ONLY:
-
-1. Answer table with columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-   - List EVERY sub-question (1.1, 1.2, 1.3, … through to the last sub-question, INCLUDING the highest-mark final question).
-   - Do NOT skip any sub-question. Do NOT truncate the table early. The answer
-     table must cover every sub-question listed above without exception.
-   - COGNITIVE LEVEL must be one of: Literal | Reorganisation | Inferential | Evaluation and Appreciation
-   - Use the MARK shown in brackets on each question line.
-
-2. NAMES AND FACTS — non-negotiable:
-   When a sub-question asks about characters, places, items, or events
-   from the reading passage above, your ANSWER must contain the actual
-   names / details from the passage VERBATIM. Read the passage and copy
-   the names exactly. Do NOT write placeholder text like "(name as in
-   text)" or "(naam soos in teks vermeld)" — that is invalid output.
-   If the question is "Who appeared before Sipho?" and the passage names
-   "Anri" and "Pieter", your ANSWER cell must contain "Anri" and "Pieter"
-   — not a placeholder. Same rule applies to all factual recall items.
-
-3. After the answer table, write a Barrett's Taxonomy summary for
-   ${secLabel[0]} ONLY:
-   | Barrett's Level | Questions | Marks Allocated | Marks as % of Section |
-   All rows must sum to exactly ${sm.a} marks. Target: Literal 20%, Reorganisation 20%, Inferential 40%, Evaluation 20%.
-
-4. End with: ${secLabel[0]} ${L.totalLabel}: ${sm.a} ${L.marksWord}
-
-Return JSON: {"content":"Section A memo"}`;
-
-    // ── RTT Memo Phase 2: Section B (Visual Text) — own call (Phase 3 refactor) ──
-    // Section B and C used to be one call (rttMemoUsrB) producing two answer
-    // tables in one response. Resources 1 and 2 both shipped with Section C
-    // missing because the model collapsed them under token pressure. Each
-    // section now gets its own call so the failure mode no longer exists.
-    const rttMemoUsrB = `${secLabel[1]} QUESTIONS (${sm.b} marks):
-${secB}
-
-Write the memo for ${secLabel[1]} ONLY. Do NOT write the memo for any
-other section here.
-
-EMIT BOTH OF THESE — NEVER SKIP:
-
-1. Answer table FIRST — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-   List EVERY visual-text sub-question (2.1, 2.2, 2.3 …) on its own row.
-   Each row must have an answer cell and a marking guidance cell with real
-   content — never empty cells.
-   Cognitive level is one of: Literal / Reorganisation / Inferential / Evaluation and Appreciation.
-
-2. Barrett's Taxonomy DISTRIBUTION TABLE for ${secLabel[1]} ONLY.
-   Use EXACTLY these columns:
-   | Cognitive Level | Questions | Marks |
-   This table MUST contain ALL FOUR Barrett's levels — Literal,
-   Reorganisation, Inferential, Evaluation and Appreciation — even if
-   some have 0 marks (write "—" in the Questions cell and 0 in Marks).
-   The "Questions" column lists the sub-question NUMBERS at each level
-   (e.g. "2.1, 2.3"). It does NOT contain "Content Point 1", "Language
-   and Structure", or any rubric phrase — that's a different section's
-   pattern.
-   The Marks column adds to EXACTLY ${sm.b} marks.
-
-The pipeline appends the closing "${secLabel[1]} ${L.totalLabel}" line in
-code, so do NOT write it yourself.
-
-Return JSON: {"content":"Section B memo only"}`;
-
-    // ── RTT Memo Phase 2c: Section C (Summary) — own call (Phase 3 refactor) ──
-    // Section C must reference the actual reading passage so its content
-    // points anchor to real names/places/events (Bug 20 — Paper 7 had a
-    // memo describing a different story than the passage Section A
-    // asked questions about).
-    const rttMemoUsrC = `READING PASSAGE (the source text Section C asks the learner to summarise — model answers must reference THIS passage's content, names, places and events; do NOT invent a different story):
-${passage}
-
-${secLabel[2]} QUESTION (${sm.c} marks):
-${secC}
-
-Write the memo for ${secLabel[2]} ONLY. Every content point you list MUST
-be grounded in the READING PASSAGE shown above. Use the actual character
-names, places, events and quantities from THAT passage. Do NOT invent a
-different story.
-
-EMIT BOTH OF THESE — NEVER SKIP:
-
-1. Answer table — columns: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-   This section awards marks for: content points covered + language/structure.
-   All marks count as Reorganisation level.
-   Number rows by content criterion (e.g. 3.1, 3.2 … or Content Point 1, 2 …).
-   Each content-point row's ANSWER cell quotes or paraphrases the actual
-   passage — names, places and events as they appear above.
-
-2. Barrett's Taxonomy summary for ${secLabel[2]} ONLY.
-   All ${sm.c} marks at Reorganisation level.
-
-The pipeline appends the closing "${secLabel[2]} ${L.totalLabel}" line in
-code, so do NOT write it yourself.
-
-Return JSON: {"content":"Section C memo only"}`;
-
-    // ── RTT Memo Phase 3: Section D (Language) answers + Barrett's summary ──
-    // The COMBINED paper Barrett's table is no longer requested from Claude
-    // (Phase 1.2 refactor). It's emitted in code below from the union of
-    // all four sections' answer rows, eliminating the fabricated-totals
-    // failure mode (Bugs 8, 20).
-    const rttMemoUsrD = `${secLabel[3]} QUESTIONS (${sm.d} marks):
-${secD}
-
-Write the memo for ${secLabel[3]} ONLY. Do NOT write a combined-paper
-Barrett's analysis table — that is generated by code from all four
-sections' answer rows after this call. Anything you produce in that
-area will be discarded.
-
-1. Answer table: ${L.memo.no} | ${L.memo.answer} | ${L.memo.guidance} | ${L.memo.cogLevel} | ${L.memo.mark}
-   List every sub-question (4.1, 4.2 … etc). Use Literal/Reorganisation/Inferential/Evaluation and Appreciation.
-2. Barrett's Taxonomy summary for ${secLabel[3]} ONLY (must sum to ${sm.d} marks).
-3. End with: ${secLabel[3]} ${L.totalLabel}: ${sm.d} ${L.marksWord}
-
-Return JSON: {"content":"Section D memo only"}`;
-
-    log.info(`RTT Memo: generating in 4 phases (A / B / C / D) — combined Barrett's emitted in code`);
-    channel.sendPhase('rtt_memo', 'started');
-    // Per-section token budgets — smaller now that B and C are split.
-    // Afrikaans is ~20% wordier than English so the multiplier is
-    // applied across all four phases.
-    const isAfrRtt = (language || '').toLowerCase() === 'afrikaans';
-    const rttTok = (base) => Math.round(base * (isAfrRtt ? 1.2 : 1));
-    const [memoARaw, memoBRaw, memoCRaw, memoDRaw] = await Promise.all([
-      callClaude(rttMemoSys, rttMemoUsrA, rttTok(6000)),
-      callClaude(rttMemoSys, rttMemoUsrB, rttTok(4500)),
-      callClaude(rttMemoSys, rttMemoUsrC, rttTok(3000)),
-      callClaude(rttMemoSys, rttMemoUsrD, rttTok(6000)),
-    ]);
-    channel.sendPhase('rtt_memo', 'done');
-
-    // Strip any leading MEMORANDUM banner each phase emits — the assembly
-    // below adds its own single outer banner, so phase-level reprises
-    // would stack two or three "MEMORANDUM" headings on top of each other
-    // (the Grade 6 Afrikaans HL audit caught a triple).
-    let memoA = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoARaw)));
-    let memoB = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoBRaw)));
-    let memoC = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoCRaw)));
-    let memoD = stripLeadingMemoBanner(cleanOutput(safeExtractContent(memoDRaw)));
-
-    // Phase 5: normalise Barrett's level labels in each section's answer
-    // table to the language canonical (Bug 23 — Resource 2 had Section A
-    // English and Section D Afrikaans inside the same memo). We pass the
-    // OTHER language's cogLevels as aliases so cells in either language
-    // are recognised and rewritten to the target.
-    {
-      const barrettCanonical = ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'];
-      const otherLang = language === 'Afrikaans' ? 'English' : 'Afrikaans';
-      const normaliseSection = (label, body) => {
-        const r = normaliseCogLevelLabels(body, {
-          canonicalLevels: barrettCanonical,
-          translations: L.cogLevels || {},
-          aliases: [i18n(otherLang).cogLevels || {}],
-        });
-        if (r.changed) log.info({ section: label, rewrites: r.rewrites }, 'RTT memo: Barrett level labels normalised to language canonical');
-        return r.text;
-      };
-      memoA = normaliseSection('A', memoA);
-      memoB = normaliseSection('B', memoB);
-      memoC = normaliseSection('C', memoC);
-      memoD = normaliseSection('D', memoD);
-    }
-
-    // Count the sub-questions (X.Y or X.Y.Z lines ending in (mark)) that
-    // a section body promised the learner — used as the floor for the
-    // retry guard. F7: the previous guard fired only when the answer
-    // table HEADER was missing entirely, so a 1-row memo (header + one
-    // row) silently passed even when 6 rows were expected.
-    function countSectionSubQuestions(sectionText) {
-      if (typeof sectionText !== 'string' || sectionText.length === 0) return 0;
-      let n = 0;
-      for (const line of sectionText.split('\n')) {
-        // "1.1 ... (X)" / "2.3 ... (X)" / "4.5.1 ... (X)" — a sub-question
-        // line. Excludes block totals like "[10]" and the closing "TOTAL".
-        if (/^\s*\d+(?:\.\d+)*\b.*\(\d+\)\s*$/.test(line)) n++;
-      }
-      return n;
-    }
-
-    // Per-phase retry guard. Each section gets its own retry: if the memo
-    // is missing the answer-table header, OR has the header but fewer
-    // body rows than the section's question paper has sub-questions, we
-    // retry once with a larger budget. Splitting the phases means the
-    // retry can target the broken section instead of refetching as a pair.
-    async function retryRttSection(label, current, sectionQuestionText, sysPrompt, usrPrompt, budgetTok) {
-      const expectedRows = countSectionSubQuestions(sectionQuestionText);
-      const v = validateMemoStructure(current);
-      // Tolerate the question paper having one extra "stem only" line
-      // we miscounted — only retry when the gap is meaningful (≥ 2).
-      // (Bug A: include zero-row case — a header-only memo has rowCount=0
-      // and MUST trigger retry when expectedRows > 0. The earlier draft
-      // gated on `v.answerRowCount > 0` which silently let header-only
-      // memos through, defeating the whole fix.)
-      const rowsTooFew = expectedRows > 0 &&
-        expectedRows - v.answerRowCount >= 2;
-      if (v.answerTable && !rowsTooFew) return current;
-      log.warn(
-        {
-          section: label,
-          len: current.length,
-          answerTable: v.answerTable,
-          answerRowCount: v.answerRowCount,
-          expectedRows,
-          tail: current.slice(-200),
-        },
-        `RTT memo ${label}: ${v.answerTable ? 'row count below expected' : 'no answer-table header'} — retrying with max budget`,
-      );
-      try {
-        const retryRaw = await callClaude(sysPrompt, usrPrompt, budgetTok);
-        const retryClean = stripLeadingMemoBanner(cleanOutput(safeExtractContent(retryRaw)));
-        const r = validateMemoStructure(retryClean);
-        const stillTooFew = expectedRows > 0 &&
-          expectedRows - r.answerRowCount >= 2;
-        if (r.answerTable && !stillTooFew) {
-          log.info(
-            { answerRowCount: r.answerRowCount, expectedRows },
-            `RTT memo ${label}: retry succeeded — answer table now adequate`,
-          );
-          return retryClean;
-        }
-        // Take whichever has more rows — the retry could still be an
-        // improvement even if it's not perfect.
-        if (r.answerRowCount > v.answerRowCount) {
-          log.info(
-            { before: v.answerRowCount, after: r.answerRowCount, expectedRows },
-            `RTT memo ${label}: retry partial — using larger result`,
-          );
-          return retryClean;
-        }
-        log.warn(`RTT memo ${label}: retry still inadequate — keeping original`);
-        return current;
-      } catch (e) {
-        log.warn({ err: e?.message || e }, `RTT memo ${label}: retry failed — keeping original`);
-        return current;
-      }
-    }
-    memoB = await retryRttSection('Section B', memoB, secB, rttMemoSys, rttMemoUsrB, rttTok(9000));
-    memoC = await retryRttSection('Section C', memoC, secC, rttMemoSys, rttMemoUsrC, rttTok(6000));
-
-    // Localised memo header — was hard-coded English even on Afrikaans
-    // papers, which the Afrikaans HL audit caught.
-    const rttHeader = L.rttMemo || { heading: 'MEMORANDUM', subtitle: () => '', framework: '' };
-    const subjectDisplay = displaySubject || subject;
-
-    // ── Phase 1.3 + Phase 3: deterministic per-section closers ──
-    // Each RTT phase emits content; we strip any closer the model wrote
-    // (canonical or accidental cross-section, e.g. "SECTION C TOTAL"
-    // appearing inside the Section B body — Bug 4 / Bug 16) and append
-    // the correct closer in code. With Phase 3 (B and C split), we close
-    // each section's body in isolation.
-    {
-      const closeA = ensureSectionCloser(memoA, secLabel[0], L.totalLabel || 'TOTAL', sm.a, L.marksWord || 'marks');
-      memoA = closeA.text;
-      if (closeA.strippedWrong) log.warn({ section: secLabel[0] }, 'RTT memo: stripped a foreign-section closer from Section A body');
-
-      const closeB = ensureSectionCloser(memoB, secLabel[1], L.totalLabel || 'TOTAL', sm.b, L.marksWord || 'marks');
-      memoB = closeB.text;
-      if (closeB.strippedWrong) log.warn({ section: secLabel[1] }, 'RTT memo: stripped a foreign-section closer from Section B body (Bug 4/16)');
-
-      const closeC = ensureSectionCloser(memoC, secLabel[2], L.totalLabel || 'TOTAL', sm.c, L.marksWord || 'marks');
-      memoC = closeC.text;
-      if (closeC.strippedWrong) log.warn({ section: secLabel[2] }, 'RTT memo: stripped a foreign-section closer from Section C body');
-
-      const closeD = ensureSectionCloser(memoD, secLabel[3], L.totalLabel || 'TOTAL', sm.d, L.marksWord || 'marks');
-      memoD = closeD.text;
-      if (closeD.strippedWrong) log.warn({ section: secLabel[3] }, 'RTT memo: stripped a foreign-section closer from Section D body');
-    }
-
-    // ── RTT Phase D-post: Deterministic combined Barrett's emitter (Phase 1.2) ──
-    // Build the COMBINED paper Barrett's analysis from the union of every
-    // sub-question across Sections A, B, C, D. Same construction as the
-    // standard pipeline's Phase 3C — Prescribed/Actual/% and breakdown
-    // headers cannot disagree with the listed items by design.
-    const allRttAnswerRows = parseMemoAnswerRows(
-      [memoA, memoB, memoC, memoD].filter(Boolean).join('\n'),
-    );
-    const combinedBarretts = buildCogAnalysisTable({
-      answerRows: allRttAnswerRows,
-      cog: { levels: ['Literal', 'Reorganisation', 'Inferential', 'Evaluation and Appreciation'], pcts: [20, 20, 40, 20] },
-      totalMarks,
-      language,
-      isBarretts: true,
-      framework: "Barrett's Taxonomy",
-    });
-    // Prefer the localised "COMBINED BARRETT'S TAXONOMY ANALYSIS" heading
-    // already in i18n.js for backwards compatibility with the existing
-    // memo style.
-    const combinedHeading = L.barretts?.combinedHeading
-      ? L.barretts.combinedHeading(totalMarks)
-      : combinedBarretts.heading;
-    const combinedSection = [
-      combinedHeading,
-      '',
-      combinedBarretts.table,
-      '',
-      combinedBarretts.breakdown,
-    ].join('\n');
-    log.info(
-      { actualByLevel: combinedBarretts.actualByLevel, totalActual: combinedBarretts.totalActual, totalMarks },
-      'RTT combined Barrett\'s analysis emitted from per-section answer rows',
-    );
-
-    const memoContent = [
-      rttHeader.heading,
-      '',
-      typeof rttHeader.subtitle === 'function' ? rttHeader.subtitle(g, subjectDisplay, t) : `Grade ${g} ${subjectDisplay} — Response to Text — Term ${t}`,
-      rttHeader.framework,
-      '',
-      memoA,
-      '',
-      memoB,
-      '',
-      memoC,
-      '',
-      memoD,
-      '',
-      combinedSection,
-    ].join('\n');
-
-    log.info(`RTT Memo: complete (${memoContent.length} chars — A:${memoARaw.length} B:${memoBRaw.length} C:${memoCRaw.length} D:${memoDRaw.length})`);
-
-    // Per-section memo structure check. The Afrikaans HL audit caught a
-    // truncated Section A memo that dropped Q1.9 entirely. Run the same
-    // structural validator on each of the 4 RTT memo phases so we know
-    // exactly which one (if any) came back incomplete.
-    for (const [name, body] of [['Section A', memoA], ['Section B', memoB], ['Section C', memoC], ['Section D', memoD]]) {
-      const s = validateMemoStructure(body);
-      if (!s.answerTable) {
-        log.warn(
-          { section: name, len: body.length, tail: body.slice(-200) },
-          'RTT memo: section is missing the answer-table header — likely truncated or incomplete',
-        );
-      }
-    }
-
-    const markTotal = totalMarks; // RTT papers use fixed mark total
-
-    // Phase 1.4: surface RTT mark-sum drift to the UI via verificationStatus.
-    // Auto-correction across four sections is too risky, but the teacher
-    // must see when the body doesn't sum to the cover total — Resource 1
-    // shipped at 45 marks against a 50-mark cover and the audit caught it
-    // by hand counting. Now the UI can render a "review marks" badge.
-    let rttMarkSumWarning = null;
-    try {
-      const actualMarks = countMarks(questionPaper);
-      if (actualMarks > 0 && actualMarks !== markTotal) {
-        rttMarkSumWarning = { cover: markTotal, body: actualMarks, drift: actualMarks - markTotal };
-        log.warn(
-          rttMarkSumWarning,
-          'RTT paper: mark-sum drift between section headers and total — surfacing as mark_sum_drift',
-        );
-      }
-    } catch (e) {
-      log.info({ err: e?.message }, 'RTT mark-sum check skipped (parser error)');
-    }
-
-    // Safety net: inject blank answer lines where the AI forgot them, then
-    // localise any English Answer:/Working: labels that survived as raw
-    // Claude output (the injected MCQ stub is already localised by
-    // ensureAnswerSpace, but embedded labels in maths/calculation questions
-    // come straight from the model and need a second pass).
-    // F6: also localise the memo — calculation marking-guidance cells often
-    // open with "Answer: …" / "Working: …" that the question-paper-only
-    // pass left in English.
-    let finalPaper = localiseLabels(ensureAnswerSpace(questionPaper, { language }), language);
-    let finalMemo  = localiseLabels(memoContent, language);
-    channel.sendPhase('docx_build', 'started');
-
-    // Build DOCX
-    let docxBase64 = null;
-    const filename = (subject + '-ResponseToText-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
-    try {
-      const doc = buildDoc(finalPaper, finalMemo, markTotal);
-      const buffer = await Packer.toBuffer(doc);
-      docxBase64 = buffer.toString('base64');
-    } catch (docxErr) {
-      log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX build error');
-    }
-    channel.sendPhase('docx_build', 'done');
-
-    // Phase 1.6 (invariant gate + regen loop): RTT pipeline runs the same
-    // pre-delivery gate as the standard pipeline, then the same corrective-
-    // regeneration loop. The plan argument is empty (RTT has no question-plan
-    // phase). cog/cogMarks come from getCogLevels for Barrett's framework.
-    // NOTE: we call runPreDeliveryGate in 'report' mode first so the gate
-    // never throws before the regen loop has a chance to run. After the loop
-    // we re-check and throw InvariantGateError if enforce mode is active.
-    channel.sendPhase('invariant_gate', 'started');
-    let rttGateCtx = buildInvariantContext({
-      paper:        finalPaper,
-      memo:         finalMemo,
-      plan:         { questions: [] },
-      language,
-      subject,
-      resourceType,
-      totalMarks:   markTotal,
-      cog,
-      cogMarks,
-      cogTolerance,
-      pipeline:     'rtt',
-      grade:        g,
-    });
-
-    // Auto-fixes (same as standard pipeline — repairs phantom rows,
-    // memo mark alignment, MCQ shuffles before the gate even runs).
-    {
-      const fix = runAutoFixes(rttGateCtx, { logger: log });
-      if (fix.applied.length > 0) {
-        channel.sendPhase('autofix', 'applied', { ids: fix.applied });
-        rttGateCtx = fix.ctx;
-        const paperChanged = rttGateCtx.paper !== finalPaper;
-        const memoChanged  = rttGateCtx.memo  !== finalMemo;
-        if (paperChanged) finalPaper = rttGateCtx.paper;
-        if (memoChanged)  finalMemo  = rttGateCtx.memo;
-        if (paperChanged || memoChanged) {
-          try {
-            const doc = buildDoc(finalPaper, finalMemo, markTotal);
-            const buf = await Packer.toBuffer(doc);
-            docxBase64 = buf.toString('base64');
-          } catch (docxErr) {
-            log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX rebuild error (post auto-fix)');
-          }
-        }
-      }
-    }
-
-    let rttGate = runPreDeliveryGate(rttGateCtx, { mode: 'report', logger: log });
-    let rttAttemptsByPhase = { plan: 0, paper: 0, memo: 0 };
-    let rttCapExhausted    = [];
-
-    const hasRttRegeneratableFailures = !rttGate.passed && rttGate.blocking.some(
-      (f) => f.regeneratePhase === 'paper' || f.regeneratePhase === 'memo',
-    );
-    if (hasRttRegeneratableFailures) {
-      channel.sendPhase('invariant_gate', 'regenerating', {
-        initialBlocking: rttGate.blocking.length,
-        ids: rttGate.blocking.map((f) => f.id),
-      });
-      const rttRegen = await runRegenerationLoop({
-        ctx:          rttGateCtx,
-        regenerators: {
-          paper: makeClaudeRegenerator({
-            callClaude,
-            cleanFn:   (raw) => localiseLabels(ensureAnswerSpace(cleanOutput(raw), { language }), language),
-            maxTokens: 8192,
-            phase:     'paper',
-          }),
-          memo: makeClaudeRegenerator({
-            callClaude,
-            cleanFn:   (raw) => localiseLabels(stripLeadingMemoBanner(cleanOutput(raw)), language),
-            maxTokens: 8192,
-            phase:     'memo',
-          }),
-        },
-        logger:  log,
-        channel,
-        signal,
-      });
-      rttGateCtx         = rttRegen.ctx;
-      rttGate            = rttRegen.gate;
-      rttAttemptsByPhase = rttRegen.attemptsByPhase;
-      rttCapExhausted    = rttRegen.capExhausted;
-      const paperChanged = rttGateCtx.paper !== finalPaper;
-      const memoChanged  = rttGateCtx.memo  !== finalMemo;
-      if (paperChanged) finalPaper = rttGateCtx.paper;
-      if (memoChanged)  finalMemo  = rttGateCtx.memo;
-      if (paperChanged || memoChanged) {
-        try {
-          const doc = buildDoc(finalPaper, finalMemo, markTotal);
-          const buf = await Packer.toBuffer(doc);
-          docxBase64 = buf.toString('base64');
-        } catch (docxErr) {
-          log.error({ err: docxErr?.message || docxErr }, 'RTT DOCX rebuild error (post regen)');
-        }
-      }
-    }
-
-    channel.sendPhase('invariant_gate', rttGate.passed ? 'passed' : 'failed', {
-      mode:            rttGate.mode,
-      total:           rttGate.failures.length,
-      blocking:        rttGate.blocking.length,
-      ids:             rttGate.failures.map((f) => f.id),
-      attemptsByPhase: rttAttemptsByPhase,
-      capExhausted:    rttCapExhausted,
-    });
-
-    // Enforce mode: throw after the regen loop so Claude had a chance to
-    // self-correct first. Mirrors lines 1709-1715 of the standard pipeline.
-    const rttGateMode = process.env.INVARIANT_GATE_MODE || 'report';
-    if (!rttGate.passed && rttGateMode === 'enforce') {
-      throw new InvariantGateError({
-        failures: rttGate.blocking,
-        attempts: 1 + Math.max(0, ...Object.values(rttAttemptsByPhase)),
-      });
-    }
-
-    // Recompute mark-sum warning against the (possibly regen-fixed) paper.
-    try {
-      const actualMarks = countMarks(finalPaper);
-      rttMarkSumWarning = (actualMarks > 0 && actualMarks !== markTotal)
-        ? { cover: markTotal, body: actualMarks, drift: actualMarks - markTotal }
-        : null;
-    } catch (_e) { /* keep original rttMarkSumWarning */ }
-
-    const preview = finalPaper + '\n\n' + finalMemo;
-    const rttBaseStatus = rttMarkSumWarning
-      ? 'mark_sum_drift'
-      : (rttGate.passed ? 'invariants_passed' : 'invariants_failed');
-    const payload = {
-      docxBase64,
-      preview,
-      filename,
-      verificationStatus: rttBaseStatus,
-      ...(rttMarkSumWarning ? { markSumWarning: rttMarkSumWarning } : {}),
-      ...(rttGate.failures.length > 0 ? { invariantFailures: rttGate.failures.map((f) => ({ id: f.id, category: f.category, scope: f.scope, message: f.message })) } : {}),
-    };
-    if (rttGate.passed) {
-      try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
-      // TODO Phase 2.4d: decrement teacher's monthly usage counter HERE.
-    } else {
-      log.warn(
-        { ids: rttGate.failures.map((f) => f.id), capExhausted: rttCapExhausted },
-        'RTT invariant gate did not pass — skipping cacheSet (no quota cost)',
-      );
-    }
-    channel.sendResult(payload);
-    return;
-  }
-
-  // ═══════════════════════════════════════
-  // EXECUTE — multi-phase generation
-  // ═══════════════════════════════════════
   try {
-    // Route Barrett's subjects to the dedicated RTT pipeline
-    if (isResponseToText) {
-      return await generateResponseToText();
-    }
-
-    // ── Phase 1: Generate & validate question plan ──
-    // Tool-use guarantees the response is a valid plan object — no JSON.parse,
-    // no escape-character salvage, no try/catch around parsing. validatePlan
-    // still enforces the CAPS rules on top.
-    channel.sendPhase('plan', 'started');
-    const planCtx = planContext({ totalMarks, cog, cogMarks, cogTolerance, atpTopics, isFinalExam });
-    let plan = null;
-    let planAttempts = 0;
-    while (!plan && planAttempts < 2) {
-      planAttempts++;
-      try {
-        const parsedPlan = await callAnthropicTool({
-          system: planSys,
-          user: planUsr,
-          tool: planTool(cog.levels),
-          maxTokens: 1500,
-          // Haiku 4.5 — structured output, shallow schema, cheap. ~3× saving.
-          model: TOOL_MODEL,
-          phase: 'plan',
-          logger: log,
-          signal,
-        });
-        plan = validatePlan(parsedPlan, planCtx, log);
-        if (!plan) log.info(`Plan attempt ${planAttempts}: validation failed`);
-      } catch (e) {
-        log.info(`Plan attempt ${planAttempts}: error — ${e.message}`);
-      }
-    }
- 
-    if (!plan) {
-      log.info('Plan validation failed — using JS fallback plan');
-      const fallbackQuestions = [];
-      const typeByLevel = ['MCQ', 'Short Answer', 'Multi-step', 'Word Problem'];
-      cog.levels.forEach((lvl, li) => {
-        let lvlMarks = cogMarks[li];
-        const qType = typeByLevel[Math.min(li, typeByLevel.length - 1)];
-        const chunkSize = li === 0 ? 5 : 10;
-        while (lvlMarks > 0) {
-          const chunk = Math.min(lvlMarks, chunkSize);
-          fallbackQuestions.push({ number: 'Q' + (fallbackQuestions.length + 1), type: qType, topic: atpTopics[0] || subject, marks: chunk, cogLevel: lvl });
-          lvlMarks -= chunk;
-        }
-      });
-      plan = { questions: fallbackQuestions };
-      log.info(`Fallback plan: ${fallbackQuestions.length} questions, ${fallbackQuestions.reduce((s,q)=>s+q.marks,0)} marks`);
-    }
- 
-    log.info(`Plan validated: ${plan.questions.length} questions, ${plan.questions.reduce((s,q)=>s+q.marks,0)} marks`);
-    channel.sendPhase('plan', 'done', {
-      questions: plan.questions.length,
-      marks: plan.questions.reduce((s, q) => s + q.marks, 0),
+    channel.sendPhase('generate', 'started');
+    const result = await generate(parsed, { logger: log, signal: abort.signal });
+    const { resource, validation, rebalance, ctx } = result;
+    channel.sendPhase('generate', 'done', {
+      leafSum: rebalance.finalSum,
+      targetSum: rebalance.targetSum,
+      nudges: rebalance.adjustments.length,
+      tally: tallyCogLevels(resource),
     });
 
-    // ── Phase 2: Write questions from validated plan ──
-    // Token budget: scaled to plan size + a healthy buffer for Afrikaans
-    // (which is ~15% wordier than English). The Grade 7 Afrikaans Nat Sci
-    // 85-mark Eindeksamen sample truncated mid-sentence at the old 5500-
-    // cap, dropping all of Section C.
-    channel.sendPhase('writing', 'started');
-    const isAfr = (language || '').toLowerCase() === 'afrikaans';
-    const qTokBase = isWorksheet ? 3000 : isExamType ? 8000 : 5500;
-    const qTok = Math.round(qTokBase * (isAfr ? 1.2 : 1));
-    let questionPaper = await callClaude(qSys(plan), qUsr(plan), qTok);
-    questionPaper = cleanOutput(questionPaper);
-    // Truncation guard — if the paper ends without a TOTAL line AND the
-    // last block isn't a complete-looking question (no terminating mark
-    // bracket on the final non-blank line), flag it so the operator can
-    // retry. We don't auto-retry yet because Phase 2a usually salvages
-    // mark drift — but a hard truncation that drops a whole section is
-    // exactly the failure that shipped before this guard existed.
-    {
-      const tail = questionPaper.split('\n').filter((l) => l.trim()).slice(-3).join('\n');
-      const hasTotal = /\b(TOTAL|TOTAAL)\s*:/i.test(tail);
-      const endsCleanly = /[\.\?\)\]]\s*$/.test(tail) || /\(\d+\)\s*$/.test(tail);
-      if (!hasTotal && !endsCleanly) {
-        log.warn(
-          { tail: tail.slice(-200), tokens: qTok },
-          'Phase 2: paper appears TRUNCATED — no TOTAL line and ends mid-sentence. Section content may be missing.',
-        );
-        channel.sendPhase('writing', 'truncation_warning');
-      }
-    }
-    channel.sendPhase('writing', 'done');
- 
-    // ── Phase 2a: Mark drift correction (Phase 1.4: up to 2 attempts) ──
-    // Up to two correction attempts. After both, if the body still doesn't
-    // sum to totalMarks, surface a markSumWarning that flows through to
-    // verificationStatus = 'mark_sum_drift' so the UI can flag it instead
-    // of shipping a paper with cover ≠ body silently (Bugs 36, 45, 49).
-    async function attemptMarkSumCorrection(currentPaper, currentCount, attempt) {
-      const d = currentCount - totalMarks;
-      if (d === 0) return { paper: currentPaper, count: currentCount, applied: false };
-      const corrSys = `You are correcting a ${subject} ${resourceType} question paper. The paper totals ${currentCount} marks but must total EXACTLY ${totalMarks} marks. ${d > 0 ? 'Reduce' : 'Increase'} the total by ${Math.abs(d)} mark${Math.abs(d) > 1 ? 's' : ''}.
-
-STRICT OUTPUT RULES — NON-NEGOTIABLE:
-- Your response must be VALID JSON and nothing else.
-- Do NOT write any reasoning, commentary, planning text, "Current marks:" notes, "Change Q… from X to Y" lists, running tallies, verification checks, or explanations BEFORE or AFTER the JSON.
-- Do NOT wrap the JSON in markdown fences.
-- The ONLY text you output is a single JSON object: {"content":"<complete corrected paper>"}.
-
-RULES FOR THE CORRECTION ITSELF:
-- Change the minimum number of sub-question mark values needed.
-- Only change (X) numbers — never change the question text or answer spaces.
-- Keep all Working:/Answer:/Antwoord: lines exactly as they are.
-- Keep the ${L.totalLabel} line exactly as it is except for the mark value.${attempt === 2 ? `
-
-ATTEMPT 2 — the first correction did not produce ${totalMarks} marks. Be more
-careful: count the (X) brackets methodically and adjust ONLY the minimum
-sub-question values needed to land at EXACTLY ${totalMarks}.` : ''}`;
-      const corrUsr = `Paper totals ${currentCount}, must be EXACTLY ${totalMarks}. ${d > 0 ? 'Reduce' : 'Increase'} by ${Math.abs(d)}.\n\nPAPER:\n${currentPaper}\n\nOutput the corrected paper as a single JSON object: {"content":"…"}. No prose before or after.`;
-      try {
-        const corrected = cleanOutput(await callClaude(corrSys, corrUsr, qTok));
-        const newCount = countMarks(corrected);
-        if (newCount === totalMarks) {
-          log.info(`Mark-sum correction attempt ${attempt}: ${newCount} marks ✓`);
-          return { paper: corrected, count: newCount, applied: true };
-        }
-        log.info(`Mark-sum correction attempt ${attempt}: ${newCount} marks (target ${totalMarks}) — keeping previous`);
-        return { paper: currentPaper, count: currentCount, applied: false };
-      } catch (e) {
-        log.info(`Mark-sum correction attempt ${attempt} failed: ${e.message}`);
-        return { paper: currentPaper, count: currentCount, applied: false };
-      }
+    if (!validation.ok) {
+      log.warn({ errors: validation.errors }, 'generate: assertResource failed');
+      channel.sendError(Object.assign(new Error('Schema validation failed after rebalance'), {
+        status: 502, code: 'SCHEMA_INVALID', detail: validation.errors,
+      }));
+      return;
     }
 
-    let countedAfterP2 = countMarks(questionPaper);
-    if (countedAfterP2 > 0 && countedAfterP2 !== totalMarks) {
-      channel.sendPhase('mark_drift', 'started', { counted: countedAfterP2, target: totalMarks, drift: countedAfterP2 - totalMarks });
-      log.info(`Mark drift: counted=${countedAfterP2}, target=${totalMarks}, drift=${countedAfterP2 - totalMarks}`);
-      const r1 = await attemptMarkSumCorrection(questionPaper, countedAfterP2, 1);
-      questionPaper = r1.paper;
-      countedAfterP2 = r1.count;
-      if (countedAfterP2 !== totalMarks) {
-        const r2 = await attemptMarkSumCorrection(questionPaper, countedAfterP2, 2);
-        questionPaper = r2.paper;
-        countedAfterP2 = r2.count;
-      }
-      if (countedAfterP2 === totalMarks) {
-        channel.sendPhase('mark_drift', 'done', { marks: countedAfterP2 });
-      } else {
-        channel.sendPhase('mark_drift', 'kept_original', { marks: countedAfterP2 });
-      }
-    } else if (countedAfterP2 === totalMarks) {
-      log.info(`Phase 2 exact: ${countedAfterP2} marks ✓`);
-    }
+    channel.sendPhase('docx_render', 'started');
+    const doc = renderResource(resource);
+    const buf = await Packer.toBuffer(doc);
+    channel.sendPhase('docx_render', 'done', { bytes: buf.length });
 
-    const finalCount = countMarks(questionPaper);
-    let markTotal = finalCount > 0 ? finalCount : totalMarks;
-    log.info(`Final mark total: ${markTotal}`);
-
-    // Phase 1.4: surface mark-sum drift to the UI via verificationStatus.
-    // markSumWarning is non-null when the body's mark count doesn't match
-    // the cover total — captured here, plumbed into the response payload
-    // below. Was previously a log-only warning, which is exactly how
-    // Resources 1, 3, 4, 5 shipped with mismatched totals.
-    let markSumWarning = null;
-    if (finalCount > 0 && finalCount !== totalMarks) {
-      markSumWarning = { cover: totalMarks, body: finalCount, drift: finalCount - totalMarks };
-      log.warn(
-        markSumWarning,
-        'Standard pipeline: body mark sum does not match cover total after correction attempts — surfacing as mark_sum_drift',
-      );
-    }
-
-    // ── Phase 2a-bis: Section letter renumbering (Bug 22) ──
-    // Paper 11 (Grade 7 EMS Term 2) shipped with SECTION A → unlabelled
-    // Q2/Q3 → SECTION C → SECTION D. The prompt forbids gaps but the
-    // writer occasionally produces them anyway. Renumber in-place so the
-    // visible labels are A, B, C, D, … and cleanly sequential. We do not
-    // rewrite question text, only the SECTION/AFDELING headers themselves.
-    {
-      const sec = ensureSequentialSectionLetters(questionPaper);
-      if (sec.changed) {
-        log.warn(
-          { replacements: sec.replacements },
-          'Section letters were not sequential — renumbered in-place (Bug 22)',
-        );
-        questionPaper = sec.text;
-      }
-    }
-
-    // ── Phase 2c: Cog-level balance check (pure code, no Claude call) ──
-    // If the written paper drifts from the plan's cogLevel-per-question
-    // assignments by more than tolerance, fire ONE Claude rewrite. The
-    // check itself is free; the rewrite only fires on a minority of
-    // generations where Claude downgraded question types.
-    channel.sendPhase('cog_balance', 'started');
-    const balance = verifyCogBalance({ paper: questionPaper, plan, cog, cogMarks, tolerance: cogTolerance });
-    if (balance.lowConfidence) {
-      log.info({ unmapped: balance.unmapped.length }, 'Cog-balance check skipped (too many unmapped sub-questions)');
-      channel.sendPhase('cog_balance', 'skipped');
-    } else if (!balance.clean) {
-      log.info({ imbalances: balance.imbalances }, `Cog-level drift detected — rewriting paper once`);
-      channel.sendPhase('cog_balance', 'rewriting', { imbalances: balance.imbalances.length });
-      const feedback = formatImbalances(balance);
-      const planList = plan.questions.map((q) => `  ${q.number}: ${q.cogLevel} (${q.marks} marks)`).join('\n');
-
-      const rebalanceSys = `You are rewriting a South African CAPS ${phase} Phase ${resourceType} question paper in ${language} because its cognitive-level distribution drifted from the validated plan.
-
-RULES — non-negotiable:
-- Keep every sub-question's numbering (1.1, 1.2, 2.1, …) unchanged.
-- Keep every sub-question's mark value (X) unchanged.
-- Change ONLY the question text / type / complexity so each sub-question lands at the cognitive level the plan requires.
-- Higher cognitive levels (Complex Procedures, Problem Solving, Evaluation, High Order) MUST use genuinely multi-step / analytical / problem-solving question types — NOT recall or simple routine questions.
-- Preserve every [N] block total and the final TOTAL line.
-- NO cover page, NO cognitive level labels in the learner paper, NO commentary.
-Output the complete corrected paper only.`;
-
-      const rebalanceUsr = `Current cognitive-level mismatch (target: within ±${cogTolerance} marks per level):
-${feedback}
-
-PLAN — each question's required cognitive level:
-${planList}
-
-CURRENT PAPER:
-${questionPaper}
-
-Rewrite the paper so each sub-question lands at its plan cogLevel.`;
-
-      try {
-        const rebalanced = cleanOutput(await callClaude(rebalanceSys, rebalanceUsr, qTok));
-        const rebalancedCount = countMarks(rebalanced);
-        if (rebalancedCount === markTotal || rebalancedCount === totalMarks) {
-          const newBalance = verifyCogBalance({ paper: rebalanced, plan, cog, cogMarks, tolerance: cogTolerance });
-          questionPaper = rebalanced;
-          markTotal = rebalancedCount;
-          log.info(
-            { clean: newBalance.clean, imbalances: newBalance.imbalances },
-            newBalance.clean ? 'Cog-level rebalance successful' : 'Cog-level rebalance still drifted — accepting',
-          );
-          channel.sendPhase('cog_balance', newBalance.clean ? 'done' : 'still_drifted');
-        } else {
-          log.info(`Cog-level rebalance changed mark total (${rebalancedCount} vs ${markTotal}) — keeping original paper`);
-          channel.sendPhase('cog_balance', 'kept_original');
-        }
-      } catch (err) {
-        log.info(`Cog-level rebalance failed: ${err.message}`);
-        channel.sendPhase('cog_balance', 'failed');
-      }
-    } else {
-      log.info(`Cog-level balance: clean ✓`);
-      channel.sendPhase('cog_balance', 'clean');
-    }
-
-    // ── Phase 2b: Question Quality Check ──
-    // Tool-use guarantees a { clean, flaws[] } object — no JSON salvage.
-    const qQualitySys = `You are a South African CAPS examiner reviewing a question paper for design flaws.
-Check for:
-1. ORDERING_EQUAL_VALUES — ordering question where two or more values are mathematically equal
-2. MCQ_MULTIPLE_CORRECT — MCQ where more than one option is correct
-3. MCQ_NO_CORRECT — MCQ where no option is correct
-4. DATA_AMBIGUOUS — data set where multiple modes exist but question says "the mode"
-5. QUESTION_IMPOSSIBLE — question that cannot be answered with information given
-6. WRONG_TERM_TOPIC — question on a topic NOT in this list: ${atpTopics.slice(0,8).join('; ')}
-
-Call the flag_question_paper_issues tool with clean=true and an empty flaws array if you find no issues.`;
-
-    const qQualityUsr = `Review this Grade ${g} ${subject} Term ${t} question paper for design flaws:\n\n${questionPaper}`;
-
-    channel.sendPhase('quality_check', 'started');
-    try {
-      let qualityResult;
-      try {
-        qualityResult = await callAnthropicTool({
-          system: qQualitySys,
-          user: qQualityUsr,
-          tool: qualityTool,
-          maxTokens: 1200,
-          // Haiku 4.5 — picks from a fixed flaw-type enum, no creative writing.
-          model: TOOL_MODEL,
-          phase: 'quality',
-          logger: log,
-          signal,
-        });
-      } catch (toolErr) {
-        log.info(`Phase 2b: tool call failed (${toolErr.message}) — skipping`);
-        qualityResult = { flaws: [], clean: true };
-      }
-
-      if (qualityResult.flaws && qualityResult.flaws.length > 0) {
-        log.info(`Phase 2b: ${qualityResult.flaws.length} flaw(s) detected`);
-        qualityResult.flaws.forEach(f => log.info(`  Q${f.question} [${f.type}]: ${f.detail}`));
-        channel.sendPhase('quality_check', 'fixing', { flaws: qualityResult.flaws.length });
-        const fixSys = `You are correcting specific design flaws in a ${subject} question paper.
-OUTPUT RULES:
-- Output the complete corrected question paper ONLY
-- Start IMMEDIATELY with the first line of the paper (e.g. "SECTION A" or "Question 1")
-- Do NOT write any explanation, reasoning, preamble, or notes before or after
-- Do NOT wrap in JSON — output raw paper text directly
-- Rewrite ONLY the flagged questions — leave everything else character-for-character identical
-- Preserve every (X) mark value exactly`;
-        const flawList = qualityResult.flaws.map(f => `Q${f.question}: [${f.type}] ${f.detail} — Fix: ${f.fix}`).join('\n');
-        const fixUsr = `Fix ONLY these flaws. Output complete corrected paper with NO preamble.\n\nFLAWS:\n${flawList}\n\nPAPER:\n${questionPaper}`;
-        try {
-          const rawFixed = await callClaude(fixSys, fixUsr, qTok);
-          const fixedPaper = cleanOutput(safeExtractContent(rawFixed));
-          const fixedCount = countMarks(fixedPaper);
-          if (fixedCount === markTotal) {
-            questionPaper = fixedPaper;
-            log.info(`Phase 2b: fixed ✓`);
-            channel.sendPhase('quality_check', 'done');
-          } else {
-            log.info(`Phase 2b: fix shifted mark total (${fixedCount}≠${markTotal}) — keeping original`);
-            channel.sendPhase('quality_check', 'kept_original');
-          }
-        } catch (fixErr) {
-          log.info(`Phase 2b: fix failed (${fixErr.message})`);
-          channel.sendPhase('quality_check', 'failed');
-        }
-      } else {
-        log.info(`Phase 2b: no design flaws ✓`);
-        channel.sendPhase('quality_check', 'clean');
-      }
-    } catch (qErr) {
-      log.info(`Phase 2b: quality check skipped (${qErr.message})`);
-      channel.sendPhase('quality_check', 'skipped');
-    }
-
-    // ── Phase 3A: Generate memo table ──
-    channel.sendPhase('memo_table', 'started');
-    const cogLevelRef = plan.questions.map(q => `${q.number} (${q.marks} marks) → ${q.cogLevel}`).join('\n');
-    let memoTableRaw = cleanOutput(await callClaude(mSys, mUsrA(questionPaper, markTotal, cogLevelRef), 8192));
-    // Phase 5: normalise the COGNITIVE LEVEL column to the language's
-    // canonical labels. The audit (Resource 2 Bug 23) caught a memo whose
-    // Section A used English level names while Section D used Afrikaans —
-    // both legitimate per-row, but the memo as a whole looked broken.
-    // We pass the OTHER language's cogLevels as aliases so cells in
-    // either language are recognised and rewritten to the target.
-    {
-      const otherLang = language === 'Afrikaans' ? 'English' : 'Afrikaans';
-      const normd = normaliseCogLevelLabels(memoTableRaw, {
-        canonicalLevels: cog.levels,
-        translations: L.cogLevels || {},
-        aliases: [i18n(otherLang).cogLevels || {}],
-      });
-      if (normd.changed) {
-        log.info({ rewrites: normd.rewrites }, 'Phase 3A: cog-level labels normalised to language canonical (Bug 23)');
-        memoTableRaw = normd.text;
-      }
-    }
-    const phase3aStructure = validateMemoStructure(memoTableRaw);
-    log.info({ len: memoTableRaw.length, hasAnswerTable: phase3aStructure.answerTable }, 'Phase 3A: memo table generated');
-    if (!phase3aStructure.answerTable) {
-      // Fires when Claude returned prose or a cog-only fragment instead of
-      // the NO. | ANSWER table. Phase 4 will try to correct but without the
-      // anchor table it usually can't. Logged loud so we can investigate.
-      log.warn({ preview: memoTableRaw.slice(0, 300) }, 'Phase 3A: memo table is missing the NO. | ANSWER header — downstream memo will likely be incomplete');
-    }
-    // Bug 11 detector: when the memo's answer rows over-count the paper
-    // (e.g. the Paper 10 case where each "8.1 (2)" parent was duplicated
-    // as two "8.1(a) (2) + 8.1(b) (2)" sub-rows of 2 marks each — total
-    // 4 instead of 2), the Phase 3C cog reconciliation will compute
-    // wrong "Actual Marks" values too. Surface this with a clear log
-    // entry so we know which sample triggered it.
-    {
-      const rows = parseMemoAnswerRows(memoTableRaw);
-      const memoSum = rows.reduce((a, r) => a + r.mark, 0);
-      if (rows.length > 0 && memoSum !== markTotal) {
-        log.warn(
-          { memoRowCount: rows.length, memoSum, paperTotal: markTotal, drift: memoSum - markTotal },
-          'Phase 3A: memo answer-row marks do NOT sum to the paper total — likely Bug 11 (sub-part over-counting)',
-        );
-      }
-    }
-    channel.sendPhase('memo_table', 'done');
-
-    // ── Phase 3B: Generate rubric + extension only (Phase 1.1 refactor) ──
-    // The cog analysis section is NOT requested from Claude any more; we
-    // emit it deterministically below. Phase 3B's only job is the marking
-    // rubric and the extension activity.
-    channel.sendPhase('memo_analysis', 'started');
-    let memoExtraRaw = '';
-    if (includeRubric || !isWorksheet) {
-      memoExtraRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 8192));
-      log.info(`Phase 3B: rubric/extension generated (${memoExtraRaw.length} chars)`);
-
-      // Truncation guard — if the rubric or extension looks cut off, retry
-      // once with a larger budget. The Life Skills T4 audit caught this
-      // exact failure mode.
-      if (looksTruncated(memoExtraRaw, includeRubric)) {
-        log.warn({ tail: memoExtraRaw.slice(-200) }, 'Phase 3B: output looks truncated — retrying once with higher max_tokens');
-        try {
-          memoExtraRaw = cleanOutput(await callClaude(mSys, mUsrB(memoTableRaw, markTotal), 16000));
-          log.info(`Phase 3B: retry generated (${memoExtraRaw.length} chars)`);
-        } catch (retryErr) {
-          log.warn({ err: retryErr?.message || retryErr }, 'Phase 3B: retry failed — keeping original output');
-        }
-      }
-    }
-    channel.sendPhase('memo_analysis', 'done');
-
-    // ── Phase 3C: Deterministic cog-analysis emitter (Phase 1.1 refactor) ──
-    // Build the cognitive-level analysis section from the parsed answer
-    // rows and the cover total. By construction:
-    //   - Prescribed Marks column sums to markTotal exactly
-    //   - Actual Marks per level matches the answer rows exactly
-    //   - Actual % sums to 100% iff Actual Marks sums to markTotal
-    //   - Breakdown header (X marks) equals listed-items sum equals
-    //     trailing = X marks line — they're built from one source.
-    const cogSection = buildCogAnalysisTable({
-      answerRows: parseMemoAnswerRows(memoTableRaw),
-      cog,
-      totalMarks: markTotal,
-      language,
-      isBarretts,
-      framework: taxLabel,
-    });
-    log.info(
-      { actualByLevel: cogSection.actualByLevel, totalActual: cogSection.totalActual, markTotal },
-      'Phase 3C: cog analysis section emitted from answer-row tally',
-    );
-
-    const memoContent = [
-      memoTableRaw,
-      '',
-      cogSection.text,
-      memoExtraRaw ? '\n' + memoExtraRaw : '',
-    ].join('\n');
-
-    // ── Phase 4: Memo Verification + Auto-Correction ──
-    // Tool-use guarantees a { clean, errors[], cogLevelErrors[] } object.
-    const verSys = `You are a senior South African CAPS examiner performing a final accuracy check on a memorandum.
-
-Check EVERY row of the memorandum table for the following error types:
-
-1. ARITHMETIC — recalculate the answer from scratch. Flag any mismatch.
-2. PROFIT_LOSS — income > cost = PROFIT; cost > income = LOSS. Flag wrong label or amount.
-3. COUNT — for stem-and-leaf or data set "how many" questions: count every leaf. Flag mismatches.
-4. ROUNDING — check rounded value matches marking guidance. Flag if answer uses different value.
-5. ANSWER_GUIDANCE_CONTRADICTION — for each row, compare the ANSWER cell with the
-   MARKING GUIDANCE cell of the SAME row. If the guidance computes a result that
-   contradicts the answer text, flag it. (Example: ANSWER says "Thandi is incorrect"
-   but the guidance shows working that proves Thandi correct.)
-   Pay particular attention to division: if the ANSWER cell states a remainder
-   (e.g. "1 939 res 20", "rem 5", "remainder 3"), verify the remainder value
-   against the working in MARKING GUIDANCE. If the guidance shows the division
-   is exact (no remainder, or a different remainder), flag as ANSWER_GUIDANCE_CONTRADICTION.
-   (Example: ANSWER says "1 939 res 20" but guidance shows 44 × 1 939 = 85 316 ✓
-   with no remainder — the "res 20" is wrong.)
-
-Then check the COGNITIVE LEVEL ANALYSIS section for THREE distinct kinds of issue:
-
-6. TABLE_ANALYSIS_MISMATCH — sum MARK values per cognitive level across the answer
-   rows. If a level's total does not equal the value shown in the cog analysis
-   TABLE, flag it.
-7. COG_BREAKDOWN_INCOMPLETE — read the breakdown text under the cog table
-   ("Knowledge (X marks): Q1.1 (1) + Q1.2 (1) + … = X marks"). Every sub-question
-   that exists in the answer table MUST appear in exactly one cog level's
-   breakdown. Flag any sub-question reference that is missing from all three
-   (or four) breakdown lists. Use kind=COG_BREAKDOWN_INCOMPLETE and put the
-   missing sub-question references in the missingItems field.
-8. COG_BREAKDOWN_MATH_ERROR — for each cog level, sum the bracketed mark values
-   listed in the breakdown text. If those listed items do NOT arithmetically
-   sum to the total claimed at the start of that breakdown line ("(X marks):
-   … = X marks"), flag it. (Example: "Middle Order (22 punte): … = 22 punte"
-   but the listed items add to 20.) Use kind=COG_BREAKDOWN_MATH_ERROR.
-
-Call the flag_memo_errors tool with clean=true and empty arrays if no errors
-exist. When reporting cogLevelErrors, ALWAYS include the kind field — set it
-to TABLE_ANALYSIS_MISMATCH for the legacy check (item 6 above), or
-COG_BREAKDOWN_INCOMPLETE / COG_BREAKDOWN_MATH_ERROR for items 7 and 8.`;
-
-    const verUsr = `QUESTION PAPER:\n${questionPaper}\n\nMEMORANDUM TO VERIFY:\n${memoContent}\n\nCheck every memo row. Report ALL errors.`;
-
-    // verificationStatus tracks whether Phase 4 confirmed the memo was clean,
-    // corrected errors, or skipped. Surfaced on the response so the UI can
-    // render a "Verified ✓" or "Review recommended" badge.
-    let verificationStatus = 'clean';
-    let verifiedMemo = memoContent;
-    channel.sendPhase('memo_verify', 'started');
-    try {
-      let verResult;
-      try {
-        verResult = await callAnthropicTool({
-          system: verSys,
-          user: verUsr,
-          tool: memoVerifyTool,
-          maxTokens: 3000,
-          // Haiku 4.5 — compares answers against a memo, emits structured
-          // error list. Mechanical check, no generation.
-          model: TOOL_MODEL,
-          phase: 'memo-verify',
-          logger: log,
-          signal,
-        });
-      } catch (toolErr) {
-        log.info(`Phase 4: tool call failed (${toolErr.message}) — skipping`);
-        verResult = { errors: [], cogLevelErrors: [], clean: true };
-        verificationStatus = 'skipped';
-      }
-
-      const totalErrors = (verResult.errors || []).length + (verResult.cogLevelErrors || []).length;
-      if (totalErrors > 0) {
-        log.info(`Phase 4: ${totalErrors} error(s) detected`);
-        (verResult.errors || []).forEach(e => log.info(`  Q${e.question} [${e.check}]: found="${e.found}" correct="${e.correct}"`));
-        (verResult.cogLevelErrors || []).forEach(e => {
-          // Newer responses include kind; older "TABLE_ANALYSIS_MISMATCH" path
-          // omits it. Fall back gracefully so old responses still log usefully.
-          const kind = e.kind || 'TABLE_ANALYSIS_MISMATCH';
-          if (kind === 'COG_BREAKDOWN_INCOMPLETE') {
-            log.info(`  CogLevel [${e.level}] INCOMPLETE: missing ${e.missingItems || '(unspecified)'} from breakdown`);
-          } else if (kind === 'COG_BREAKDOWN_MATH_ERROR') {
-            log.info(`  CogLevel [${e.level}] MATH ERROR: claimed ${e.foundInTable} but items sum to ${e.foundInAnalysis}`);
-          } else {
-            log.info(`  CogLevel [${e.level}] TABLE/ANALYSIS MISMATCH: table=${e.foundInTable} analysis=${e.foundInAnalysis}`);
-          }
-        });
-        channel.sendPhase('memo_verify', 'correcting', { errors: totalErrors });
-
-        const corrMemoSys = `You are correcting specific verified errors in a memorandum.
-Fix ONLY the rows and cells listed in the error report. Do not change anything else.
-
-STRICT OUTPUT RULES — NON-NEGOTIABLE (Bug 21 prevention):
-- Your response must be a SINGLE valid JSON object and nothing else.
-- Do NOT write any reasoning, planning, "Q7.x: …" notes, "The error report
-  confirms…" lines, "No change needed" remarks, or restatements of the error
-  report BEFORE or AFTER the JSON.
-- Do NOT wrap the JSON in markdown fences (no \`\`\`json, no \`\`\`).
-- The ONLY text you output is: {"content":"<complete corrected memorandum>"}.
-
-STRUCTURAL REQUIREMENT — non-negotiable:
-The corrected memorandum MUST contain BOTH sections in this exact order:
-  1. The answer table: pipe-delimited rows with columns
-     "NO. | ANSWER | MARKING GUIDANCE | COGNITIVE LEVEL | MARK" covering
-     every sub-question in the paper.
-  2. The cognitive level analysis: a pipe-delimited table headed
-     "Cognitive Level | Prescribed % | Prescribed Marks | Actual Marks | Actual %"
-     followed by a per-level breakdown paragraph.
-Never omit the answer table. Never omit the cognitive analysis.
-If the errors live in only one section, still return both — unchanged where
-they had no errors, corrected where they did.`;
-        const allErrors = [
-          ...(verResult.errors || []).map(e => {
-            // ANSWER_GUIDANCE_CONTRADICTION needs slightly different phrasing
-            // to make clear that BOTH the answer cell and the guidance cell
-            // must align — fixing the answer alone is not enough.
-            if (e.check === 'ANSWER_GUIDANCE_CONTRADICTION') {
-              return `Q${e.question} [ANSWER ⇄ GUIDANCE contradiction]: ANSWER cell currently says "${e.found}". The MARKING GUIDANCE in the same row computes a result that proves the correct answer is "${e.correct}". Update the ANSWER cell so it agrees with the guidance. ${e.fix}`;
-            }
-            return `Q${e.question} [${e.check}]: Answer should be "${e.correct}". ${e.fix}`;
-          }),
-          ...(verResult.cogLevelErrors || []).map(e => {
-            const kind = e.kind || 'TABLE_ANALYSIS_MISMATCH';
-            if (kind === 'COG_BREAKDOWN_INCOMPLETE') {
-              return `Cognitive Level analysis — ${e.level}: breakdown is missing these sub-questions: ${e.missingItems || '(see report)'}. Add them to the ${e.level} breakdown line and update the line's total. ${e.fix}`;
-            }
-            if (kind === 'COG_BREAKDOWN_MATH_ERROR') {
-              return `Cognitive Level analysis — ${e.level}: claimed total is ${e.foundInTable} but the bracketed items sum to ${e.foundInAnalysis}. Update either the items or the claimed total so they agree. Then update the cog table at the top of the analysis section to match. ${e.fix}`;
-            }
-            return `Cognitive Level table — ${e.level}: ${e.fix}`;
-          }),
-        ].join('\n');
-        const corrMemoUsr = `Correct ONLY these verified errors. Do not change anything else.\n\nERRORS:\n${allErrors}\n\nMEMORANDUM:\n${memoContent}`;
-
-        try {
-          // Phase 4 correction emits the FULL memo (answer table + cog
-          // analysis + extension + rubric) — easily > 8k tokens for big
-          // memos. The Paper 11 leak (Bug 21) was a max_tokens truncation
-          // mid-string that left the JSON envelope unclosed; bumping to 16k
-          // matches the Phase 3B retry budget.
-          const rawCorrected = await callClaude(corrMemoSys, corrMemoUsr, 16000);
-          let correctedMemo = cleanOutput(safeExtractContent(rawCorrected));
-          // Structural guard: reject fragments. A valid corrected memo must
-          // contain BOTH the answer table (NO./NR. | ANSWER/ANTWOORD header)
-          // AND the cognitive level analysis. Older length-only guard
-          // ("> 500 chars") accepted cog-analysis-only fragments because
-          // the analysis alone is usually > 500 chars, which is how the
-          // answer table disappeared from generated memos.
-          const structure = validateMemoStructure(correctedMemo);
-          const originalStructure = validateMemoStructure(memoContent);
-          const bigEnough = correctedMemo && correctedMemo.length >= Math.max(500, Math.floor(memoContent.length * 0.7));
-
-          if (structure.complete && bigEnough) {
-            // Bug 5 follow-up: re-apply the deterministic cog-table
-            // reconciliation to Phase 4's corrected memo. Phase 4 asks
-            // Claude to fix specific errors but Claude can introduce new
-            // miscounts in the cog table while doing so. Phase 3C ran on
-            // the pre-correction memo; without this second pass, the
-            // post-correction cog table can ship with wrong Actual Marks.
-            const post4Fix = correctCogAnalysisTable(correctedMemo, {
-              levels: cog.levels,
-              totalMarks: markTotal,
-            });
-            if (post4Fix.changed) {
-              log.info(
-                { computedByLevel: post4Fix.computedByLevel, totalCounted: post4Fix.totalCounted },
-                'Phase 4 post: cog-table reconciled on the corrected memo (Bug 5 follow-up)',
-              );
-              correctedMemo = post4Fix.text;
-            }
-            verifiedMemo = correctedMemo;
-            verificationStatus = 'corrected';
-            log.info({ originalLen: memoContent.length, correctedLen: correctedMemo.length }, 'Phase 4: memo corrected ✓');
-            channel.sendPhase('memo_verify', 'corrected');
-          } else {
-            // Tell the operator exactly why we rejected so a bad correction
-            // doesn't look like a silent pass.
-            log.warn(
-              {
-                reason: !structure.answerTable
-                  ? 'missing answer table'
-                  : !structure.cogAnalysis
-                    ? 'missing cog analysis'
-                    : 'correction shorter than 70% of original',
-                structure, originalStructure,
-                originalLen: memoContent.length,
-                correctedLen: correctedMemo?.length || 0,
-              },
-              'Phase 4: correction rejected — keeping original memo',
-            );
-            verifiedMemo = memoContent;
-            verificationStatus = 'review_recommended';
-            channel.sendPhase('memo_verify', 'review_recommended');
-          }
-        } catch (corrErr) {
-          log.info(`Phase 4: correction failed (${corrErr.message})`);
-          verifiedMemo = memoContent;
-          verificationStatus = 'review_recommended';
-          channel.sendPhase('memo_verify', 'review_recommended');
-        }
-      } else {
-        log.info(`Phase 4: memo verified — no errors ✓`);
-        channel.sendPhase('memo_verify', 'clean');
-      }
-    } catch (verErr) {
-      log.info(`Phase 4: verification skipped (${verErr.message})`);
-      verificationStatus = 'skipped';
-      channel.sendPhase('memo_verify', 'skipped');
-    }
-
-    // ── Phase 5: Safety net — inject blank answer lines the AI may have skipped ──
-    // F6 (Resource 3 Bug 31 follow-up): localiseLabels is now applied to the
-    // MEMO too, not only the question paper. The memo is the most common
-    // place "Answer:" / "Working:" labels appear (calculation marking
-    // guidance cells); without this pass an Afrikaans memo shipped with
-    // English labels even when the paper itself was clean.
-    //
-    // Post-processors are isolated as named functions so the regeneration
-    // loop (lib/regenerate.js) can apply the SAME passes to its corrective
-    // outputs before the gate sees them — otherwise the gate would re-flag
-    // answer_space_present on raw Claude regen output.
-    const postProcessPaper = (rawPaper) => localiseLabels(ensureAnswerSpace(rawPaper, { language }), language);
-    const postProcessMemo  = (rawMemo)  => localiseLabels(rawMemo, language);
-    let finalPaper = postProcessPaper(questionPaper);
-    let finalMemo  = postProcessMemo(verifiedMemo);
-
-    let docxBase64 = null;
-    const filename = (subject + '-' + resourceType + '-Grade' + g + '-Term' + t).replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
-    async function rebuildDocx() {
-      channel.sendPhase('docx_build', 'started');
-      try {
-        const doc = buildDoc(finalPaper, finalMemo, markTotal);
-        const buffer = await Packer.toBuffer(doc);
-        docxBase64 = buffer.toString('base64');
-      } catch (docxErr) {
-        log.error({ err: docxErr?.message || docxErr }, 'DOCX build error');
-      }
-      channel.sendPhase('docx_build', 'done');
-    }
-    await rebuildDocx();
-
-    // ── Pre-delivery invariant gate (+ regeneration loop) ──
-    // Last checkpoint before we hand the paper to the teacher. The gate
-    // runs every registered invariant against the final paper+memo+plan;
-    // when REGENERATE failures fire, runRegenerationLoop() reissues the
-    // failing phase (paper or memo) up to INVARIANT_GATE_MAX_REGEN_ATTEMPTS
-    // times (default 2) with corrective feedback. AUTO_FIX failures that
-    // weren't already repaired surface as telemetry but are not regenerated
-    // (they indicate a bug in the upstream phase, not a hallucination).
-    //
-    // cacheSet() and the future quota decrement run ONLY after gate.passed
-    // === true so failed regeneration attempts never consume the teacher's
-    // monthly quota. INVARIANT_GATE_MODE=enforce flips report-mode (log +
-    // ship) to hard-error mode (return 500 with "couldn't generate" msg).
-    channel.sendPhase('invariant_gate', 'started');
-    let gateCtx = buildInvariantContext({
-      paper:        finalPaper,
-      memo:         finalMemo,
-      plan,
-      language,
-      subject,
-      resourceType,
-      totalMarks,
-      cog,
-      cogMarks,
-      cogTolerance,
-      pipeline:     'standard',
-      grade:        g,
-    });
-
-    // ── Pre-gate auto-fixes ──
-    // Deterministic repairs for AUTO_FIX failures whose cause is
-    // mechanical (MCQ label distribution, phantom memo rows, memo↔
-    // paper mark mismatches). Runs before the gate so we don't waste
-    // a regen attempt on something a code repair can fix instantly.
-    // The runner is no-op when nothing applies, so the only cost on
-    // the happy path is one regex sweep over paper + memo.
-    {
-      const fix = runAutoFixes(gateCtx, { logger: log });
-      if (fix.applied.length > 0) {
-        channel.sendPhase('autofix', 'applied', { ids: fix.applied });
-        gateCtx = fix.ctx;
-        const paperChanged = gateCtx.paper !== finalPaper;
-        const memoChanged  = gateCtx.memo  !== finalMemo;
-        if (paperChanged) finalPaper = gateCtx.paper;
-        if (memoChanged)  finalMemo  = gateCtx.memo;
-        if (paperChanged || memoChanged) await rebuildDocx();
-      }
-    }
-
-    let gate = runPreDeliveryGate(gateCtx, { logger: log });
-    let attemptsByPhase = { plan: 0, paper: 0, memo: 0 };
-    let capExhausted = [];
-
-    const hasRegeneratableFailures = !gate.passed && gate.blocking.some(
-      (f) => f.regeneratePhase === 'paper' || f.regeneratePhase === 'memo',
-    );
-    if (hasRegeneratableFailures) {
-      channel.sendPhase('invariant_gate', 'regenerating', {
-        initialBlocking: gate.blocking.length,
-        ids: gate.blocking.map((f) => f.id),
-      });
-      const regen = await runRegenerationLoop({
-        ctx: gateCtx,
-        regenerators: {
-          paper: makeClaudeRegenerator({
-            callClaude,
-            cleanFn:   (raw) => postProcessPaper(cleanOutput(raw)),
-            maxTokens: qTok,
-            phase:     'paper',
-          }),
-          memo: makeClaudeRegenerator({
-            callClaude,
-            cleanFn:   (raw) => postProcessMemo(stripLeadingMemoBanner(cleanOutput(raw))),
-            maxTokens: 8192,
-            phase:     'memo',
-          }),
-        },
-        logger:  log,
-        channel,
-        signal,
-      });
-      gateCtx          = regen.ctx;
-      gate             = regen.gate;
-      attemptsByPhase  = regen.attemptsByPhase;
-      capExhausted     = regen.capExhausted;
-      // Re-render the docx if regen produced new paper/memo strings.
-      const paperChanged = gateCtx.paper !== finalPaper;
-      const memoChanged  = gateCtx.memo  !== finalMemo;
-      if (paperChanged) finalPaper = gateCtx.paper;
-      if (memoChanged)  finalMemo  = gateCtx.memo;
-      if (paperChanged || memoChanged) await rebuildDocx();
-    }
-
-    channel.sendPhase('invariant_gate', gate.passed ? 'passed' : 'failed', {
-      mode:            gate.mode,
-      total:           gate.failures.length,
-      blocking:        gate.blocking.length,
-      ids:             gate.failures.map((f) => f.id),
-      attemptsByPhase,
-      capExhausted,
-    });
-
-    // Enforce mode: throw the gate error so the catch block returns 500
-    // with a teacher-friendly message AND no quota decrement runs.
-    const gateMode = process.env.INVARIANT_GATE_MODE || 'report';
-    if (!gate.passed && gateMode === 'enforce') {
-      throw new InvariantGateError({
-        failures: gate.blocking,
-        attempts: 1 + Math.max(0, ...Object.values(attemptsByPhase)),
-      });
-    }
-
-    const preview = finalPaper + '\n\n' + finalMemo;
-    // Phase 1.4: mark-sum drift takes precedence in the verificationStatus
-    // because a wrong total is more visible to the teacher than a memo
-    // arithmetic error. Surface the body/cover/drift figures so the UI
-    // can render an accurate "review marks" badge instead of "clean".
-    //
-    // Phase 1.6 (invariant gate): when the gate detects unfixed failures
-    // in report mode, surface them via verificationStatus so the UI can
-    // flag them and the dev team has a single field to monitor.
-    const finalStatus = markSumWarning
+    const verificationStatus = !rebalance.converged
       ? 'mark_sum_drift'
-      : (!gate.passed ? 'invariants_failed' : verificationStatus === 'clean' ? 'invariants_passed' : verificationStatus);
-    const payload = {
-      docxBase64,
+      : 'invariants_passed';
+
+    const filename = buildFilename(parsed);
+    const preview = buildTextPreview(resource);
+
+    channel.sendResult({
+      docxBase64: buf.toString('base64'),
       preview,
       filename,
-      verificationStatus: finalStatus,
-      ...(markSumWarning ? { markSumWarning } : {}),
-      ...(gate.failures.length > 0 ? { invariantFailures: gate.failures.map((f) => ({ id: f.id, category: f.category, scope: f.scope, message: f.message })) } : {}),
-    };
-    // Cache + (future) quota decrement run only on a clean gate. A failed
-    // gate in report mode still ships the paper but skips the cache so a
-    // retry doesn't get served the same broken artefact. Quota decrement
-    // (Phase 2.4d) will hook in here, gated identically — failed regen
-    // attempts cost API spend but never the teacher's monthly allowance.
-    if (gate.passed) {
-      try { cacheSet(cacheKey, payload); } catch (e) { log.warn({ err: e?.message || e }, 'Cache write failed'); }
-      // TODO Phase 2.4d: decrement teacher's monthly usage counter HERE.
-      // Failed-regen attempts must NOT touch user state — only this
-      // success-path point may.
-    } else {
-      log.warn({ ids: gate.failures.map((f) => f.id), capExhausted }, 'Invariant gate did not pass — skipping cacheSet (no quota cost)');
-    }
-    channel.sendResult(payload);
-    return;
-
+      verificationStatus,
+      _meta: {
+        pipeline: 'v2',
+        rebalanceNudges: rebalance.adjustments.length,
+        framework: ctx.frameworkName,
+      },
+    });
   } catch (err) {
-    // Client-initiated aborts are not pipeline errors — they shouldn't be
-    // logged at error level or surfaced as 500s.
-    if (clientClosed || (err instanceof AnthropicError && err.code === 'ABORTED')) {
-      log.info('Generation cancelled by client');
-      return;
+    log.error({ err: err?.message || err }, 'generate failed');
+    if (channel.isSSE) channel.sendError(err);
+    else if (!res.headersSent) {
+      res.status(err?.status || 500).json({ error: err?.message || 'Server error' });
     }
-    // Invariant gate hard-error (enforce mode + cap exhausted). The
-    // teacher's quota is NEVER decremented on this path — the wiring
-    // around cacheSet ensures that. We surface a clean message so the UI
-    // can render the "we'll fix it on our side" notice without exposing
-    // implementation details.
-    if (err instanceof InvariantGateError) {
-      log.error(
-        { ids: err.failures.map((f) => f.id), attempts: err.attempts },
-        'Invariant gate blocked delivery — returning 500 (no quota decrement)',
-      );
-      channel.sendError(Object.assign(
-        new Error("We couldn't generate a valid paper for this configuration. Please try again — our developers are working on a fix and your quota was not used."),
-        { status: 500, code: 'INVARIANT_GATE_BLOCKED' },
-      ));
-      return;
+  }
+}
+
+function parseRequest(body) {
+  const subject      = str(body.subject,      { field: 'subject', max: 200 });
+  const resourceType = oneOf(body.resourceType, ['Worksheet', 'Test', 'Exam', 'Final Exam', 'Investigation', 'Project', 'Practical', 'Assignment'], { field: 'resourceType' });
+  const language     = oneOf(body.language, ['English', 'Afrikaans'], { field: 'language' });
+  const grade        = int(body.grade, { field: 'grade', min: 4, max: 7 });
+  const term         = int(body.term,  { field: 'term',  min: 1, max: 4 });
+  const totalMarks   = int(body.duration, { field: 'duration', required: false, min: 5, max: 200 }) || 50;
+  const difficulty   = oneOf(body.difficulty || 'on', ['below', 'on', 'above'], { field: 'difficulty' });
+  return { subject, grade, term, language, resourceType, totalMarks, difficulty };
+}
+
+function buildFilename({ subject, resourceType, grade, term }) {
+  return `${subject}-${resourceType}-Grade${grade}-Term${term}`.replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+}
+
+// Plain-text preview synthesised from the Resource. Used by the frontend
+// preview pane; not the DOCX. Walks sections + leaves in document order.
+function buildTextPreview(resource) {
+  const lines = [];
+  const { meta, cover, stimuli = [], sections = [], memo } = resource;
+
+  lines.push(cover.resourceTypeLabel || resourceType);
+  lines.push(cover.subjectLine);
+  lines.push(`${cover.gradeLine}  |  ${cover.termLine}  |  ${meta.totalMarks} marks`);
+  lines.push('');
+
+  const renderedStimuli = new Set();
+  for (const sec of sections) {
+    for (const ref of sec.stimulusRefs || []) {
+      if (renderedStimuli.has(ref)) continue;
+      const st = stimuli.find((s) => s.id === ref);
+      if (st) {
+        lines.push(`[${(st.heading || st.kind).toUpperCase()}]`);
+        if (st.body) lines.push(st.body);
+        if (st.description) lines.push(st.description);
+        lines.push('');
+        renderedStimuli.add(ref);
+      }
     }
-    log.error({ err: err?.message || err, stack: err?.stack }, 'Generate error');
-    const status = err?.status && err.status >= 400 && err.status < 600 ? err.status : 500;
-    channel.sendError(Object.assign(new Error(err?.message || 'Server error'), { status }));
+
+    const sumMarks = leafSumIn(sec.questions);
+    lines.push(`${sec.letter ? `SECTION ${sec.letter}: ` : ''}${sec.title}  (${sumMarks} marks)`);
+    if (sec.instructions) lines.push(sec.instructions);
+    for (const q of sec.questions) appendQuestionPreview(lines, q);
+    lines.push('');
+  }
+
+  lines.push(`TOTAL: ${meta.totalMarks} marks`);
+  lines.push('');
+  lines.push('— MEMORANDUM —');
+  for (const a of memo?.answers || []) {
+    lines.push(`${a.questionNumber}. ${a.answer}  [${a.cognitiveLevel}, ${a.marks}]`);
+  }
+  return lines.join('\n');
+}
+
+function appendQuestionPreview(lines, q) {
+  if (Array.isArray(q.subQuestions)) {
+    lines.push(`${q.number}  ${q.stem}`);
+    for (const sq of q.subQuestions) appendQuestionPreview(lines, sq);
     return;
   }
+  lines.push(`${q.number}  ${q.stem}  [${q.marks}]`);
+}
+
+function leafSumIn(questions) {
+  let n = 0;
+  const walk = (q) => {
+    if (Array.isArray(q.subQuestions)) q.subQuestions.forEach(walk);
+    else n += q.marks || 0;
+  };
+  questions.forEach(walk);
+  return n;
 }
