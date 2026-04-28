@@ -148,6 +148,8 @@ function buildSystemPrompt(ctx) {
     `4. Sum of leaf marks across the whole paper MUST equal meta.totalMarks (${totalMarks}). Before you emit the tool call, mentally add up every leaf's marks and verify the total is exactly ${totalMarks}; if it isn't, adjust mark allocations on individual leaves until it is.`,
     `5. Stimuli are first-class. If a question references a passage/visual/data, declare it once in stimuli[] and reference it via stimulusRef.`,
     `6. Question numbers are dotted decimals: "1", "1.1", "1.1.1".`,
+    `7. memo.answer.markingGuidance is the rationale ONLY (acceptable answer variants, what working should show, common pitfalls). Do NOT write phrases like "Award N marks for X", "Maximum N marks", or "1 mark per ...". The mark column is rendered separately from the structured \`marks\` field — duplicating mark counts in the prose causes inconsistencies when totals are later adjusted.`,
+    `8. Every question's \`topic\` field MUST be COPIED VERBATIM from the ATP topic list above. Do not paraphrase, abbreviate, or duplicate phrases inside it. The schema enforces an exact-string match.`,
     ``,
     `## Resource-type guidance`,
     isRTT && isExamType
@@ -298,6 +300,7 @@ export async function generate(req, opts = {}) {
   });
 
   const resource = unwrapStringifiedBranches(raw);
+  snapTopicsToCanonical(resource);
   const rebalance = rebalanceMarks(resource);
   const validation = assertResource(resource);
 
@@ -355,8 +358,112 @@ function unwrapItem(item) {
   return item;
 }
 
+/**
+ * Snap each leaf question's `topic` field to the canonical ATP topic when the
+ * model emits a near-miss variation.
+ *
+ * Anthropic's tool API does NOT strictly enforce JSON Schema string enums on
+ * tool inputs — the schema narrows `topic` to the request's ATP list, but the
+ * model can still emit minor drift like a duplicated phrase. The live sweep
+ * caught one G5 LS-PSW paper where the model wrote
+ *   "...peer pressure — effects — effects;..."
+ * instead of the canonical
+ *   "...peer pressure — effects;..."
+ * which then failed assertResource. This salvages such cases by snapping the
+ * model's drifted string back to whichever canonical ATP topic it most
+ * resembles, before validation runs.
+ *
+ * Two-phase match (cheap before expensive):
+ *   1. Collapse-duplicates pass — strip any "X — X" or "X; X" runs of
+ *      identical adjacent tokens. Catches the live-observed failure mode.
+ *   2. Levenshtein fallback — within a generous edit-distance budget
+ *      (5% of canonical length, min 3) snap to the closest canonical.
+ */
+function snapTopicsToCanonical(resource) {
+  const canonical = resource?.meta?.topicScope?.topics;
+  if (!Array.isArray(canonical) || canonical.length === 0) return;
+  const canonicalSet = new Set(canonical);
+  const cache = new Map();
+
+  const snap = (s) => {
+    if (typeof s !== 'string') return s;
+    if (canonicalSet.has(s)) return s;
+    if (cache.has(s)) return cache.get(s);
+
+    // Phase 1 — collapse adjacent duplicate runs around — / ; / , delimiters.
+    const collapsed = collapseDuplicateRuns(s);
+    if (canonicalSet.has(collapsed)) {
+      cache.set(s, collapsed);
+      return collapsed;
+    }
+
+    // Phase 2 — Levenshtein. Cap candidates with cheap length guard.
+    let best = s, bestDist = Infinity;
+    for (const c of canonical) {
+      const budget = Math.max(3, Math.floor(c.length * 0.05));
+      if (Math.abs(c.length - s.length) > budget) continue;
+      const d = levenshtein(s, c);
+      if (d < bestDist && d <= budget) { best = c; bestDist = d; }
+    }
+    cache.set(s, best);
+    return best;
+  };
+
+  const walk = (q) => {
+    if (q && typeof q === 'object') {
+      if (typeof q.topic === 'string') q.topic = snap(q.topic);
+      if (Array.isArray(q.subQuestions)) q.subQuestions.forEach(walk);
+    }
+  };
+  for (const sec of resource.sections || []) {
+    if (Array.isArray(sec.questions)) sec.questions.forEach(walk);
+  }
+}
+
+// Strip any "<frag><sep><frag>" run where the two <frag>s are identical
+// (case-insensitive, whitespace-trimmed). Splits on the typical CAPS topic
+// delimiters: em-dash, en-dash, semicolon, comma. Returns the collapsed string.
+function collapseDuplicateRuns(s) {
+  const parts = s.split(/(\s*[—–;,]\s*)/);
+  const out = [];
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i];
+    const isContent = i % 2 === 0;
+    if (isContent && i >= 2) {
+      const prevContent = out[out.length - 2] ?? '';
+      if (prevContent.trim().toLowerCase() === p.trim().toLowerCase() && p.trim() !== '') {
+        // Drop the duplicate content AND its preceding separator.
+        out.pop();
+        continue;
+      }
+    }
+    out.push(p);
+  }
+  return out.join('');
+}
+
+// Iterative Levenshtein — O(n×m) time, O(min(n,m)) space.
+function levenshtein(a, b) {
+  if (a === b) return 0;
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  // Ensure b is the shorter for memory.
+  if (a.length < b.length) { const t = a; a = b; b = t; }
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  let curr = new Array(b.length + 1);
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+    }
+    const t = prev; prev = curr; curr = t;
+  }
+  return prev[b.length];
+}
+
 // Exposed for the spike runner.
-export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches };
+export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches, snapTopicsToCanonical, collapseDuplicateRuns, levenshtein };
 
 // ─────────────────────────────────────────────────────────────────────
 // EXPRESS HANDLER
