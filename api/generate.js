@@ -195,6 +195,8 @@ function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isInt
       `  - Evaluation and Appreciation: "Do you agree with ___? Justify with evidence from the passage.", "Is the title suitable? Why?", "How effective is the writer's use of ___?", "Would you recommend ___? Give reasons."`,
       ``,
       `Before emitting the tool call: count your comprehension stems by cognitive level and confirm they match the prescribed marks. If Inferential or Evaluation is under-supplied, REPLACE Literal/Reorganisation questions with Inferential/Evaluation ones — do not just add more questions.`,
+      ``,
+      `HARD RULE — Reorganisation cap: Reorganisation marks MUST NOT exceed the prescribed allocation by more than 1. Live testing shows the most common drift is over-supplying Reorganisation at the cost of Inferential. If your draft puts Reorganisation above prescribed, your FIRST corrective action is to convert Reorganisation questions into Inferential ones (e.g. "List three reasons" → "Why do you think the writer included these three reasons?"), not to add more questions or shrink existing ones.`,
     ].join('\n'));
   }
 
@@ -210,6 +212,8 @@ function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isInt
       `  - Low Order: "Name the capital of ___.", "Identify the symbol for ___.", "Define ___."`,
       `  - Middle Order: "Explain why ___ is found in ___.", "Compare ___ and ___.", "Use the map/legend to ___.", "Describe the relationship between ___ and ___."`,
       `  - High Order: "Predict what would happen if ___.", "Evaluate the impact of ___ on ___.", "Justify whether ___ is a good location for ___."`,
+      ``,
+      `MIDDLE ORDER QUOTA: Middle Order is the largest prescribed band (typically ~50% of marks at this phase) and is the most under-supplied in practice. Aim for AT LEAST one Middle Order question in EVERY section, and ensure Middle Order question types include each of: (a) at least one map/diagram interpretation question that requires using the legend, scale, or compass, (b) at least one cause-effect explanation, and (c) at least one comparison or contrast question. Drafts that satisfy the Low Order quota but skip these specific Middle Order types will under-supply Middle Order.`,
     ].join('\n'));
   }
 
@@ -288,6 +292,13 @@ export async function generate(req, opts = {}) {
  * while sections/stimuli came back as proper objects. The fix is mechanical:
  * if a top-level Resource property is a string and parses as an object,
  * use the parsed value. Idempotent — already-object values pass through.
+ *
+ * Also normalises shape edge cases caught in the live sweep:
+ *   • stimuli/sections must be arrays — coerce missing/null to [] so
+ *     downstream .map() calls don't crash before assertResource can
+ *     surface a clean error.
+ *   • Sonnet sometimes stringifies individual array items (a single
+ *     stimulus object inside the stimuli array) — recurse one level in.
  */
 function unwrapStringifiedBranches(obj) {
   if (!obj || typeof obj !== 'object') return obj;
@@ -302,7 +313,27 @@ function unwrapStringifiedBranches(obj) {
       }
     }
   }
+
+  // Array-typed branches must actually be arrays; coerce so downstream
+  // .map() / .find() / .forEach() don't crash before validation runs.
+  if (obj.stimuli && !Array.isArray(obj.stimuli))   obj.stimuli  = [];
+  if (obj.sections && !Array.isArray(obj.sections)) obj.sections = [];
+
+  // Recurse one level into stimuli + sections to catch stringified items.
+  if (Array.isArray(obj.stimuli)) obj.stimuli = obj.stimuli.map(unwrapItem);
+  if (Array.isArray(obj.sections)) obj.sections = obj.sections.map(unwrapItem);
+
   return obj;
+}
+
+function unwrapItem(item) {
+  if (typeof item === 'string') {
+    try {
+      const parsed = JSON.parse(item);
+      if (parsed && typeof parsed === 'object') return parsed;
+    } catch { /* fallthrough */ }
+  }
+  return item;
 }
 
 // Exposed for the spike runner.
