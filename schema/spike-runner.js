@@ -32,13 +32,14 @@ import { Packer } from 'docx';
 import { generate } from '../api/generate.js';
 import { renderResource } from '../lib/render.js';
 import { assertResource, tallyCogLevels } from './resource.schema.js';
-import { TEST_MATRIX, filterMatrix, estimateCost } from './test-matrix.js';
+import { TEST_MATRIX, filterMatrix, filterCases, estimateCost, buildAllTermsMatrix } from './test-matrix.js';
+import { ATP, EXAM_SCOPE } from '../lib/atp.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, 'spike-outputs');
 
 function parseArgs(argv) {
-  const args = { tier: 'core', samples: 1, parallel: false, dryRun: false, bypassCache: false };
+  const args = { tier: 'core', samples: 1, parallel: false, dryRun: false, bypassCache: false, allTerms: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--grade')        args.grade = Number(argv[++i]);
@@ -50,6 +51,7 @@ function parseArgs(argv) {
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--parallel') args.parallel = true;
     else if (a === '--bypass-cache') args.bypassCache = true;
+    else if (a === '--all-terms') args.allTerms = true;
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
     else { console.error(`Unknown flag: ${a}`); process.exit(1); }
   }
@@ -67,6 +69,12 @@ Filter flags (combine to narrow the matrix):
   --resource TYPE       Test / Exam / Final Exam / Worksheet
   --language LANG       English / Afrikaans
 
+Matrix flags:
+  --all-terms           sweep every (grade × subject × term) cell, English,
+                        one resource per cell. Resource type per term:
+                        Test for T1/T3, Exam for T2/T4, Worksheet for Life
+                        Skills/LO, Final Exam for G7 EMS T4.
+
 Run flags:
   --samples N           samples per combo (default 1)
   --parallel            fire all calls concurrently
@@ -76,7 +84,8 @@ Run flags:
 Examples:
   node schema/spike-runner.js --grade 4 --tier core
   node schema/spike-runner.js --tier core --parallel
-  node schema/spike-runner.js --dry-run --grade 7
+  node schema/spike-runner.js --all-terms --dry-run
+  node schema/spike-runner.js --all-terms --parallel
 `);
 }
 
@@ -161,25 +170,62 @@ async function runOne(testCase, sampleIndex, totalSamples, args) {
   }
 }
 
+// CAPS scope expansion: which ATP terms a (resourceType, term) cell pulls from.
+// Mirrors topicScopeFor() in api/generate.js so the runner can pre-check that
+// the resulting topic list is non-empty without booting the generate pipeline.
+function coversTermsFor(resourceType, term) {
+  if (resourceType === 'Final Exam') return [1, 2, 3, 4];
+  if (resourceType === 'Exam')       return EXAM_SCOPE[term] || [term];
+  return [term];
+}
+
+function hasAnyAtpTopics(subject, grade, resourceType, term) {
+  const terms = coversTermsFor(resourceType, term);
+  return terms.some((t) => (ATP[subject]?.[grade]?.[t] || []).length > 0);
+}
+
 async function main() {
   const args = parseArgs(process.argv);
-  const cases = filterMatrix(args);
+  // --all-terms swaps the source matrix BEFORE filterMatrix runs against it,
+  // so --grade / --subject / --tier still narrow the sweep as expected.
+  const sourceMatrix = args.allTerms ? buildAllTermsMatrix() : null;
+  const cases = sourceMatrix
+    ? filterCases(sourceMatrix, args)
+    : filterMatrix(args);
 
-  if (cases.length === 0) {
+  // Pre-check ATP coverage so empty-topic cells are surfaced (and skipped)
+  // before any API calls are made. Today this catches nothing — every cell
+  // in the matrix has ATP topics — but it's a cheap safety net for future
+  // matrix expansions or ATP edits.
+  const skipped = [];
+  const runnable = cases.filter((c) => {
+    if (hasAnyAtpTopics(c.subject, c.grade, c.request.resourceType, c.request.term)) return true;
+    skipped.push(c);
+    return false;
+  });
+  if (skipped.length > 0) {
+    console.log(`Skipping ${skipped.length} cell(s) with no ATP topics:`);
+    for (const c of skipped) {
+      console.log(`  - ${c.id}  (${c.subject}, g${c.grade}, t${c.request.term})`);
+    }
+    console.log('');
+  }
+
+  if (runnable.length === 0) {
     console.log('No test cases match the given filters.');
     console.log('Available grades: 4, 5, 6, 7');
     console.log('Try: node schema/spike-runner.js --tier core --grade 4');
     process.exit(1);
   }
 
-  const cost = estimateCost(cases, args.samples);
-  console.log(`Test runner — ${cases.length} combo(s) × ${args.samples} sample(s) = ${cost.calls} call(s)`);
+  const cost = estimateCost(runnable, args.samples);
+  console.log(`Test runner — ${runnable.length} combo(s) × ${args.samples} sample(s) = ${cost.calls} call(s)`);
   console.log(`Estimated cost: ~$${cost.dollars} (Sonnet 4.6 @ ~$0.12/call)`);
   console.log(`Output: schema/spike-outputs/g{grade}/`);
   console.log('─'.repeat(80));
 
   if (args.dryRun) {
-    cases.forEach((c) => {
+    runnable.forEach((c) => {
       for (let i = 0; i < args.samples; i++) {
         const sfx = args.samples > 1 ? `-sample${i + 1}` : '';
         console.log(`  [${c.tier}] g${c.grade}/${c.id}${sfx}.{json,docx}  →  ${c.subject}, term ${c.request.term}, ${c.request.resourceType} ${c.request.totalMarks}m, ${c.request.language}`);
@@ -197,7 +243,7 @@ async function main() {
 
   // Build the full task list (case × samples).
   const tasks = [];
-  for (const c of cases) {
+  for (const c of runnable) {
     for (let i = 0; i < args.samples; i++) {
       tasks.push({ case: c, sample: i });
     }

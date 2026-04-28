@@ -50,6 +50,26 @@ function canonicalCombo(grade, subject, language = 'English') {
   return { ...TEST(40), term: 2, language };
 }
 
+// Per-term combo for the all-terms sweep. Same subject is tested across all
+// four terms with a resource type that respects CAPS scope:
+//   • RTT (HL/FAL) — Exam(50) for T2/T4 (cross-term scope per EXAM_SCOPE),
+//                    Test(40) for T1/T3 (single-term).
+//   • Life Skills / Life Orientation — Worksheet(25) every term.
+//   • G7 EMS — Final Exam(50) for T4 only, Exam(50) for T2, Test(40) for T1/T3.
+//   • Other content subjects — Exam(50) for T2/T4, Test(40) for T1/T3.
+// Languages are kept English for cross-grade comparability; the canonical
+// matrix already covers the Afrikaans HL × all-grades localisation check.
+function termCombo(grade, subject, term, language = 'English') {
+  if (subject.startsWith('Life Skills') || subject === 'Life Orientation') {
+    return { ...WSHEET(25), term, language };
+  }
+  if (grade === 7 && subject === 'Economic and Management Sciences' && term === 4) {
+    return { ...FINAL(50), term, language };
+  }
+  const isCrossTerm = term === 2 || term === 4;
+  return isCrossTerm ? { ...EXAM(50), term, language } : { ...TEST(40), term, language };
+}
+
 const CORE_SUBJECTS_BY_GRADE = {
   4: ['Mathematics', 'Natural Sciences and Technology', 'Social Sciences — History',
       'Social Sciences — Geography', 'English Home Language', 'Afrikaans Home Language'],
@@ -88,6 +108,25 @@ function buildMatrix() {
   return out;
 }
 
+// Full sweep: every (grade × subject × term) cell, English, single resource
+// per cell. Used by --all-terms in the spike runner.
+export function buildAllTermsMatrix() {
+  const out = [];
+  for (const grade of [4, 5, 6, 7]) {
+    const subjects = [
+      ...CORE_SUBJECTS_BY_GRADE[grade].map((s) => ({ tier: 'core', subject: s })),
+      ...EXPANSION_SUBJECTS_BY_GRADE[grade].map((s) => ({ tier: 'expansion', subject: s })),
+    ];
+    for (const { tier, subject } of subjects) {
+      for (const term of [1, 2, 3, 4]) {
+        const combo = termCombo(grade, subject, term);
+        out.push(makeCase(tier, grade, subject, combo));
+      }
+    }
+  }
+  return out;
+}
+
 function makeCase(tier, grade, subject, combo) {
   const slug = subject
     .toLowerCase()
@@ -114,9 +153,9 @@ function makeCase(tier, grade, subject, combo) {
 
 export const TEST_MATRIX = buildMatrix();
 
-// Filtering: pure functions over the matrix array.
-export function filterMatrix({ grade, subject, tier, resourceType, language } = {}) {
-  return TEST_MATRIX.filter((c) => {
+// Filtering: pure functions over a matrix array.
+export function filterCases(cases, { grade, subject, tier, resourceType, language } = {}) {
+  return cases.filter((c) => {
     if (tier && tier !== 'all' && c.tier !== tier) return false;
     if (grade != null && c.grade !== Number(grade)) return false;
     if (subject && !c.subject.toLowerCase().includes(String(subject).toLowerCase())) return false;
@@ -124,6 +163,12 @@ export function filterMatrix({ grade, subject, tier, resourceType, language } = 
     if (language && c.request.language !== language) return false;
     return true;
   });
+}
+
+// Convenience wrapper kept for backwards compatibility with callers that
+// expect to filter the canonical matrix.
+export function filterMatrix(opts) {
+  return filterCases(TEST_MATRIX, opts);
 }
 
 // Convenience: how many API calls would a given filter trigger,
