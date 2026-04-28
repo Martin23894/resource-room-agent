@@ -397,10 +397,16 @@ function snapTopicsToCanonical(resource) {
       return collapsed;
     }
 
-    // Phase 2 — Levenshtein. Cap candidates with cheap length guard.
+    // Phase 2 — Levenshtein. Generous budget (10% of canonical length, min 6)
+    // to catch single-word substitutions in long topic strings, e.g. an
+    // Afrikaans FAL topic where the model wrote "Skryf en Kyk: ..." instead
+    // of canonical "Lees en Kyk: ..." (5-char distance over a 60-char string,
+    // which a 5%/min-3 budget would miss). The "best match within budget"
+    // semantics still picks the closest canonical, so widening doesn't risk
+    // snapping to a wrong topic when a nearer one exists.
     let best = s, bestDist = Infinity;
     for (const c of canonical) {
-      const budget = Math.max(3, Math.floor(c.length * 0.05));
+      const budget = Math.max(6, Math.floor(c.length * 0.10));
       if (Math.abs(c.length - s.length) > budget) continue;
       const d = levenshtein(s, c);
       if (d < bestDist && d <= budget) { best = c; bestDist = d; }
