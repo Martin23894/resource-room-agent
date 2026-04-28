@@ -38,6 +38,7 @@ import { join, basename } from 'node:path';
 
 import { moderate } from '../lib/moderator.js';
 import { generate } from '../api/generate.js';
+import { rebalanceMarks } from '../lib/rebalance.js';
 import { buildAllTermsMatrix } from '../schema/test-matrix.js';
 
 function parseArgs(argv) {
@@ -159,6 +160,13 @@ async function main() {
       summary.push({ id: paper.id, grade: paper.grade, error: e.message });
       continue;
     }
+
+    // Re-run the rebalancer on the loaded JSON to apply the latest marking-
+    // guidance normalisation pass. Idempotent on marks (already-balanced
+    // papers stay balanced) but updates markingGuidance so the moderator
+    // doesn't see stale per-step "Award N marks" contradictions from
+    // older sweeps. Pure local computation, no API spend.
+    rebalanceMarks(resource);
 
     let report = null;
     try {
