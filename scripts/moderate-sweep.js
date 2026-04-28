@@ -33,7 +33,7 @@
 //   1 — runner error (no API key, IO error, etc.)
 //   2 — bad CLI args
 
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'node:fs';
 import { join, basename } from 'node:path';
 
 import { moderate } from '../lib/moderator.js';
@@ -42,7 +42,7 @@ import { rebalanceMarks } from '../lib/rebalance.js';
 import { buildAllTermsMatrix } from '../schema/test-matrix.js';
 
 function parseArgs(argv) {
-  const args = { in: 'schema/spike-outputs', regen: false, delayMs: 15000 };
+  const args = { in: 'schema/spike-outputs', regen: false, delayMs: 15000, skipExisting: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--in='))         args.in = a.slice('--in='.length);
@@ -51,6 +51,7 @@ function parseArgs(argv) {
     else if (a.startsWith('--delay-ms=')) args.delayMs = Number(a.slice('--delay-ms='.length));
     else if (a.startsWith('--limit=')) args.limit = Number(a.slice('--limit='.length));
     else if (a.startsWith('--grade=')) args.grade = Number(a.slice('--grade='.length));
+    else if (a === '--skip-existing')  args.skipExisting = true;
     else if (a === '-h' || a === '--help') { printHelp(); process.exit(0); }
     else { console.error('Unknown flag:', a); process.exit(2); }
   }
@@ -131,6 +132,15 @@ async function main() {
   let papers = findPapers(args.in);
   if (args.grade) papers = papers.filter((p) => p.grade === args.grade);
   if (args.limit) papers = papers.slice(0, args.limit);
+  if (args.skipExisting) {
+    const before = papers.length;
+    papers = papers.filter((p) => {
+      const existing = join(args.out, `g${p.grade}`, `${p.id}.moderation.json`);
+      try { return !statSync(existing).isFile(); } catch { return true; }
+    });
+    const skipped = before - papers.length;
+    if (skipped > 0) console.log(`--skip-existing: ${skipped} paper(s) already have a moderation report.`);
+  }
   if (papers.length === 0) {
     console.error('No papers found in', args.in);
     process.exit(1);
