@@ -109,9 +109,12 @@ function buildSystemPrompt(ctx) {
   const isExamType = resourceType === 'Exam' || resourceType === 'Final Exam';
   const isGeography = subject.includes('Geography') || subject.includes('Geografie');
   const isHistory  = subject.includes('History')   || subject.includes('Geskiedenis');
+  const isAfrikaansHL = subject === 'Afrikaans Home Language';
   const isIntermediatePhase = grade >= 4 && grade <= 6;
 
-  const subjectGuidance = buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isIntermediatePhase });
+  const subjectGuidance = buildSubjectGuidance({
+    isRTT, isExamType, isGeography, isHistory, isAfrikaansHL, isIntermediatePhase, grade,
+  });
 
   return [
     `You are a CAPS-aligned exam-paper author for South African Grades 4–7.`,
@@ -182,7 +185,7 @@ function buildSystemPrompt(ctx) {
 //   • History Intermediate Phase: 3/3 under-supplied Middle Order. Stem
 //     patterns for Middle Order ("explain why", "compare", "describe
 //     consequences") fix this. (Grade 7 already lands clean — skipped.)
-function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isIntermediatePhase }) {
+function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isAfrikaansHL, isIntermediatePhase, grade }) {
   const blocks = [];
 
   if (isRTT && isExamType) {
@@ -224,6 +227,20 @@ function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isInt
       `  - Low Order: names, dates, definitions, "list three ___".`,
       `  - Middle Order: "Explain why ___ happened.", "Describe the consequences of ___.", "Compare ___ and ___.", "Outline the steps that led to ___.", "What was the impact of ___?"`,
       `  - High Order: "Evaluate ___.", "Was ___ justified? Argue both sides.", "How did ___ change ___?"`,
+    ].join('\n'));
+  }
+
+  if (isAfrikaansHL && grade === 4) {
+    blocks.push([
+      `## Grade 4 Afrikaans Home Language — failure mode warning`,
+      `Live testing found that Grade 4 Afrikaans Home Language papers default to a Reorganisation-heavy bimodal failure: roughly half the time the paper comes back with ~17 marks of Reorganisation and ~15 of Inferential against a 10/20 prescription. This is caused by a tendency to produce too many "Lys DRIE …", "Verduidelik in jou eie woorde …", and "Som op …" question stems.`,
+      ``,
+      `Hard rule for THIS paper: Reorganisation MUST land at exactly 10 marks (±1). Before drafting comprehension questions, allocate cog-level marks like this and do not deviate:`,
+      `  - 10 marks Literal: short factual recall ("Wie …?", "Wat sê die teks oor …?", "Waar/wanneer …?", "Haal die sin aan wat …").`,
+      `  - 10 marks Reorganisation: STRICT MAXIMUM. ONE summarising/listing question is enough; do NOT produce a second.`,
+      `  - 20 marks Inferential: more than half the comprehension marks. Use "Hoekom dink jy …", "Wat impliseer die skrywer …", "Hoe sou die karakter voel oor …", "Wat kan jy aflei oor … uit …".`,
+      `  - 10 marks Evaluation and Appreciation: one or two open evaluative questions ("Stem jy saam met …? Motiveer.", "Is die titel gepas? Hoekom?").`,
+      `If your draft comes back with more than 10 Reorganisation marks, your FIRST corrective action is to convert "Lys"/"Som op" questions into "Hoekom dink jy"/"Wat impliseer" questions of equal mark value, NOT to shrink them.`,
     ].join('\n'));
   }
 
