@@ -268,7 +268,7 @@ function buildUserPrompt(ctx) {
  * - validation: assertResource(resource) result
  */
 export async function generate(req, opts = {}) {
-  const { logger, signal, maxRetries = 2 } = opts;
+  const { logger, signal, maxRetries = 2, correctiveContext } = opts;
   const ctx = buildContext(req);
   const inputSchema = narrowSchemaForRequest({
     subject: ctx.subject,
@@ -287,6 +287,14 @@ export async function generate(req, opts = {}) {
   const system = buildSystemPrompt(ctx);
   const baseUser = buildUserPrompt(ctx);
 
+  // Optional caller-supplied corrective context — used by the moderator
+  // regen loop to point Sonnet at specific issues to fix on a regeneration.
+  // Distinct from the schema-validation retry below: this lands on attempt 0
+  // (before schema-fail retries kick in).
+  const initialUser = correctiveContext
+    ? `${baseUser}\n\n${correctiveContext}`
+    : baseUser;
+
   // Retry on schema-validation failure with corrective feedback. Sonnet's
   // residual structural failure rate (after snap + rebalance) is dominated
   // by model variance — same prompt, different attempt usually succeeds.
@@ -298,7 +306,7 @@ export async function generate(req, opts = {}) {
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const user = lastErrors
       ? `${baseUser}\n\nThe previous attempt failed schema validation with these errors:\n${lastErrors.slice(0, 8).map((e) => `  - ${e.path}: ${e.message}`).join('\n')}\nPlease emit a fresh, correct Resource that does not repeat these errors.`
-      : baseUser;
+      : initialUser;
 
     const raw = await callAnthropicTool({
       system,
