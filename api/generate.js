@@ -148,7 +148,6 @@ function buildSystemPrompt(ctx) {
     `4. Sum of leaf marks across the whole paper MUST equal meta.totalMarks (${totalMarks}). Before you emit the tool call, mentally add up every leaf's marks and verify the total is exactly ${totalMarks}; if it isn't, adjust mark allocations on individual leaves until it is.`,
     `5. Stimuli are first-class. If a question references a passage/visual/data, declare it once in stimuli[] and reference it via stimulusRef.`,
     `6. Question numbers are dotted decimals: "1", "1.1", "1.1.1".`,
-    `7. Every section.stimulusRefs entry and every question.stimulusRef MUST match an existing stimuli[].id EXACTLY (character-for-character, including any diacritics, hyphens, or capitalisation). Decide each stimulus's id BEFORE you write the references. If you change an id while drafting, update every reference to it.`,
     ``,
     `## Resource-type guidance`,
     isRTT && isExamType
