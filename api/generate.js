@@ -227,6 +227,8 @@ function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isAfr
       `  - Low Order: names, dates, definitions, "list three ___".`,
       `  - Middle Order: "Explain why ___ happened.", "Describe the consequences of ___.", "Compare ___ and ___.", "Outline the steps that led to ___.", "What was the impact of ___?"`,
       `  - High Order: "Evaluate ___.", "Was ___ justified? Argue both sides.", "How did ___ change ___?"`,
+      ``,
+      `SINGLE-MARK CAP: do NOT produce more than FOUR 1-mark questions in any single section. If you find yourself writing five or more single-mark recall items in one section, consolidate two of them into a single 2-mark Middle Order "Explain why ___" question of equivalent topic. This prevents the paper from being floor-loaded with Low Order recall and leaves room for Middle Order content the cog framework requires.`,
     ].join('\n'));
   }
 
