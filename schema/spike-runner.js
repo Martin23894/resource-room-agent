@@ -57,6 +57,7 @@ function parseArgs(argv) {
     else if (a === '--bypass-cache') args.bypassCache = true;
     else if (a === '--all-terms') args.allTerms = true;
     else if (a === '--skip-existing') args.skipExisting = true;
+    else if (a === '--delay-ms') args.delayMs = Number(argv[++i]);
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
     else { console.error(`Unknown flag: ${a}`); process.exit(1); }
   }
@@ -293,8 +294,16 @@ async function main() {
   // over 164 tasks tripped it badly in practice. Default concurrency for
   // --parallel is 4, override with --concurrency N.
   const concurrency = args.parallel ? (args.concurrency || 4) : 1;
-  console.log(`Concurrency: ${concurrency} ${args.parallel ? '(parallel)' : '(sequential)'}`);
-  const results = await runWithConcurrency(tasks, concurrency, (t) => runOne(t.case, t.sample, args.samples, args));
+  const delayMs = Number(args.delayMs) > 0 ? Number(args.delayMs) : 0;
+  console.log(`Concurrency: ${concurrency} ${args.parallel ? '(parallel)' : '(sequential)'}${delayMs ? `, delay=${delayMs}ms between calls` : ''}`);
+  const results = await runWithConcurrency(tasks, concurrency, async (t, i) => {
+    const r = await runOne(t.case, t.sample, args.samples, args);
+    // Inter-call delay drains Anthropic's rolling 60s rate-limit window so a
+    // sequential retry doesn't keep tripping the 90k output-tokens-per-minute
+    // cap. Skip the delay after the last task.
+    if (delayMs > 0 && i < tasks.length - 1) await new Promise((res) => setTimeout(res, delayMs));
+    return r;
+  });
 
   const okCount = results.filter((r) => r.ok).length;
   console.log('─'.repeat(80));
