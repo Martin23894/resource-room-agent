@@ -289,17 +289,6 @@ select:focus{outline:none;border-color:var(--t4);}
 </style>
 </head>
 <body>
-<div id="pipeline-badge" style="display:none;position:fixed;top:10px;left:50%;transform:translateX(-50%);z-index:9999;background:#085041;color:#fff;font-size:12px;padding:4px 10px;border-radius:12px;font-weight:600;letter-spacing:0.5px;">
-  Pipeline: v2 (schema-first beta)
-</div>
-<script>
-  if (new URLSearchParams(location.search).get('v2') === '1') {
-    document.addEventListener('DOMContentLoaded', () => {
-      const b = document.getElementById('pipeline-badge');
-      if (b) b.style.display = 'block';
-    });
-  }
-</script>
 <div class="hdr">
   <button class="hamburger" type="button" aria-label="Open menu" onclick="toggleDrawer()">☰</button>
   <div class="logo">
@@ -1196,12 +1185,7 @@ async function doGenerate(bypassCache){
   let streamError = null;
 
   try{
-    // Pipeline switch: append ?v2=1 to the page URL to route this request
-    // through the schema-first v2 pipeline. Default remains the legacy
-    // pipeline so this is opt-in only.
-    const _pipelineV2 = new URLSearchParams(location.search).get('v2') === '1';
-    const _generateUrl = _pipelineV2 ? '/api/generate-v2' : '/api/generate';
-    const r = await fetchAuthed(_generateUrl,{
+    const r = await fetchAuthed('/api/generate',{
       method: 'POST',
       headers: {
         'Content-Type':'application/json',
