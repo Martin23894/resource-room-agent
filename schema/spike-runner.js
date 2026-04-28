@@ -24,7 +24,7 @@
 //
 // Requires ANTHROPIC_API_KEY in the environment unless --dry-run.
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Packer } from 'docx';
@@ -39,7 +39,10 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, 'spike-outputs');
 
 function parseArgs(argv) {
-  const args = { tier: 'core', samples: 1, parallel: false, dryRun: false, bypassCache: false, allTerms: false };
+  const args = {
+    tier: 'core', samples: 1, parallel: false, dryRun: false,
+    bypassCache: false, allTerms: false, skipExisting: false, concurrency: null,
+  };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--grade')        args.grade = Number(argv[++i]);
@@ -50,8 +53,10 @@ function parseArgs(argv) {
     else if (a === '--samples') args.samples = Number(argv[++i]);
     else if (a === '--dry-run') args.dryRun = true;
     else if (a === '--parallel') args.parallel = true;
+    else if (a === '--concurrency') args.concurrency = Number(argv[++i]);
     else if (a === '--bypass-cache') args.bypassCache = true;
     else if (a === '--all-terms') args.allTerms = true;
+    else if (a === '--skip-existing') args.skipExisting = true;
     else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
     else { console.error(`Unknown flag: ${a}`); process.exit(1); }
   }
@@ -143,6 +148,22 @@ function leafSumMarks(resource) {
   return n;
 }
 
+// Bounded-parallel executor — runs at most `concurrency` tasks at a time.
+// Preserves the input order in the returned results array.
+async function runWithConcurrency(items, concurrency, worker) {
+  const results = new Array(items.length);
+  let next = 0;
+  async function pump() {
+    while (true) {
+      const i = next++;
+      if (i >= items.length) return;
+      results[i] = await worker(items[i], i);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => pump()));
+  return results;
+}
+
 async function runOne(testCase, sampleIndex, totalSamples, args) {
   const t0 = Date.now();
   const grade = testCase.grade;
@@ -198,7 +219,7 @@ async function main() {
   // in the matrix has ATP topics — but it's a cheap safety net for future
   // matrix expansions or ATP edits.
   const skipped = [];
-  const runnable = cases.filter((c) => {
+  let runnable = cases.filter((c) => {
     if (hasAnyAtpTopics(c.subject, c.grade, c.request.resourceType, c.request.term)) return true;
     skipped.push(c);
     return false;
@@ -209,6 +230,24 @@ async function main() {
       console.log(`  - ${c.id}  (${c.subject}, g${c.grade}, t${c.request.term})`);
     }
     console.log('');
+  }
+
+  // --skip-existing — drop combos that already have a successful DOCX on
+  // disk from a previous run. Lets you retry only the failed/errored cells
+  // without re-spending on the ones that succeeded. We check the DOCX
+  // (not the JSON) because schema-FAIL cases write a JSON without a DOCX,
+  // and those still need to be retried.
+  if (args.skipExisting) {
+    const before = runnable.length;
+    runnable = runnable.filter((c) => {
+      const docxPath = join(OUT_DIR, `g${c.grade}`, `${c.id}.docx`);
+      return !existsSync(docxPath);
+    });
+    const skippedExist = before - runnable.length;
+    if (skippedExist > 0) {
+      console.log(`--skip-existing: ${skippedExist} cell(s) already have a successful DOCX, will not re-run.`);
+      console.log('');
+    }
   }
 
   if (runnable.length === 0) {
@@ -249,9 +288,13 @@ async function main() {
     }
   }
 
-  const results = args.parallel
-    ? await Promise.all(tasks.map((t) => runOne(t.case, t.sample, args.samples, args)))
-    : await tasks.reduce(async (acc, t) => [...(await acc), await runOne(t.case, t.sample, args.samples, args)], Promise.resolve([]));
+  // Bounded parallelism. Anthropic's per-org rate limit (90k output tokens/min,
+  // 450k input tokens/min on Sonnet 4.6) is the actual ceiling — Promise.all
+  // over 164 tasks tripped it badly in practice. Default concurrency for
+  // --parallel is 4, override with --concurrency N.
+  const concurrency = args.parallel ? (args.concurrency || 4) : 1;
+  console.log(`Concurrency: ${concurrency} ${args.parallel ? '(parallel)' : '(sequential)'}`);
+  const results = await runWithConcurrency(tasks, concurrency, (t) => runOne(t.case, t.sample, args.samples, args));
 
   const okCount = results.filter((r) => r.ok).length;
   console.log('─'.repeat(80));
