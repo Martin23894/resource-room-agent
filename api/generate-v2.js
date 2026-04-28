@@ -108,6 +108,11 @@ function buildSystemPrompt(ctx) {
   const isRTT = subject.includes('Home Language') || subject.includes('First Additional')
     || subject.includes('Huistaal') || subject.includes('Addisionele') || subject.includes('Eerste');
   const isExamType = resourceType === 'Exam' || resourceType === 'Final Exam';
+  const isGeography = subject.includes('Geography') || subject.includes('Geografie');
+  const isHistory  = subject.includes('History')   || subject.includes('Geskiedenis');
+  const isIntermediatePhase = grade >= 4 && grade <= 6;
+
+  const subjectGuidance = buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isIntermediatePhase });
 
   return [
     `You are a CAPS-aligned exam-paper author for South African Grades 4–7.`,
@@ -153,6 +158,7 @@ function buildSystemPrompt(ctx) {
       ? `- A Test typically has 2–4 sections progressing from MCQ/short answer to extended response. ${totalMarks} marks total.`
       : `- An ${resourceType} typically has 3–5 sections progressing from short answer to extended response, with the harder cognitive levels concentrated in later sections. ${totalMarks} marks total.`,
     ``,
+    ...(subjectGuidance ? [subjectGuidance, ''] : []),
     `## Language and labels`,
     `- All learner-facing strings (cover, section titles, instructions, question stems, memo answers) MUST be written in ${language}.`,
     `- Cover: resourceTypeLabel="${localResourceLabel}", subjectLine="${subjectDisplay}", gradeLine="${language === 'Afrikaans' ? `Graad ${grade}` : `Grade ${grade}`}", termLine="${language === 'Afrikaans' ? `Kwartaal ${term}` : `Term ${term}`}".`,
@@ -162,6 +168,63 @@ function buildSystemPrompt(ctx) {
     `## Output`,
     `Call build_resource with the Resource object. Do not output anything else.`,
   ].join('\n');
+}
+
+// Subject-specific cognitive guidance blocks. These are appended to the
+// system prompt only when the relevant subject/grade combination has a
+// known drift pattern, so we don't bloat the prompts for subjects that
+// already produce balanced cog distributions (Maths, NST, Tech, EMS).
+//
+// Patterns confirmed across a 26-paper / 4-grade live sweep:
+//   • RTT (HL languages): all 8 papers over-supplied Literal+Reorg and
+//     under-supplied Inferential. Stem-pattern catalog by level fixes this.
+//   • Geography Intermediate Phase: 3/3 papers severely over-supplied
+//     Low Order. Explicit cap on identification questions fixes this.
+//   • History Intermediate Phase: 3/3 under-supplied Middle Order. Stem
+//     patterns for Middle Order ("explain why", "compare", "describe
+//     consequences") fix this. (Grade 7 already lands clean — skipped.)
+function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isIntermediatePhase }) {
+  const blocks = [];
+
+  if (isRTT && isExamType) {
+    blocks.push([
+      `## Cognitive-level stem patterns (RTT comprehension)`,
+      `RTT papers commonly over-supply Literal/Reorganisation and under-supply Inferential/Evaluation. To prevent this, draft each comprehension question using a stem that matches its cognitive level:`,
+      `  - Literal: "What does the passage say about ___?", "Find the word/phrase that means ___.", "Where/when does ___?", "Quote the line that ___."`,
+      `  - Reorganisation: "Summarise ___ in your own words.", "List THREE/FOUR ___.", "Explain in your own words what is meant by ___."`,
+      `  - Inferential: "Why do you think ___?", "What does the writer suggest by ___?", "How would the character feel about ___? Explain.", "What can you infer about ___ from ___?"`,
+      `  - Evaluation and Appreciation: "Do you agree with ___? Justify with evidence from the passage.", "Is the title suitable? Why?", "How effective is the writer's use of ___?", "Would you recommend ___? Give reasons."`,
+      ``,
+      `Before emitting the tool call: count your comprehension stems by cognitive level and confirm they match the prescribed marks. If Inferential or Evaluation is under-supplied, REPLACE Literal/Reorganisation questions with Inferential/Evaluation ones — do not just add more questions.`,
+    ].join('\n'));
+  }
+
+  if (isGeography && isIntermediatePhase) {
+    blocks.push([
+      `## Geography-specific cognitive guidance (Intermediate Phase)`,
+      `Geography assessment at this phase is frequently mis-pitched as memorisation. Direct identification of features (naming capitals, defining terms, recognising map symbols) MUST NOT exceed 30% of total marks. The remaining ~70% must require:`,
+      `  - Map interpretation: using a legend, calculating distance/direction, comparing regions on a map.`,
+      `  - Real-world application: predicting consequences of geographic phenomena, explaining cause-effect chains.`,
+      `  - Analysis: why X occurs here but not there, what does Y data pattern suggest.`,
+      ``,
+      `Stem patterns by cognitive level:`,
+      `  - Low Order: "Name the capital of ___.", "Identify the symbol for ___.", "Define ___."`,
+      `  - Middle Order: "Explain why ___ is found in ___.", "Compare ___ and ___.", "Use the map/legend to ___.", "Describe the relationship between ___ and ___."`,
+      `  - High Order: "Predict what would happen if ___.", "Evaluate the impact of ___ on ___.", "Justify whether ___ is a good location for ___."`,
+    ].join('\n'));
+  }
+
+  if (isHistory && isIntermediatePhase) {
+    blocks.push([
+      `## History-specific cognitive guidance (Intermediate Phase)`,
+      `History papers at this phase commonly under-supply Middle Order. To balance the paper, ensure Middle Order content uses these stem patterns:`,
+      `  - Low Order: names, dates, definitions, "list three ___".`,
+      `  - Middle Order: "Explain why ___ happened.", "Describe the consequences of ___.", "Compare ___ and ___.", "Outline the steps that led to ___.", "What was the impact of ___?"`,
+      `  - High Order: "Evaluate ___.", "Was ___ justified? Argue both sides.", "How did ___ change ___?"`,
+    ].join('\n'));
+  }
+
+  return blocks.length ? blocks.join('\n\n') : null;
 }
 
 function buildUserPrompt(ctx) {

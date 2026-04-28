@@ -1,52 +1,84 @@
-// Day-2 spike runner.
+// v2 pipeline test runner.
 //
-// Calls generateV2 for the six fixture configurations, writes raw JSON to
-// schema/spike-outputs/<name>.json, runs assertResource on each, and prints
-// a one-line summary per config plus a short error excerpt on failures.
+// Iterates the test matrix (schema/test-matrix.js), calls generateV2 on
+// each filtered case, writes the JSON output and renders the DOCX. One
+// folder per grade so review is tractable: schema/spike-outputs/g4/ etc.
 //
 // Usage:
-//   node schema/spike-runner.js                    # run all six, sequentially
-//   node schema/spike-runner.js g6-english-hl-rtt-t4  # run one
-//   PARALLEL=1 node schema/spike-runner.js         # fire all six in parallel
+//   node schema/spike-runner.js --grade 4 --tier core
+//   node schema/spike-runner.js --grade 4 --subject mathematics
+//   node schema/spike-runner.js --tier core              # all grades, core only
+//   node schema/spike-runner.js --dry-run                # print plan, no API spend
+//   node schema/spike-runner.js --samples 2 --grade 7    # two samples per combo
 //
-// Requires ANTHROPIC_API_KEY in the environment. Outputs are gitignored.
+// Flags:
+//   --grade N           filter by grade (4/5/6/7)
+//   --subject SUBSTR    case-insensitive substring match on subject name
+//   --tier core|expansion|all   (default: core)
+//   --resource TYPE     filter by resource type (Test, Exam, Final Exam, Worksheet)
+//   --language LANG     filter by language (English, Afrikaans)
+//   --samples N         samples per combo (default: 1)
+//   --dry-run           list what would run, no API calls
+//   --parallel          fire all calls concurrently (default: sequential)
+//   --bypass-cache      pass _bypassCache through to generateV2
+//
+// Requires ANTHROPIC_API_KEY in the environment unless --dry-run.
 
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
+import { Packer } from 'docx';
 
 import { generateV2 } from '../api/generate-v2.js';
+import { renderResource } from '../lib/render-v2.js';
 import { assertResource, tallyCogLevels } from './resource.schema.js';
+import { TEST_MATRIX, filterMatrix, estimateCost } from './test-matrix.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(__dirname, 'spike-outputs');
 
-const CONFIGS = [
-  {
-    name: 'g4-maths-test-t1',
-    req: { subject: 'Mathematics', grade: 4, term: 1, language: 'English', resourceType: 'Test', totalMarks: 40 },
-  },
-  {
-    name: 'g5-nst-worksheet-t2',
-    req: { subject: 'Natural Sciences and Technology', grade: 5, term: 2, language: 'English', resourceType: 'Worksheet', totalMarks: 25 },
-  },
-  {
-    name: 'g6-english-hl-rtt-t4',
-    req: { subject: 'English Home Language', grade: 6, term: 4, language: 'English', resourceType: 'Exam', totalMarks: 50 },
-  },
-  {
-    name: 'g7-soc-sci-history-exam-t2',
-    req: { subject: 'Social Sciences — History', grade: 7, term: 2, language: 'English', resourceType: 'Exam', totalMarks: 25 },
-  },
-  {
-    name: 'g7-ems-final-exam',
-    req: { subject: 'Economic and Management Sciences', grade: 7, term: 4, language: 'English', resourceType: 'Final Exam', totalMarks: 25 },
-  },
-  {
-    name: 'g5-afrikaans-hl-rtt-t2',
-    req: { subject: 'Afrikaans Home Language', grade: 5, term: 2, language: 'Afrikaans', resourceType: 'Exam', totalMarks: 20 },
-  },
-];
+function parseArgs(argv) {
+  const args = { tier: 'core', samples: 1, parallel: false, dryRun: false, bypassCache: false };
+  for (let i = 2; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--grade')        args.grade = Number(argv[++i]);
+    else if (a === '--subject') args.subject = argv[++i];
+    else if (a === '--tier')    args.tier = argv[++i];
+    else if (a === '--resource') args.resourceType = argv[++i];
+    else if (a === '--language') args.language = argv[++i];
+    else if (a === '--samples') args.samples = Number(argv[++i]);
+    else if (a === '--dry-run') args.dryRun = true;
+    else if (a === '--parallel') args.parallel = true;
+    else if (a === '--bypass-cache') args.bypassCache = true;
+    else if (a === '--help' || a === '-h') { printHelp(); process.exit(0); }
+    else { console.error(`Unknown flag: ${a}`); process.exit(1); }
+  }
+  return args;
+}
+
+function printHelp() {
+  console.log(`
+Usage: node schema/spike-runner.js [flags]
+
+Filter flags (combine to narrow the matrix):
+  --grade N             4 / 5 / 6 / 7
+  --subject SUBSTR      case-insensitive substring match
+  --tier T              core (default) / expansion / all
+  --resource TYPE       Test / Exam / Final Exam / Worksheet
+  --language LANG       English / Afrikaans
+
+Run flags:
+  --samples N           samples per combo (default 1)
+  --parallel            fire all calls concurrently
+  --bypass-cache        ignore any cached responses
+  --dry-run             list what would run, no API calls
+
+Examples:
+  node schema/spike-runner.js --grade 4 --tier core
+  node schema/spike-runner.js --tier core --parallel
+  node schema/spike-runner.js --dry-run --grade 7
+`);
+}
 
 function summarise(name, result, t0) {
   const ms = Date.now() - t0;
@@ -65,7 +97,7 @@ function summarise(name, result, t0) {
     ? ` rebalance=${rebalance.adjustments.length}nudges`
     : '';
   console.log(
-    `${status} ${name.padEnd(30)} sections=${sectionCount} stimuli=${stimulusCount} leaves=${leafCount} sum=${leafSum}/${ctx.totalMarks} ${cogStr}${rebalanceStr}  (${ms}ms)`,
+    `${status} ${name.padEnd(56)} sections=${sectionCount} stimuli=${stimulusCount} leaves=${leafCount} sum=${leafSum}/${ctx.totalMarks} ${cogStr}${rebalanceStr}  (${ms}ms)`,
   );
   if (rebalance && rebalance.adjustments.length > 0) {
     for (const a of rebalance.adjustments) {
@@ -102,47 +134,88 @@ function leafSumMarks(resource) {
   return n;
 }
 
-async function runOne(cfg) {
+async function runOne(testCase, sampleIndex, totalSamples, args) {
   const t0 = Date.now();
+  const grade = testCase.grade;
+  const sampleSuffix = totalSamples > 1 ? `-sample${sampleIndex + 1}` : '';
+  const outName = `${testCase.id}${sampleSuffix}`;
+  const outDir = join(OUT_DIR, `g${grade}`);
+
   try {
-    const result = await generateV2(cfg.req);
-    mkdirSync(OUT_DIR, { recursive: true });
-    writeFileSync(join(OUT_DIR, `${cfg.name}.json`), JSON.stringify(result.resource, null, 2));
-    summarise(cfg.name, result, t0);
-    return { ok: result.validation.ok };
+    const result = await generateV2({ ...testCase.request, _bypassCache: args.bypassCache });
+    mkdirSync(outDir, { recursive: true });
+    writeFileSync(join(outDir, `${outName}.json`), JSON.stringify(result.resource, null, 2));
+
+    if (result.validation.ok) {
+      const doc = renderResource(result.resource);
+      const buf = await Packer.toBuffer(doc);
+      writeFileSync(join(outDir, `${outName}.docx`), buf);
+    }
+
+    summarise(outName, result, t0);
+    return { ok: result.validation.ok, id: testCase.id };
   } catch (err) {
     const ms = Date.now() - t0;
-    console.log(`ERROR ${cfg.name.padEnd(30)} (${ms}ms) ${err.message}`);
-    if (err.stack) console.log(err.stack.split('\n').slice(0, 3).join('\n'));
-    return { ok: false };
+    console.log(`ERROR ${outName.padEnd(56)} (${ms}ms) ${err.message}`);
+    return { ok: false, id: testCase.id, error: err.message };
   }
 }
 
 async function main() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY not set — cannot run the spike.');
+  const args = parseArgs(process.argv);
+  const cases = filterMatrix(args);
+
+  if (cases.length === 0) {
+    console.log('No test cases match the given filters.');
+    console.log('Available grades: 4, 5, 6, 7');
+    console.log('Try: node schema/spike-runner.js --tier core --grade 4');
     process.exit(1);
   }
 
-  const filter = process.argv[2];
-  const targets = filter ? CONFIGS.filter((c) => c.name === filter) : CONFIGS;
-  if (filter && targets.length === 0) {
-    console.error(`No config named "${filter}". Available: ${CONFIGS.map((c) => c.name).join(', ')}`);
-    process.exit(1);
-  }
-
-  const parallel = process.env.PARALLEL === '1';
-  console.log(`Spike runner — ${targets.length} config(s), ${parallel ? 'parallel' : 'sequential'}`);
+  const cost = estimateCost(cases, args.samples);
+  console.log(`Test runner — ${cases.length} combo(s) × ${args.samples} sample(s) = ${cost.calls} call(s)`);
+  console.log(`Estimated cost: ~$${cost.dollars} (Sonnet 4.6 @ ~$0.12/call)`);
+  console.log(`Output: schema/spike-outputs/g{grade}/`);
   console.log('─'.repeat(80));
 
-  const results = parallel
-    ? await Promise.all(targets.map(runOne))
-    : await targets.reduce(async (acc, c) => [...(await acc), await runOne(c)], Promise.resolve([]));
+  if (args.dryRun) {
+    cases.forEach((c) => {
+      for (let i = 0; i < args.samples; i++) {
+        const sfx = args.samples > 1 ? `-sample${i + 1}` : '';
+        console.log(`  [${c.tier}] g${c.grade}/${c.id}${sfx}.{json,docx}  →  ${c.subject}, term ${c.request.term}, ${c.request.resourceType} ${c.request.totalMarks}m, ${c.request.language}`);
+      }
+    });
+    console.log('─'.repeat(80));
+    console.log('Dry run — no API calls made.');
+    return;
+  }
+
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error('ANTHROPIC_API_KEY not set — cannot run.');
+    process.exit(1);
+  }
+
+  // Build the full task list (case × samples).
+  const tasks = [];
+  for (const c of cases) {
+    for (let i = 0; i < args.samples; i++) {
+      tasks.push({ case: c, sample: i });
+    }
+  }
+
+  const results = args.parallel
+    ? await Promise.all(tasks.map((t) => runOne(t.case, t.sample, args.samples, args)))
+    : await tasks.reduce(async (acc, t) => [...(await acc), await runOne(t.case, t.sample, args.samples, args)], Promise.resolve([]));
 
   const okCount = results.filter((r) => r.ok).length;
   console.log('─'.repeat(80));
-  console.log(`Done: ${okCount}/${results.length} schema-valid. Raw JSON in schema/spike-outputs/.`);
-  if (okCount < results.length) process.exit(2);
+  console.log(`Done: ${okCount}/${results.length} schema-valid. Output in schema/spike-outputs/.`);
+  if (okCount < results.length) {
+    console.log('\nFAILED combos:');
+    results.filter((r) => !r.ok).forEach((r) => console.log(`  - ${r.id}${r.error ? ': ' + r.error : ''}`));
+    process.exit(2);
+  }
+  console.log('\nNext: node schema/flag-outputs.js --grade ' + (args.grade || '<n>') + '  to surface outliers.');
 }
 
 main().catch((err) => {
