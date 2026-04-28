@@ -111,8 +111,11 @@ function summarise(name, result, t0) {
   const rebalanceStr = rebalance && rebalance.adjustments.length > 0
     ? ` rebalance=${rebalance.adjustments.length}nudges`
     : '';
+  // Surface the attempt count when generate() retried (validation-fail loop).
+  // attempts=1 means first attempt succeeded; >1 = retried.
+  const attemptsStr = result.attempts > 1 ? ` attempts=${result.attempts}` : '';
   console.log(
-    `${status} ${name.padEnd(56)} sections=${sectionCount} stimuli=${stimulusCount} leaves=${leafCount} sum=${leafSum}/${ctx.totalMarks} ${cogStr}${rebalanceStr}  (${ms}ms)`,
+    `${status} ${name.padEnd(56)} sections=${sectionCount} stimuli=${stimulusCount} leaves=${leafCount} sum=${leafSum}/${ctx.totalMarks} ${cogStr}${rebalanceStr}${attemptsStr}  (${ms}ms)`,
   );
   if (rebalance && rebalance.adjustments.length > 0) {
     for (const a of rebalance.adjustments) {

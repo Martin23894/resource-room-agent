@@ -268,7 +268,7 @@ function buildUserPrompt(ctx) {
  * - validation: assertResource(resource) result
  */
 export async function generate(req, opts = {}) {
-  const { logger, signal } = opts;
+  const { logger, signal, maxRetries = 2 } = opts;
   const ctx = buildContext(req);
   const inputSchema = narrowSchemaForRequest({
     subject: ctx.subject,
@@ -285,26 +285,56 @@ export async function generate(req, opts = {}) {
   };
 
   const system = buildSystemPrompt(ctx);
-  const user = buildUserPrompt(ctx);
+  const baseUser = buildUserPrompt(ctx);
 
-  const raw = await callAnthropicTool({
-    system,
-    user,
-    tool,
-    model: SONNET_4_6,
-    maxTokens: 16000,
-    cacheSystem: false, // spike: configurations differ; cache won't help much
-    logger,
-    signal,
-    phase: 'generate',
-  });
+  // Retry on schema-validation failure with corrective feedback. Sonnet's
+  // residual structural failure rate (after snap + rebalance) is dominated
+  // by model variance — same prompt, different attempt usually succeeds.
+  // Each retry is a fresh tool call (~$0.12) and includes the prior
+  // failure's error list so the model can self-correct on stable failure
+  // modes (e.g. forgetting to declare a stimulus it referenced).
+  let lastResult = null;
+  let lastErrors = null;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const user = lastErrors
+      ? `${baseUser}\n\nThe previous attempt failed schema validation with these errors:\n${lastErrors.slice(0, 8).map((e) => `  - ${e.path}: ${e.message}`).join('\n')}\nPlease emit a fresh, correct Resource that does not repeat these errors.`
+      : baseUser;
 
-  const resource = unwrapStringifiedBranches(raw);
-  snapTopicsToCanonical(resource);
-  const rebalance = rebalanceMarks(resource);
-  const validation = assertResource(resource);
+    const raw = await callAnthropicTool({
+      system,
+      user,
+      tool,
+      model: SONNET_4_6,
+      maxTokens: 16000,
+      cacheSystem: false, // spike: configurations differ; cache won't help much
+      logger,
+      signal,
+      phase: attempt === 0 ? 'generate' : `generate-retry-${attempt}`,
+    });
 
-  return { resource, validation, rebalance, model: SONNET_4_6, ctx };
+    const resource = unwrapStringifiedBranches(raw);
+    snapTopicsToCanonical(resource);
+    const rebalance = rebalanceMarks(resource);
+    const validation = assertResource(resource);
+
+    lastResult = { resource, validation, rebalance, model: SONNET_4_6, ctx, attempts: attempt + 1 };
+
+    if (validation.ok) return lastResult;
+
+    // Validation failed. If we have retries left, log + loop with the
+    // error list to give Sonnet corrective context.
+    if (attempt < maxRetries) {
+      logger?.warn?.(
+        { attempt: attempt + 1, errorCount: validation.errors.length, sampleErrors: validation.errors.slice(0, 3) },
+        'Schema validation failed; retrying with corrective feedback',
+      );
+      lastErrors = validation.errors;
+    }
+  }
+
+  // All retries exhausted — return the last attempt with attempts count
+  // so the caller can surface "we tried N times and still failed" cleanly.
+  return lastResult;
 }
 
 /**

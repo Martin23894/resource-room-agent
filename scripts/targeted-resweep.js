@@ -77,13 +77,14 @@ async function main() {
       }
       const status = result.validation.ok ? 'OK  ' : 'FAIL';
       const nudges = result.rebalance.adjustments.length;
-      console.log(`${status} ${c.id.padEnd(56)} nudges=${nudges} (${Date.now() - t0}ms)`);
+      const attemptsStr = result.attempts > 1 ? ` attempts=${result.attempts}` : '';
+      console.log(`${status} ${c.id.padEnd(56)} nudges=${nudges}${attemptsStr} (${Date.now() - t0}ms)`);
       if (!result.validation.ok) {
         for (const e of result.validation.errors.slice(0, 3)) {
           console.log(`     ↳ ${e.path}: ${e.message}`);
         }
       }
-      summary.push({ id: c.id, ok: result.validation.ok, nudges });
+      summary.push({ id: c.id, ok: result.validation.ok, nudges, attempts: result.attempts });
     } catch (err) {
       console.log(`ERR  ${c.id.padEnd(56)} ${err.message}`);
       summary.push({ id: c.id, ok: false, error: err.message });
