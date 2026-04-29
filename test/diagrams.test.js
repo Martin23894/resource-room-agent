@@ -8,9 +8,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { Packer } from 'docx';
+import JSZip from 'jszip';
+
 import { renderDiagram, listDiagramTypes } from '../lib/diagrams/index.js';
 import { renderBarGraph } from '../lib/diagrams/bar_graph.js';
 import { rasterSvgToPng } from '../lib/diagrams/raster.js';
+import { assertResource } from '../schema/resource.schema.js';
+import { renderResource } from '../lib/render.js';
 
 const sampleSpec = {
   type: 'bar_graph',
@@ -84,4 +89,113 @@ test('rasterSvgToPng returns a non-trivial PNG buffer', () => {
   assert.equal(png[3], 0x47);
   // Should be > 1KB for any realistic chart
   assert.ok(png.length > 1000, `PNG too small: ${png.length} bytes`);
+});
+
+// ── Phase 2: end-to-end with a Resource containing a diagram stimulus ──
+test('renderResource embeds the rendered diagram in the DOCX', async () => {
+  const resource = {
+    meta: {
+      schemaVersion: '1.0',
+      subject: 'Mathematics', grade: 4, term: 1, language: 'English',
+      resourceType: 'Worksheet',
+      totalMarks: 4,
+      duration: { minutes: 30 },
+      difficulty: 'on',
+      cognitiveFramework: { name: "Bloom's", levels: [
+        { name: 'Knowledge',          percent: 50, prescribedMarks: 2 },
+        { name: 'Routine Procedures', percent: 50, prescribedMarks: 2 },
+      ] },
+      topicScope: { coversTerms: [1], topics: ['Data handling: bar graphs'] },
+    },
+    cover: {
+      resourceTypeLabel: 'WORKSHEET', subjectLine: 'Mathematics',
+      gradeLine: 'Grade 4', termLine: 'Term 1',
+      learnerInfoFields: [{ kind: 'name', label: 'Name' }, { kind: 'date', label: 'Date' }],
+      instructions: { heading: 'Instructions', items: ['Answer all questions.'] },
+    },
+    stimuli: [{
+      id: 'bar-graph-fruit',
+      kind: 'diagram',
+      heading: 'BAR GRAPH · FAVOURITE FRUIT',
+      altText: 'Bar graph showing learners voting for fruit.',
+      spec: sampleSpec,
+    }],
+    sections: [{
+      letter: null, title: 'QUESTIONS',
+      instructions: 'Use the bar graph to answer.',
+      stimulusRefs: ['bar-graph-fruit'],
+      questions: [
+        { number: '1', type: 'ShortAnswer', topic: 'Data handling: bar graphs',
+          stem: 'Which fruit was the most popular?',
+          marks: 2, cognitiveLevel: 'Knowledge',
+          answerSpace: { kind: 'lines', lines: 1 } },
+        { number: '2', type: 'Calculation', topic: 'Data handling: bar graphs',
+          stem: 'How many learners voted in total?',
+          marks: 2, cognitiveLevel: 'Routine Procedures',
+          answerSpace: { kind: 'workingPlusAnswer' } },
+      ],
+    }],
+    memo: { answers: [
+      { questionNumber: '1', answer: 'Banana', cognitiveLevel: 'Knowledge', marks: 2 },
+      { questionNumber: '2', answer: '38',     cognitiveLevel: 'Routine Procedures', marks: 2 },
+    ] },
+  };
+
+  // Structural validation passes
+  assertResource(resource);
+
+  // Renders to a DOCX buffer with an embedded image
+  const doc = renderResource(resource);
+  const buf = await Packer.toBuffer(doc);
+  assert.ok(buf.length > 5000, `DOCX too small: ${buf.length} bytes`);
+
+  // Inspect the zip contents directly — the PNG is compressed inside the
+  // zip so a raw-buffer signature scan would not see it.
+  const zip = await JSZip.loadAsync(buf);
+  const mediaPaths = Object.keys(zip.files).filter((p) => /^word\/media\/.+\.png$/.test(p));
+  assert.ok(mediaPaths.length >= 1, `DOCX has no embedded PNG (paths: ${Object.keys(zip.files).join(', ')})`);
+});
+
+test('renderResource falls back gracefully on a malformed spec', async () => {
+  const resource = {
+    meta: {
+      schemaVersion: '1.0',
+      subject: 'Mathematics', grade: 4, term: 1, language: 'English',
+      resourceType: 'Worksheet', totalMarks: 1, duration: { minutes: 30 },
+      difficulty: 'on',
+      cognitiveFramework: { name: "Bloom's", levels: [{ name: 'Knowledge', percent: 100, prescribedMarks: 1 }] },
+      topicScope: { coversTerms: [1], topics: ['Data handling: bar graphs'] },
+    },
+    cover: {
+      resourceTypeLabel: 'WORKSHEET', subjectLine: 'Mathematics',
+      gradeLine: 'Grade 4', termLine: 'Term 1',
+      learnerInfoFields: [{ kind: 'name', label: 'Name' }],
+      instructions: { heading: 'Instructions', items: ['Answer all questions.'] },
+    },
+    stimuli: [{
+      id: 'broken',
+      kind: 'diagram',
+      heading: 'BROKEN DIAGRAM',
+      altText: 'Description used as fallback when render fails.',
+      description: 'A bar graph that cannot be drawn.',
+      spec: { type: 'bar_graph', bars: [{ label: 'only one', value: 1 }] }, // <2 bars → renderer throws
+    }],
+    sections: [{
+      letter: null, title: 'QUESTIONS',
+      stimulusRefs: ['broken'],
+      questions: [
+        { number: '1', type: 'ShortAnswer', topic: 'Data handling: bar graphs',
+          stem: 'Test fallback.', marks: 1, cognitiveLevel: 'Knowledge',
+          answerSpace: { kind: 'lines', lines: 1 } },
+      ],
+    }],
+    memo: { answers: [
+      { questionNumber: '1', answer: '?', cognitiveLevel: 'Knowledge', marks: 1 },
+    ] },
+  };
+
+  // Should still render (with a fallback message); no throw.
+  const doc = renderResource(resource);
+  const buf = await Packer.toBuffer(doc);
+  assert.ok(buf.length > 1000);
 });

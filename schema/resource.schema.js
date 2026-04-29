@@ -217,7 +217,7 @@ export const resourceSchema = {
         // in the runtime validator below (assertResource).
         body:        { type: 'string', description: 'Required for kind=passage|scenario.' },
         wordCount:   { type: 'integer', minimum: 1 },
-        description: { type: 'string', description: 'Required for kind=visualText|diagram (verbal description, since the system cannot generate images).' },
+        description: { type: 'string', description: 'Verbal description. Required for kind=visualText. Optional for kind=diagram when a spec is provided (used as alt-text + fallback) and required when no spec is provided.' },
         table: {
           type: 'object',
           required: ['headers', 'rows'],
@@ -227,7 +227,61 @@ export const resourceSchema = {
             rows:    { type: 'array', minItems: 1, items: { type: 'array', items: { type: 'string' } } },
           },
         },
-        altText:     { type: 'string', description: 'Used when kind=diagram to describe the image-equivalent in words.' },
+        altText:     { type: 'string', description: 'Used when kind=diagram to describe the image-equivalent in words. ALWAYS include this even when spec is provided — used as accessibility text and as the fallback when the renderer is unavailable.' },
+        // ── Renderable diagram spec (kind=diagram only) ───────────────
+        // When present, the renderer rasterises this to a real image
+        // embedded in the DOCX. The verbal `description` becomes the
+        // alt-text fallback. Only registered types render — anything
+        // else falls back to the verbal description.
+        spec: { $ref: '#/$defs/diagramSpec' },
+      },
+    },
+
+    // ─────────────────────────────────────────────────────────────────
+    // DIAGRAM SPEC — discriminated by `type`. Each renderer in
+    // lib/diagrams/<type>.js owns the visual; this schema is the
+    // contract between Claude and the renderer.
+    //
+    // ───── PEDAGOGICAL RULE ─────
+    // Diagram callouts MUST use keys (A, B, C / 1, 2, 3), never names
+    // or definitions. The diagram tests RECALL of the labelled thing —
+    // if the diagram says "Roots — absorb water and nutrients", the
+    // learner is reading, not knowing. Question stems then ask "Name
+    // the part labelled A", "What is the function of part B?", etc.
+    // ─────────────────────────────────────────────────────────────────
+    diagramSpec: {
+      type: 'object',
+      oneOf: [
+        { $ref: '#/$defs/diagramSpec_barGraph' },
+      ],
+    },
+
+    diagramSpec_barGraph: {
+      type: 'object',
+      required: ['type', 'bars'],
+      additionalProperties: false,
+      description: 'Vertical bar graph for data handling, climate (rainfall by month), survey results, etc. Use for any "study the bar graph" question. The renderer auto-fits the y-axis.',
+      properties: {
+        type:    { const: 'bar_graph' },
+        title:   { type: 'string', description: 'Optional title shown above the chart.' },
+        x_label: { type: 'string', description: 'Category-axis label, e.g. "Month", "Type of fruit".' },
+        y_label: { type: 'string', description: 'Value-axis label, e.g. "Number of learners", "Rainfall (mm)".' },
+        bars: {
+          type: 'array',
+          minItems: 2, maxItems: 10,
+          description: '2–10 bars. Labels are categories (Apple, Banana). Values are non-negative numbers.',
+          items: {
+            type: 'object',
+            required: ['label', 'value'],
+            additionalProperties: false,
+            properties: {
+              label: { type: 'string', minLength: 1, maxLength: 30 },
+              value: { type: 'number', minimum: 0 },
+            },
+          },
+        },
+        y_max:  { type: 'number', minimum: 0, description: 'Optional axis ceiling. Omit to auto-fit.' },
+        y_step: { type: 'number', exclusiveMinimum: 0, description: 'Optional gridline step. Omit to auto-fit.' },
       },
     },
 
