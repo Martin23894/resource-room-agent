@@ -1,5 +1,5 @@
 import { logger as defaultLogger } from '../lib/logger.js';
-import { callAnthropic, AnthropicError } from '../lib/anthropic.js';
+import { callAnthropic, AnthropicError, HAIKU_MODEL } from '../lib/anthropic.js';
 import { str, int, oneOf, teacherGuidance as vGuidance, buildGuidanceBlock, ValidationError } from '../lib/validate.js';
 
 export default async function handler(req, res) {
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     'Return the complete updated resource as JSON. The "content" field must contain ONLY the resource — no reasoning, no explanations, no meta-commentary. Keep all [DIAGRAM_N] placeholders exactly in place.';
 
   try {
-    const raw = await callAnthropic({ system, user, maxTokens: 6000, logger: log });
+    const raw = await callAnthropic({ system, user, model: HAIKU_MODEL, maxTokens: 6000, logger: log });
 
     const clean = raw.replace(/```json|```/g, '').trim();
     let parsed;

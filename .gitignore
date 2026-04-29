@@ -3,6 +3,7 @@ node_modules/
 .DS_Store
 *.log
 data/cache.db*
+data/bench/
 schema/spike-outputs*/
 schema/g*-teacher-review/
 g*-teacher-review.zip

@@ -18,7 +18,8 @@ import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schem
 import { rebalanceMarks } from '../lib/rebalance.js';
 import { renderResource } from '../lib/render.js';
 import { createEventChannel } from '../lib/sse.js';
-import { str, int, oneOf, ValidationError } from '../lib/validate.js';
+import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
+import { cacheGet, cacheSet } from '../lib/cache.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 
 const SONNET_4_6 = 'claude-sonnet-4-6';
@@ -314,7 +315,13 @@ export async function generate(req, opts = {}) {
       tool,
       model: SONNET_4_6,
       maxTokens: 16000,
-      cacheSystem: false, // spike: configurations differ; cache won't help much
+      // Prompt cache the system prompt. Repeated calls for the same
+      // {subject, grade, term, language, resourceType} produce identical
+      // system prompts and tool schemas — within the 5-minute ephemeral
+      // window the cache pays back ~90% of input cost on hits. The retry
+      // attempts within a single request also self-cache (system identical
+      // across attempts; only the user message differs).
+      cacheSystem: true,
       logger,
       signal,
       phase: attempt === 0 ? 'generate' : `generate-retry-${attempt}`,
@@ -507,7 +514,7 @@ function levenshtein(a, b) {
 }
 
 // Exposed for the spike runner.
-export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches, snapTopicsToCanonical, collapseDuplicateRuns, levenshtein };
+export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches, snapTopicsToCanonical, collapseDuplicateRuns, levenshtein, buildCacheKey };
 
 // ─────────────────────────────────────────────────────────────────────
 // EXPRESS HANDLER
@@ -525,8 +532,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   let parsed;
+  let bypassCache;
   try {
     parsed = parseRequest(req.body || {});
+    bypassCache = bool(req.body?.fresh);
   } catch (err) {
     if (err instanceof ValidationError) {
       return res.status(400).json({ error: err.message, field: err.field });
@@ -537,6 +546,20 @@ export default async function handler(req, res) {
   const channel = createEventChannel(req, res);
   const abort = new AbortController();
   channel.onClose(() => abort.abort());
+
+  // Result cache: identical request params within the TTL window return the
+  // cached payload without an Anthropic call. Pass {fresh:true} to bypass.
+  // Same response shape; _meta.cached signals the source for observability.
+  const cacheKey = buildCacheKey(parsed);
+  if (!bypassCache) {
+    const cached = safeCacheGet(cacheKey, log);
+    if (cached) {
+      log.info?.({ cacheKey }, 'generate: cache hit');
+      channel.sendPhase('cache', 'hit');
+      channel.sendResult({ ...cached, _meta: { ...(cached._meta || {}), cached: true } });
+      return;
+    }
+  }
 
   try {
     channel.sendPhase('generate', 'started');
@@ -569,7 +592,7 @@ export default async function handler(req, res) {
     const filename = buildFilename(parsed);
     const preview = buildTextPreview(resource);
 
-    channel.sendResult({
+    const payload = {
       docxBase64: buf.toString('base64'),
       preview,
       filename,
@@ -579,7 +602,9 @@ export default async function handler(req, res) {
         rebalanceNudges: rebalance.adjustments.length,
         framework: ctx.frameworkName,
       },
-    });
+    };
+    channel.sendResult(payload);
+    safeCacheSet(cacheKey, payload, log);
   } catch (err) {
     log.error({ err: err?.message || err }, 'generate failed');
     if (channel.isSSE) channel.sendError(err);
@@ -602,6 +627,25 @@ function parseRequest(body) {
 
 function buildFilename({ subject, resourceType, grade, term }) {
   return `${subject}-${resourceType}-Grade${grade}-Term${term}`.replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
+}
+
+// Cache key derived from the seven canonical request fields. Order is fixed
+// so two requests with the same params produce the same key regardless of
+// JSON property order. Bumping the v2 prefix invalidates the whole cache
+// when the response shape changes (DOCX renderer upgrades, _meta additions).
+function buildCacheKey({ subject, grade, term, language, resourceType, totalMarks, difficulty }) {
+  const norm = { subject, grade, term, language, resourceType, totalMarks, difficulty };
+  return `gen:v2:${JSON.stringify(norm)}`;
+}
+
+function safeCacheGet(key, log) {
+  try { return cacheGet(key); }
+  catch (err) { log?.warn?.({ err: err?.message }, 'generate: cache lookup failed'); return null; }
+}
+
+function safeCacheSet(key, payload, log) {
+  try { cacheSet(key, payload); }
+  catch (err) { log?.warn?.({ err: err?.message }, 'generate: cache write failed'); }
 }
 
 // Plain-text preview synthesised from the Resource. Used by the frontend
