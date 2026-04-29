@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380" preserveAspectRatio="xMidYMid meet" font-family="'Source Serif 4', Cambria, Georgia, serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#eaf2f6"/>
+      <stop offset="100%" stop-color="#f7f4ec"/>
+    </linearGradient>
+    <linearGradient id="earth" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#b08868"/>
+      <stop offset="100%" stop-color="#7a5b3e"/>
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"  stop-color="#83a868"/>
+      <stop offset="100%" stop-color="#4f7a3c"/>
+    </linearGradient>
+    <linearGradient id="petal" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#f4c373"/>
+      <stop offset="100%" stop-color="#e89a3c"/>
+    </linearGradient>
+  </defs>
+
+  <!-- background -->
+  <rect x="0" y="0" width="700" height="260" fill="url(#sky)"/>
+  <rect x="0" y="260" width="700" height="120" fill="url(#earth)"/>
+  <line x1="0" y1="260" x2="700" y2="260" stroke="#5a4023" stroke-width="0.8"/>
+
+  <!-- ROOTS -->
+  <g stroke="#3f2a18" stroke-linecap="round" fill="none">
+    <path d="M350,260 C350,290 332,308 318,330" stroke-width="2.4"/>
+    <path d="M350,260 C354,288 372,308 392,332" stroke-width="2.4"/>
+    <path d="M350,260 C346,294 340,318 336,348" stroke-width="2.2"/>
+    <path d="M350,260 C358,290 366,316 372,346" stroke-width="2.0"/>
+    <!-- root hairs -->
+    <path d="M324,326 l-7,4 M328,332 l-7,3 M390,326 l7,4 M386,332 l7,3 M340,338 l-6,3 M368,338 l6,3" stroke-width="0.9"/>
+  </g>
+
+  <!-- STEM -->
+  <path d="M350,260 C348,210 352,170 350,120" stroke="#5a7c3a" stroke-width="5" fill="none" stroke-linecap="round"/>
+
+  <!-- LEAF (left, lower) -->
+  <g>
+    <path d="M350,205 C310,200 270,200 248,222 C266,236 308,238 350,212 Z"
+          fill="url(#leafGrad)" stroke="#3a5a2a" stroke-width="0.8"/>
+    <path d="M350,210 C320,214 290,218 260,222" stroke="#3a5a2a" stroke-width="0.6" fill="none"/>
+    <path d="M328,212 l-4,8 M308,214 l-5,9 M290,218 l-6,9" stroke="#3a5a2a" stroke-width="0.4" fill="none"/>
+  </g>
+
+  <!-- LEAF (right, upper) -->
+  <g>
+    <path d="M350,170 C390,164 432,164 456,184 C436,200 392,202 350,178 Z"
+          fill="url(#leafGrad)" stroke="#3a5a2a" stroke-width="0.8"/>
+    <path d="M350,174 C382,178 412,182 444,184" stroke="#3a5a2a" stroke-width="0.6" fill="none"/>
+    <path d="M376,176 l5,8 M398,180 l5,8 M420,182 l6,8" stroke="#3a5a2a" stroke-width="0.4" fill="none"/>
+  </g>
+
+  <!-- LEAF (left, upper, smaller) -->
+  <g>
+    <path d="M350,148 C322,142 296,144 282,158 C298,170 326,170 350,154 Z"
+          fill="url(#leafGrad)" stroke="#3a5a2a" stroke-width="0.8"/>
+    <path d="M350,151 C326,156 308,158 290,160" stroke="#3a5a2a" stroke-width="0.5" fill="none"/>
+  </g>
+
+  <!-- FLOWER -->
+  <g transform="translate(350,108)">
+    <!-- petals -->
+    <ellipse cx="0"   cy="-22" rx="14" ry="20" fill="url(#petal)" stroke="#a8651a" stroke-width="0.6"/>
+    <ellipse cx="22"  cy="-8"  rx="20" ry="14" fill="url(#petal)" stroke="#a8651a" stroke-width="0.6" transform="rotate(35)"/>
+    <ellipse cx="14"  cy="20"  rx="14" ry="20" fill="url(#petal)" stroke="#a8651a" stroke-width="0.6" transform="rotate(70)"/>
+    <ellipse cx="-14" cy="20"  rx="14" ry="20" fill="url(#petal)" stroke="#a8651a" stroke-width="0.6" transform="rotate(-70)"/>
+    <ellipse cx="-22" cy="-8"  rx="20" ry="14" fill="url(#petal)" stroke="#a8651a" stroke-width="0.6" transform="rotate(-35)"/>
+    <!-- centre -->
+    <circle cx="0" cy="0" r="9" fill="#7a4a14" stroke="#4d2d09" stroke-width="0.6"/>
+    <circle cx="-3" cy="-2" r="1.8" fill="#fbe4a0"/>
+    <circle cx="3"  cy="2"  r="1.8" fill="#fbe4a0"/>
+    <circle cx="3"  cy="-3" r="1.4" fill="#fbe4a0"/>
+  </g>
+
+  <!-- LABELS — letters only (no part names, no functions) -->
+  <g font-family="'Inter', sans-serif" font-weight="700" font-size="14" fill="#085041">
+    <!-- A — Flower -->
+    <path d="M388,108 C440,108 480,108 516,108" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <circle cx="388" cy="108" r="2" fill="#6a6a6a"/>
+    <circle cx="528" cy="108" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="528" y="113" text-anchor="middle">A</text>
+
+    <!-- B — Leaf -->
+    <path d="M444,184 C490,188 520,196 552,200" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <circle cx="444" cy="184" r="2" fill="#6a6a6a"/>
+    <circle cx="566" cy="200" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="566" y="205" text-anchor="middle">B</text>
+
+    <!-- C — Stem -->
+    <path d="M352,228 C400,232 444,250 498,254" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <circle cx="352" cy="228" r="2" fill="#6a6a6a"/>
+    <circle cx="512" cy="254" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="512" y="259" text-anchor="middle">C</text>
+
+    <!-- D — Roots -->
+    <path d="M392,332 C440,328 472,322 506,318" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <circle cx="392" cy="332" r="2" fill="#6a6a6a"/>
+    <circle cx="520" cy="318" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="520" y="323" text-anchor="middle">D</text>
+
+    <!-- E — Petal -->
+    <path d="M328,86 C260,80 220,80 184,86" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <circle cx="328" cy="86" r="2" fill="#6a6a6a"/>
+    <circle cx="172" cy="86" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="172" y="91" text-anchor="middle">E</text>
+  </g>
+</svg>

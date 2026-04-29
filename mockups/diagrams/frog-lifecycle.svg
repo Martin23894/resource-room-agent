@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 460" preserveAspectRatio="xMidYMid meet" font-family="'Source Serif 4', Cambria, Georgia, serif">
+  <defs>
+    <radialGradient id="pond" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"  stop-color="#e6eee6"/>
+      <stop offset="100%" stop-color="#d3e3d8"/>
+    </radialGradient>
+    <linearGradient id="frogBody" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#7ea24f"/>
+      <stop offset="100%" stop-color="#4f7a3c"/>
+    </linearGradient>
+    <linearGradient id="tadpole" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%"  stop-color="#3f5a2a"/>
+      <stop offset="100%" stop-color="#7a9a55"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6a6a6a"/>
+    </marker>
+  </defs>
+
+  <!-- soft pond circle -->
+  <circle cx="350" cy="230" r="195" fill="url(#pond)" stroke="#a8c0a0" stroke-width="0.8" stroke-dasharray="3 3"/>
+
+  <!-- centre label -->
+  <text x="350" y="222" text-anchor="middle" font-style="italic" font-size="14" fill="#4a4a4a">a frog grows in</text>
+  <text x="350" y="244" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="15" fill="#085041">FOUR STAGES</text>
+
+  <!-- ── STAGE 1 (top): Frog spawn ── -->
+  <g transform="translate(350,80)">
+    <circle r="44" fill="#fff" stroke="#a8c0a0" stroke-width="0.8"/>
+    <!-- spawn cluster -->
+    <g>
+      <circle cx="-14" cy="-10" r="9" fill="#cfdfd0" stroke="#7a9a78" stroke-width="0.6"/>
+      <circle cx="-14" cy="-10" r="3" fill="#1a1a1a"/>
+      <circle cx="2"   cy="-12" r="9" fill="#cfdfd0" stroke="#7a9a78" stroke-width="0.6"/>
+      <circle cx="2"   cy="-12" r="3" fill="#1a1a1a"/>
+      <circle cx="18"  cy="-8"  r="9" fill="#cfdfd0" stroke="#7a9a78" stroke-width="0.6"/>
+      <circle cx="18"  cy="-8"  r="3" fill="#1a1a1a"/>
+      <circle cx="-6"  cy="6"   r="9" fill="#cfdfd0" stroke="#7a9a78" stroke-width="0.6"/>
+      <circle cx="-6"  cy="6"   r="3" fill="#1a1a1a"/>
+      <circle cx="10"  cy="8"   r="9" fill="#cfdfd0" stroke="#7a9a78" stroke-width="0.6"/>
+      <circle cx="10"  cy="8"   r="3" fill="#1a1a1a"/>
+      <circle cx="-22" cy="8"   r="9" fill="#cfdfd0" stroke="#7a9a78" stroke-width="0.6"/>
+      <circle cx="-22" cy="8"   r="3" fill="#1a1a1a"/>
+    </g>
+    <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 1</text>
+  </g>
+
+  <!-- ── STAGE 2 (right): Tadpole ── -->
+  <g transform="translate(560,230)">
+    <circle r="44" fill="#fff" stroke="#a8c0a0" stroke-width="0.8"/>
+    <g>
+      <!-- body -->
+      <ellipse cx="-6" cy="0" rx="18" ry="11" fill="url(#tadpole)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- tail -->
+      <path d="M10,0 C22,-4 30,-2 34,-8 C30,2 30,4 34,12 C28,8 22,4 10,2 Z" fill="url(#tadpole)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- eye -->
+      <circle cx="-14" cy="-3" r="2.4" fill="#fff"/>
+      <circle cx="-14" cy="-3" r="1.2" fill="#1a1a1a"/>
+    </g>
+    <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 2</text>
+  </g>
+
+  <!-- ── STAGE 3 (bottom): Froglet ── -->
+  <g transform="translate(350,380)">
+    <circle r="44" fill="#fff" stroke="#a8c0a0" stroke-width="0.8"/>
+    <g>
+      <!-- froglet body -->
+      <ellipse cx="0" cy="0" rx="18" ry="13" fill="url(#frogBody)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- head bulge -->
+      <ellipse cx="-6" cy="-8" rx="10" ry="7" fill="url(#frogBody)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- tail (still present, shrinking) -->
+      <path d="M16,2 C24,4 28,4 30,8 C26,8 22,8 16,8 Z" fill="url(#tadpole)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- legs -->
+      <path d="M-6,10 C-12,16 -14,20 -10,22" stroke="#2a3f18" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <path d="M6,10 C12,16 14,20 10,22" stroke="#2a3f18" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+      <!-- eyes -->
+      <circle cx="-9" cy="-12" r="2.2" fill="#fff"/>
+      <circle cx="-9" cy="-12" r="1.1" fill="#1a1a1a"/>
+      <circle cx="-2" cy="-13" r="2.2" fill="#fff"/>
+      <circle cx="-2" cy="-13" r="1.1" fill="#1a1a1a"/>
+    </g>
+    <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 3</text>
+  </g>
+
+  <!-- ── STAGE 4 (left): Adult frog ── -->
+  <g transform="translate(140,230)">
+    <circle r="44" fill="#fff" stroke="#a8c0a0" stroke-width="0.8"/>
+    <g>
+      <!-- body -->
+      <ellipse cx="0" cy="2" rx="22" ry="14" fill="url(#frogBody)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- head -->
+      <ellipse cx="0" cy="-10" rx="16" ry="11" fill="url(#frogBody)" stroke="#2a3f18" stroke-width="0.6"/>
+      <!-- eye humps -->
+      <circle cx="-9" cy="-18" r="5" fill="url(#frogBody)" stroke="#2a3f18" stroke-width="0.6"/>
+      <circle cx="9"  cy="-18" r="5" fill="url(#frogBody)" stroke="#2a3f18" stroke-width="0.6"/>
+      <circle cx="-9" cy="-18" r="2.4" fill="#fff"/>
+      <circle cx="-9" cy="-18" r="1.2" fill="#1a1a1a"/>
+      <circle cx="9"  cy="-18" r="2.4" fill="#fff"/>
+      <circle cx="9"  cy="-18" r="1.2" fill="#1a1a1a"/>
+      <!-- legs -->
+      <path d="M-18,8 C-26,16 -28,22 -22,26 C-18,22 -16,18 -14,14" stroke="#2a3f18" stroke-width="1.6" fill="url(#frogBody)" />
+      <path d="M18,8 C26,16 28,22 22,26 C18,22 16,18 14,14" stroke="#2a3f18" stroke-width="1.6" fill="url(#frogBody)"/>
+      <!-- mouth -->
+      <path d="M-6,-8 Q0,-6 6,-8" stroke="#2a3f18" stroke-width="0.8" fill="none"/>
+    </g>
+    <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 4</text>
+  </g>
+
+  <!-- arrows along the cycle -->
+  <g fill="none" stroke="#6a6a6a" stroke-width="1.2">
+    <!-- top → right -->
+    <path d="M408,108 C480,128 538,168 558,196" marker-end="url(#arrow)"/>
+    <!-- right → bottom -->
+    <path d="M558,272 C540,328 480,360 410,376" marker-end="url(#arrow)"/>
+    <!-- bottom → left -->
+    <path d="M292,376 C220,360 162,328 142,272" marker-end="url(#arrow)"/>
+    <!-- left → top -->
+    <path d="M142,196 C162,128 222,108 292,108" marker-end="url(#arrow)"/>
+  </g>
+</svg>
