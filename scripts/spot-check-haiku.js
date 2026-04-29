@@ -33,11 +33,7 @@ async function checkCover() {
     await coverHandler(mockReq(c), r);
     console.log(`\n→ ${c.subject} G${c.grade} ${c.resourceType}  (${Date.now() - t0}ms, status=${r.statusCode})`);
     if (r.statusCode !== 200) { console.log('ERROR:', r.payload); continue; }
-    const p = r.payload;
-    console.log(`  title: ${p.title}`);
-    console.log(`  description: ${p.description}`);
-    console.log(`  whatIncluded: ${(p.whatIncluded || []).map((x) => `\n    - ${x}`).join('')}`);
-    console.log(`  suggestedPrice: ${p.suggestedPrice}  keywords: ${(p.keywords || []).join(', ')}`);
+    console.log(JSON.stringify(r.payload, null, 2));
   }
 }
 
