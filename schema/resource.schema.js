@@ -253,7 +253,41 @@ export const resourceSchema = {
       type: 'object',
       oneOf: [
         { $ref: '#/$defs/diagramSpec_barGraph' },
+        { $ref: '#/$defs/diagramSpec_numberLine' },
       ],
+    },
+
+    diagramSpec_numberLine: {
+      type: 'object',
+      required: ['type', 'range', 'step'],
+      additionalProperties: false,
+      description: 'Horizontal number line with major (and optional minor) ticks. Use for ordering whole numbers, rounding, locating fractions or decimals, or "place X on the line" prompts. When the question asks the learner to identify the value at a marked spot, label the marks with keys (single letters A/B/C…) — NEVER put the value itself on the mark, that would just give the answer away.',
+      properties: {
+        type:       { const: 'number_line' },
+        title:      { type: 'string', description: 'Optional caption shown above the line.' },
+        range:      {
+          type: 'array',
+          minItems: 2, maxItems: 2,
+          items: { type: 'number' },
+          description: '[start, end]. start must be < end. Choose a range that brackets the values you care about with a little padding (e.g. for placing 35, 67 use [0, 100]).',
+        },
+        step:       { type: 'number', exclusiveMinimum: 0, description: 'Major tick spacing. Should divide the range into 4–12 ticks.' },
+        minor_step: { type: 'number', exclusiveMinimum: 0, description: 'Optional finer tick spacing; must be smaller than step.' },
+        marks: {
+          type: 'array',
+          maxItems: 10,
+          description: '0–10 highlighted points on the line. Each may carry a single-letter label (A, B, C…) for recall questions; omit the label when the question is "place 35 on the line" rather than "what is the value at A".',
+          items: {
+            type: 'object',
+            required: ['value'],
+            additionalProperties: false,
+            properties: {
+              value: { type: 'number' },
+              label: { type: 'string', minLength: 1, maxLength: 8 },
+            },
+          },
+        },
+      },
     },
 
     diagramSpec_barGraph: {

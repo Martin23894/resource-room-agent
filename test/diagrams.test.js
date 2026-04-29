@@ -12,7 +12,8 @@ import { Packer } from 'docx';
 import JSZip from 'jszip';
 
 import { renderDiagram, listDiagramTypes } from '../lib/diagrams/index.js';
-import { renderBarGraph } from '../lib/diagrams/bar_graph.js';
+import { renderBarGraph }   from '../lib/diagrams/bar_graph.js';
+import { renderNumberLine } from '../lib/diagrams/number_line.js';
 import { rasterSvgToPng } from '../lib/diagrams/raster.js';
 import { assertResource } from '../schema/resource.schema.js';
 import { renderResource } from '../lib/render.js';
@@ -32,7 +33,7 @@ const sampleSpec = {
 };
 
 test('listDiagramTypes returns the registered renderers', () => {
-  assert.deepEqual(listDiagramTypes(), ['bar_graph']);
+  assert.deepEqual(listDiagramTypes().sort(), ['bar_graph', 'number_line']);
 });
 
 test('renderDiagram dispatches by spec.type', () => {
@@ -89,6 +90,69 @@ test('rasterSvgToPng returns a non-trivial PNG buffer', () => {
   assert.equal(png[3], 0x47);
   // Should be > 1KB for any realistic chart
   assert.ok(png.length > 1000, `PNG too small: ${png.length} bytes`);
+});
+
+// ── number_line tests ──
+const sampleNumberLine = {
+  type: 'number_line',
+  title: 'Whole numbers from 0 to 100',
+  range: [0, 100],
+  step: 10,
+  marks: [
+    { value: 35, label: 'A' },
+    { value: 67, label: 'B' },
+  ],
+};
+
+test('renderNumberLine produces well-formed SVG with axis + ticks + marks', () => {
+  const svg = renderNumberLine(sampleNumberLine);
+  assert.match(svg, /^<svg [^>]*viewBox/);
+  assert.match(svg, /<\/svg>$/);
+  assert.match(svg, /class="nl-axis"/);
+  // 11 major ticks (0..100 step 10)
+  assert.equal((svg.match(/class="nl-tick-major"/g) || []).length, 11);
+  // 2 marks rendered
+  assert.equal((svg.match(/class="nl-mark"/g) || []).length, 2);
+  // Both letter labels appear
+  assert.match(svg, /class="nl-mark-label"[^>]*>A</);
+  assert.match(svg, /class="nl-mark-label"[^>]*>B</);
+});
+
+test('renderNumberLine adds minor ticks when minor_step is provided', () => {
+  const svg = renderNumberLine({ ...sampleNumberLine, minor_step: 2 });
+  // Range 0..100 step 10 minor 2 → 50 minor positions, minus 11 that are also major = 40
+  const minor = (svg.match(/class="nl-tick-minor"/g) || []).length;
+  assert.ok(minor >= 35 && minor <= 45, `unexpected minor tick count: ${minor}`);
+});
+
+test('renderNumberLine works without marks (plain axis)', () => {
+  const svg = renderNumberLine({ type: 'number_line', range: [0, 50], step: 5 });
+  assert.equal((svg.match(/class="nl-mark"/g) || []).length, 0);
+});
+
+test('renderNumberLine rejects invalid specs', () => {
+  assert.throws(() => renderNumberLine(null),                                       /spec must be an object/);
+  assert.throws(() => renderNumberLine({ type: 'number_line', step: 10 }),          /range must be \[start, end\]/);
+  assert.throws(() => renderNumberLine({ type: 'number_line', range: [10, 0], step: 5 }), /start must be less/);
+  assert.throws(() => renderNumberLine({ type: 'number_line', range: [0, 100], step: 0 }), /step must be > 0/);
+  assert.throws(() => renderNumberLine({ type: 'number_line', range: [0, 100], step: 200 }), /larger than the range/);
+  assert.throws(() => renderNumberLine({ type: 'number_line', range: [0, 100], step: 10, minor_step: 20 }), /smaller than step/);
+  assert.throws(() => renderNumberLine({ type: 'number_line', range: [0, 100], step: 10,
+    marks: [{ value: 200 }] }), /outside the range/);
+});
+
+test('renderDiagram dispatches number_line', () => {
+  const a = renderNumberLine(sampleNumberLine);
+  const b = renderDiagram(sampleNumberLine);
+  assert.equal(a, b);
+});
+
+test('rasterSvgToPng renders number_line text correctly', () => {
+  const svg = renderNumberLine(sampleNumberLine);
+  const png = rasterSvgToPng(svg, { widthPx: 800 });
+  assert.equal(png[0], 0x89);
+  // A blank-line PNG is < 5KB; one with text labels should be larger.
+  assert.ok(png.length > 3000, `PNG seems text-less: ${png.length} bytes`);
 });
 
 // ── Phase 2: end-to-end with a Resource containing a diagram stimulus ──
