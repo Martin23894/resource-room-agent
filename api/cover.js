@@ -1,5 +1,5 @@
 import { logger as defaultLogger } from '../lib/logger.js';
-import { callAnthropicTool, AnthropicError } from '../lib/anthropic.js';
+import { callAnthropicTool, AnthropicError, HAIKU_MODEL } from '../lib/anthropic.js';
 import { coverTool } from '../lib/tools.js';
 import { str, int, oneOf, ValidationError } from '../lib/validate.js';
 
@@ -41,6 +41,7 @@ The product title should be compelling and searchable. The description should be
       system,
       user,
       tool: coverTool,
+      model: HAIKU_MODEL,
       maxTokens: 1000,
       logger: log,
     });
