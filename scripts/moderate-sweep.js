@@ -187,6 +187,14 @@ async function main() {
       await sleep(args.delayMs);
       continue;
     }
+    // Defensive: if Haiku emitted a malformed criticalIssues (stringified
+    // array that fails JSON.parse), treat as empty-but-warning rather than
+    // crashing the whole sweep. The runner already wrote the raw report to
+    // disk for human inspection; we just don't tally it.
+    if (!Array.isArray(report.criticalIssues)) {
+      console.log(`[${i}/${papers.length}] WARN ${paper.id} — criticalIssues malformed (type=${typeof report.criticalIssues}); treating as empty`);
+      report.criticalIssues = [];
+    }
     writeFileSync(join(outDir, `${paper.id}.moderation.json`), JSON.stringify(report, null, 2));
 
     const blockers = (report.criticalIssues || []).filter((iss) => iss.severity === 'BLOCKING').length;
@@ -212,9 +220,13 @@ async function main() {
             writeFileSync(join(outDir, `${paper.id}.regen.json`), JSON.stringify(regenResource, null, 2));
             await sleep(args.delayMs);
             regenReport = await moderate(regenResource);
+            if (!Array.isArray(regenReport.criticalIssues)) {
+              console.log(`     ↳ regen — criticalIssues malformed (type=${typeof regenReport.criticalIssues}); treating as empty`);
+              regenReport.criticalIssues = [];
+            }
             writeFileSync(join(outDir, `${paper.id}.regen.moderation.json`), JSON.stringify(regenReport, null, 2));
-            const rb = (regenReport.criticalIssues || []).filter((iss) => iss.severity === 'BLOCKING').length;
-            const ra = (regenReport.criticalIssues || []).filter((iss) => iss.severity === 'ADVISORY').length;
+            const rb = regenReport.criticalIssues.filter((iss) => iss.severity === 'BLOCKING').length;
+            const ra = regenReport.criticalIssues.filter((iss) => iss.severity === 'ADVISORY').length;
             console.log(`     ↳ regen → ${regenReport.verdict.padEnd(11)} score=${regenReport.overallScore}/5 BLOCK=${rb} ADV=${ra}`);
           } catch (e) {
             regenError = e.message;
