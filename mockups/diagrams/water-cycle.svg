@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420" preserveAspectRatio="xMidYMid meet" font-family="'Source Serif 4', Cambria, Georgia, serif">
+  <defs>
+    <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#dfeaf2"/>
+      <stop offset="100%" stop-color="#f5efe1"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#7fb0c8"/>
+      <stop offset="100%" stop-color="#3c6f8f"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#9bbf6e"/>
+      <stop offset="100%" stop-color="#6c8e48"/>
+    </linearGradient>
+    <linearGradient id="mountain" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#8b7d6a"/>
+      <stop offset="100%" stop-color="#5d503f"/>
+    </linearGradient>
+    <linearGradient id="cloud" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#d8d8d8"/>
+    </linearGradient>
+    <marker id="aq" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3a5a82"/>
+    </marker>
+  </defs>
+
+  <!-- sky -->
+  <rect x="0" y="0" width="700" height="280" fill="url(#sky2)"/>
+
+  <!-- sun -->
+  <g transform="translate(80,72)">
+    <circle r="28" fill="#f4c373" stroke="#c98c1f" stroke-width="0.8"/>
+    <g stroke="#c98c1f" stroke-width="1.6" stroke-linecap="round">
+      <line x1="-44" y1="0"   x2="-36" y2="0"/>
+      <line x1="44"  y1="0"   x2="36"  y2="0"/>
+      <line x1="0"   y1="-44" x2="0"   y2="-36"/>
+      <line x1="0"   y1="44"  x2="0"   y2="36"/>
+      <line x1="-31" y1="-31" x2="-25" y2="-25"/>
+      <line x1="31"  y1="-31" x2="25"  y2="-25"/>
+      <line x1="-31" y1="31"  x2="-25" y2="25"/>
+      <line x1="31"  y1="31"  x2="25"  y2="25"/>
+    </g>
+  </g>
+
+  <!-- mountains -->
+  <g>
+    <polygon points="380,280 470,140 540,200 600,140 660,280" fill="url(#mountain)" stroke="#3f3424" stroke-width="0.8"/>
+    <!-- snow caps -->
+    <polygon points="470,140 484,162 456,162" fill="#f3eee2" opacity="0.85"/>
+    <polygon points="600,140 612,162 588,162" fill="#f3eee2" opacity="0.85"/>
+  </g>
+
+  <!-- land -->
+  <path d="M0,280 C120,272 220,278 380,280 L380,360 L0,360 Z" fill="url(#land)" stroke="#3f5a2a" stroke-width="0.8"/>
+
+  <!-- river from mountain to sea -->
+  <path d="M540,200 C520,230 510,250 540,280 C560,300 580,310 640,320" fill="none" stroke="#7fb0c8" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M540,200 C520,230 510,250 540,280 C560,300 580,310 640,320" fill="none" stroke="#3c6f8f" stroke-width="0.8" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- sea -->
+  <path d="M380,320 C460,316 540,322 700,318 L700,420 L380,420 Z" fill="url(#sea)" stroke="#2a4d63" stroke-width="0.8"/>
+  <!-- sea waves -->
+  <g stroke="#fff" stroke-width="0.7" fill="none" opacity="0.6">
+    <path d="M404,338 q8,-3 16,0 t16,0 t16,0"/>
+    <path d="M500,348 q8,-3 16,0 t16,0 t16,0"/>
+    <path d="M580,360 q8,-3 16,0 t16,0 t16,0"/>
+    <path d="M438,372 q8,-3 16,0 t16,0 t16,0"/>
+  </g>
+
+  <!-- tree on land -->
+  <g transform="translate(180,278)">
+    <rect x="-3" y="-2" width="6" height="22" fill="#5d4023"/>
+    <ellipse cx="0" cy="-12" rx="20" ry="18" fill="#5b8a3a" stroke="#3a5a2a" stroke-width="0.6"/>
+    <ellipse cx="-12" cy="-18" rx="10" ry="9" fill="#7ba94f" stroke="#3a5a2a" stroke-width="0.4"/>
+    <ellipse cx="10" cy="-22" rx="9" ry="8" fill="#7ba94f" stroke="#3a5a2a" stroke-width="0.4"/>
+  </g>
+
+  <!-- grass tufts -->
+  <g stroke="#3a5a2a" stroke-width="0.8" fill="none">
+    <path d="M70,300 l-2,-6 M73,300 l1,-7 M76,300 l3,-6"/>
+    <path d="M250,300 l-2,-6 M253,300 l1,-7 M256,300 l3,-6"/>
+    <path d="M310,302 l-2,-6 M313,302 l1,-7 M316,302 l3,-6"/>
+  </g>
+
+  <!-- cloud -->
+  <g transform="translate(330,90)">
+    <ellipse cx="-30" cy="6"  rx="34" ry="20" fill="url(#cloud)" stroke="#a8a8a8" stroke-width="0.7"/>
+    <ellipse cx="0"   cy="-6" rx="38" ry="24" fill="url(#cloud)" stroke="#a8a8a8" stroke-width="0.7"/>
+    <ellipse cx="34"  cy="4"  rx="30" ry="18" fill="url(#cloud)" stroke="#a8a8a8" stroke-width="0.7"/>
+  </g>
+
+  <!-- rain drops -->
+  <g fill="#3c6f8f" stroke="#2a4d63" stroke-width="0.4">
+    <path d="M306,134 q-3,4 0,8 q3,-4 0,-8 z"/>
+    <path d="M322,140 q-3,4 0,8 q3,-4 0,-8 z"/>
+    <path d="M338,134 q-3,4 0,8 q3,-4 0,-8 z"/>
+    <path d="M354,142 q-3,4 0,8 q3,-4 0,-8 z"/>
+    <path d="M312,158 q-3,4 0,8 q3,-4 0,-8 z"/>
+    <path d="M330,162 q-3,4 0,8 q3,-4 0,-8 z"/>
+    <path d="M348,160 q-3,4 0,8 q3,-4 0,-8 z"/>
+  </g>
+
+  <!-- ─── PROCESS ARROWS ─── -->
+  <!-- 1 EVAPORATION: sea up to cloud -->
+  <g fill="none" stroke="#3a5a82" stroke-width="1.6">
+    <path d="M520,310 C500,260 460,200 400,140" marker-end="url(#aq)" stroke-dasharray="5 4"/>
+  </g>
+  <!-- 2 CONDENSATION: arrow inside cloud area -->
+  <g fill="none" stroke="#3a5a82" stroke-width="1.4">
+    <path d="M280,80 C300,72 340,72 360,82" marker-end="url(#aq)"/>
+  </g>
+  <!-- 3 PRECIPITATION: cloud down to land -->
+  <g fill="none" stroke="#3a5a82" stroke-width="1.6">
+    <path d="M250,140 C200,180 170,220 160,272" marker-end="url(#aq)" stroke-dasharray="5 4"/>
+  </g>
+  <!-- 4 COLLECTION: river down to sea -->
+  <g fill="none" stroke="#3a5a82" stroke-width="1.6">
+    <path d="M580,300 C610,312 620,320 642,326" marker-end="url(#aq)"/>
+  </g>
+
+  <!-- ─── NUMBERED LABELS ─── -->
+  <g font-family="'Inter', sans-serif" font-weight="700" font-size="12">
+    <!-- 1 Evaporation -->
+    <circle cx="466" cy="220" r="11" fill="#085041"/>
+    <text x="466" y="225" text-anchor="middle" fill="#fff">1</text>
+    <text x="482" y="225" font-style="italic" font-size="12" fill="#1a1a1a" font-family="'Source Serif 4', serif" font-weight="400">Evaporation</text>
+
+    <!-- 2 Condensation -->
+    <circle cx="316" cy="56" r="11" fill="#085041"/>
+    <text x="316" y="61" text-anchor="middle" fill="#fff">2</text>
+    <text x="332" y="61" font-style="italic" font-size="12" fill="#1a1a1a" font-family="'Source Serif 4', serif" font-weight="400">Condensation</text>
+
+    <!-- 3 Precipitation -->
+    <circle cx="206" cy="206" r="11" fill="#085041"/>
+    <text x="206" y="211" text-anchor="middle" fill="#fff">3</text>
+    <text x="156" y="232" font-style="italic" font-size="12" fill="#1a1a1a" font-family="'Source Serif 4', serif" font-weight="400">Precipitation (rain)</text>
+
+    <!-- 4 Collection -->
+    <circle cx="608" cy="312" r="11" fill="#085041"/>
+    <text x="608" y="317" text-anchor="middle" fill="#fff">4</text>
+    <text x="540" y="396" font-style="italic" font-size="12" fill="#fff" font-family="'Source Serif 4', serif" font-weight="400">Collection (rivers, sea)</text>
+  </g>
+
+  <!-- subtle frame -->
+  <rect x="0.5" y="0.5" width="699" height="419" fill="none" stroke="#c8c8c8" stroke-width="0.6"/>
+</svg>
