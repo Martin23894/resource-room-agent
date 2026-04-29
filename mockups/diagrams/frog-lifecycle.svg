@@ -44,7 +44,6 @@
       <circle cx="-22" cy="8"   r="3" fill="#1a1a1a"/>
     </g>
     <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 1</text>
-    <text y="80" text-anchor="middle" font-size="13" font-style="italic">Frog spawn (eggs)</text>
   </g>
 
   <!-- ── STAGE 2 (right): Tadpole ── -->
@@ -60,7 +59,6 @@
       <circle cx="-14" cy="-3" r="1.2" fill="#1a1a1a"/>
     </g>
     <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 2</text>
-    <text y="80" text-anchor="middle" font-size="13" font-style="italic">Tadpole</text>
   </g>
 
   <!-- ── STAGE 3 (bottom): Froglet ── -->
@@ -83,7 +81,6 @@
       <circle cx="-2" cy="-13" r="1.1" fill="#1a1a1a"/>
     </g>
     <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 3</text>
-    <text y="80" text-anchor="middle" font-size="13" font-style="italic">Froglet (with tail)</text>
   </g>
 
   <!-- ── STAGE 4 (left): Adult frog ── -->
@@ -108,7 +105,6 @@
       <path d="M-6,-8 Q0,-6 6,-8" stroke="#2a3f18" stroke-width="0.8" fill="none"/>
     </g>
     <text y="64" text-anchor="middle" font-family="'Inter', sans-serif" font-weight="700" font-size="11" fill="#085041">STAGE 4</text>
-    <text y="80" text-anchor="middle" font-size="13" font-style="italic">Adult frog</text>
   </g>
 
   <!-- arrows along the cycle -->

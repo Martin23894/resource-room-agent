@@ -125,22 +125,18 @@
     <!-- 1 Evaporation -->
     <circle cx="466" cy="220" r="11" fill="#085041"/>
     <text x="466" y="225" text-anchor="middle" fill="#fff">1</text>
-    <text x="482" y="225" font-style="italic" font-size="12" fill="#1a1a1a" font-family="'Source Serif 4', serif" font-weight="400">Evaporation</text>
 
     <!-- 2 Condensation -->
     <circle cx="316" cy="56" r="11" fill="#085041"/>
     <text x="316" y="61" text-anchor="middle" fill="#fff">2</text>
-    <text x="332" y="61" font-style="italic" font-size="12" fill="#1a1a1a" font-family="'Source Serif 4', serif" font-weight="400">Condensation</text>
 
     <!-- 3 Precipitation -->
     <circle cx="206" cy="206" r="11" fill="#085041"/>
     <text x="206" y="211" text-anchor="middle" fill="#fff">3</text>
-    <text x="156" y="232" font-style="italic" font-size="12" fill="#1a1a1a" font-family="'Source Serif 4', serif" font-weight="400">Precipitation (rain)</text>
 
     <!-- 4 Collection -->
     <circle cx="608" cy="312" r="11" fill="#085041"/>
     <text x="608" y="317" text-anchor="middle" fill="#fff">4</text>
-    <text x="540" y="396" font-style="italic" font-size="12" fill="#fff" font-family="'Source Serif 4', serif" font-weight="400">Collection (rivers, sea)</text>
   </g>
 
   <!-- subtle frame -->

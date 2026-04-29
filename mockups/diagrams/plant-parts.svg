@@ -75,41 +75,36 @@
     <circle cx="3"  cy="-3" r="1.4" fill="#fbe4a0"/>
   </g>
 
-  <!-- LABELS with leader lines -->
-  <g font-size="12.5" fill="#1a1a1a" font-style="italic">
+  <!-- LABELS — letters only (no part names, no functions) -->
+  <g font-family="'Inter', sans-serif" font-weight="700" font-size="14" fill="#085041">
     <!-- A — Flower -->
-    <path d="M388,108 C440,108 480,108 520,108" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <path d="M388,108 C440,108 480,108 516,108" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
     <circle cx="388" cy="108" r="2" fill="#6a6a6a"/>
-    <text x="528" y="105" font-family="'Inter', sans-serif" font-weight="700" fill="#085041">A</text>
-    <text x="544" y="105">Flower</text>
-    <text x="528" y="120" font-size="10" fill="#4a4a4a" font-style="normal">attracts pollinators</text>
+    <circle cx="528" cy="108" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="528" y="113" text-anchor="middle">A</text>
 
     <!-- B — Leaf -->
-    <path d="M444,184 C490,188 520,200 558,200" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <path d="M444,184 C490,188 520,196 552,200" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
     <circle cx="444" cy="184" r="2" fill="#6a6a6a"/>
-    <text x="568" y="197" font-family="'Inter', sans-serif" font-weight="700" fill="#085041">B</text>
-    <text x="584" y="197">Leaf</text>
-    <text x="568" y="212" font-size="10" fill="#4a4a4a" font-style="normal">makes food (photosynthesis)</text>
+    <circle cx="566" cy="200" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="566" y="205" text-anchor="middle">B</text>
 
     <!-- C — Stem -->
-    <path d="M352,228 C400,232 444,250 504,254" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <path d="M352,228 C400,232 444,250 498,254" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
     <circle cx="352" cy="228" r="2" fill="#6a6a6a"/>
-    <text x="514" y="251" font-family="'Inter', sans-serif" font-weight="700" fill="#085041">C</text>
-    <text x="530" y="251">Stem</text>
-    <text x="514" y="266" font-size="10" fill="#4a4a4a" font-style="normal">supports plant, carries water</text>
+    <circle cx="512" cy="254" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="512" y="259" text-anchor="middle">C</text>
 
     <!-- D — Roots -->
-    <path d="M392,332 C440,328 472,322 512,318" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <path d="M392,332 C440,328 472,322 506,318" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
     <circle cx="392" cy="332" r="2" fill="#6a6a6a"/>
-    <text x="522" y="315" font-family="'Inter', sans-serif" font-weight="700" fill="#085041">D</text>
-    <text x="538" y="315" fill="#fff8ec">Roots</text>
-    <text x="522" y="330" font-size="10" fill="#fff8ec" font-style="normal">absorb water and nutrients</text>
+    <circle cx="520" cy="318" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="520" y="323" text-anchor="middle">D</text>
 
-    <!-- E — Petal (left side, pointing inward) -->
-    <path d="M328,86 C260,80 220,80 180,86" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
+    <!-- E — Petal -->
+    <path d="M328,86 C260,80 220,80 184,86" stroke="#6a6a6a" stroke-width="0.6" fill="none"/>
     <circle cx="328" cy="86" r="2" fill="#6a6a6a"/>
-    <text x="158" y="83" font-family="'Inter', sans-serif" font-weight="700" fill="#085041" text-anchor="end">E</text>
-    <text x="148" y="83" text-anchor="end">Petal</text>
-    <text x="170" y="98" font-size="10" fill="#4a4a4a" font-style="normal" text-anchor="end">colourful, attracts insects</text>
+    <circle cx="172" cy="86" r="11" fill="#fff" stroke="#085041" stroke-width="1.4"/>
+    <text x="172" y="91" text-anchor="middle">E</text>
   </g>
 </svg>
