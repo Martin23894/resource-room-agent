@@ -1,0 +1,87 @@
+name: Extract ATP Pacing
+
+# One-click extractor for the DBE ATP PDFs into data/atp-pacing.json.
+# Triggered manually from the Actions tab; commits the result back to the
+# branch the workflow was launched on.
+
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Optional: filename of a single PDF to test (exact filename, including spaces). Leave blank to process all PDFs.'
+        required: false
+        type: string
+      limit:
+        description: 'Optional: cap how many PDFs to process this run (e.g. "3" for a small batch).'
+        required: false
+        type: string
+      force:
+        description: 'Overwrite existing entries in atp-pacing.json. Off by default — leave unchecked to resume safely.'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the workflow branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Stage ATP PDFs from main
+        # The PDFs live at the repo root on `main`. Pull them into
+        # data/atp-source/ so the extractor can read them, without
+        # touching the branch's tracked files.
+        run: |
+          git fetch origin main
+          mkdir -p data/atp-source
+          git archive origin/main -- '*.pdf' | tar -x -C data/atp-source/
+          COUNT=$(ls data/atp-source/ 2>/dev/null | wc -l)
+          echo "Staged $COUNT PDF(s)."
+          if [ "$COUNT" = "0" ]; then
+            echo "::error::No PDFs found on main. Aborting."
+            exit 1
+          fi
+
+      - name: Run extractor
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ONLY:  ${{ inputs.only }}
+          LIMIT: ${{ inputs.limit }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -e
+          ARGS=()
+          if [ -n "$ONLY" ]; then ARGS+=(--only "$ONLY"); fi
+          if [ -n "$LIMIT" ]; then ARGS+=(--limit "$LIMIT"); fi
+          if [ "$FORCE" = "true" ]; then ARGS+=(--force); fi
+          node scripts/extract-atp-pacing.js "${ARGS[@]}"
+
+      - name: Commit and push results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Stage only the pacing file — the staged PDFs in data/atp-source/
+          # are gitignored on this branch and must not be committed.
+          git add data/atp-pacing.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to atp-pacing.json — nothing to commit."
+            exit 0
+          fi
+
+          MSG_DETAIL="${{ inputs.only }}"
+          if [ -z "$MSG_DETAIL" ]; then MSG_DETAIL="batch run"; fi
+          git commit -m "Extract ATP pacing — $MSG_DETAIL (workflow #${{ github.run_number }})"
+          git push origin HEAD:${{ github.ref_name }}
