@@ -1,0 +1,146 @@
+{
+  "_meta": {
+    "schemaVersion": 1,
+    "source": "DBE Annual Teaching Plans",
+    "vintageNote": "2026 ATPs used for Mathematics and NS&Tech where available; 2023-24 ATPs used for all other subjects (still current per DBE).",
+    "discriminators": {
+      "topic-blocks": "Maths / NST / Technology / EMS — week-banded topic blocks with explicit hours per topic.",
+      "language-strands": "Home Language and First Additional Language — fortnightly grids across Listening/Speaking, Reading/Viewing, Writing/Presenting, Language Structures.",
+      "themed": "Life Skills / Life Orientation — term-long theme with weekly sub-activities and a resources list."
+    },
+    "pilotStatus": "Mathematics Grade 4 Term 1 only — pending sign-off before batching the remaining 32 PDFs."
+  },
+
+  "Mathematics": {
+    "4": {
+      "1": {
+        "kind": "topic-blocks",
+        "totalHours": 61,
+        "weeksInTerm": 11,
+        "blocks": [
+          {
+            "blockId": "g4-m-t1-b1",
+            "weeks": [1, 2],
+            "hours": 9,
+            "kind": "content",
+            "topic": "Whole numbers: counting, ordering, comparing, representing and place value",
+            "concepts": [
+              "Revision of Grade 3 work (integrated into the topics accordingly)",
+              "Count forwards and backwards in 2s, 3s, 5s, 10s, 25s, 50s, 100s between 0 and at least 10 000",
+              "Order, compare and represent numbers to at least four-digit numbers",
+              "Represent odd and even numbers to at least 1 000",
+              "Recognise the place value of digits in whole numbers to at least four-digit numbers",
+              "Round off to the nearest 10, 100 and 1 000"
+            ],
+            "prerequisite": [
+              "Counting, ordering, comparing and representing the place value of three-digit numbers up to 800",
+              "Recognise the place value of digits in whole numbers to at least three-digit numbers up to 800",
+              "Round off to the nearest 10"
+            ]
+          },
+          {
+            "blockId": "g4-m-t1-b2",
+            "weeks": [3],
+            "hours": 6,
+            "kind": "content",
+            "topic": "Number sentences and properties of whole numbers",
+            "concepts": [
+              "Write number sentences to describe problem situations",
+              "Solve and complete number sentences by inspection, trial and improvement, and checking the solution by substitution",
+              "Recognise and use the commutative, associative and distributive properties of operations with whole numbers",
+              "0 in terms of its additive property"
+            ],
+            "prerequisite": [
+              "Multiply 2, 3, 4, 5 and 10 to at least 100",
+              "Divide numbers to 100 by 2, 3, 4, 5 and 10",
+              "Use of appropriate symbols (+, −, ×, ÷, =)"
+            ]
+          },
+          {
+            "blockId": "g4-m-t1-b3",
+            "weeks": [4, 5, 6],
+            "hours": 18,
+            "kind": "content",
+            "topic": "Whole numbers: addition and subtraction (4-digit numbers)",
+            "concepts": [
+              "Number range for calculations: addition and subtraction of whole numbers of at least 4 digits",
+              "Use any two calculation techniques to perform and check written and mental calculations",
+              "Calculation techniques: estimation; building up and breaking down numbers; using a number line; rounding off and compensating; using addition and subtraction as inverse operations",
+              "Solving problems involving whole numbers in financial contexts",
+              "Solving problems involving whole numbers in measurement contexts",
+              "Note: ensure that the strategies used do not compromise conceptual understanding"
+            ],
+            "prerequisite": [
+              "Counting, ordering, comparing and representing the place value of three-digit numbers up to 800",
+              "Add up to 800",
+              "Subtract from 800",
+              "Recognise the place value of digits in whole numbers to at least 800",
+              "Round off to the nearest 10, 100 and 1 000",
+              "Adding and subtracting units, multiples of 10 and multiples of 100 to/from any three-digit number up to 800"
+            ]
+          },
+          {
+            "blockId": "g4-m-t1-b4",
+            "weeks": [7],
+            "hours": 3,
+            "kind": "assessment",
+            "topic": "Formal Assessment Task — Assignment",
+            "assessmentType": "Assignment",
+            "scope": [
+              "Whole numbers: counting, ordering and representing numbers",
+              "Number sentences",
+              "Whole numbers: addition and subtraction"
+            ],
+            "notes": "Assignment to be completed in class within three hours."
+          },
+          {
+            "blockId": "g4-m-t1-b5",
+            "weeks": [8, 9],
+            "hours": 15,
+            "kind": "content",
+            "topic": "Whole numbers: multiplication, multiples and factors",
+            "concepts": [
+              "Number range for calculations: multiplication of one-digit numbers by numbers up to 10",
+              "Multiplication of at least a two-digit number by a one-digit number",
+              "Multiplication of at least a whole two-digit number by two-digit numbers",
+              "Calculation techniques: estimation; building up and breaking down numbers; doubling and halving; using multiplication and division as inverse operations",
+              "Multiples of one-digit numbers to at least 100",
+              "Factors of one-digit whole numbers to at least 10",
+              "Factors of two-digit whole numbers to at least 100",
+              "Solving problems involving whole numbers in financial contexts",
+              "Solving problems involving whole numbers in measurement contexts",
+              "Solving problems comparing two or more quantities of the same kind (ratio)",
+              "Solving problems comparing two quantities of different kinds (rate)",
+              "Note: ensure that the strategies used do not compromise conceptual understanding"
+            ],
+            "prerequisite": [
+              "Multiply 2, 3, 4, 5 and 10 to at least 100",
+              "Multiply 1 by one-digit whole numbers",
+              "Halving and doubling",
+              "Multiplication facts for units by multiples of 10 and 100",
+              "Building up and breaking down three-digit whole numbers",
+              "Round off to the nearest 10 and estimate answers"
+            ]
+          },
+          {
+            "blockId": "g4-m-t1-b6",
+            "weeks": [10],
+            "hours": 4,
+            "kind": "revision",
+            "topic": "Revision",
+            "scope": ["All Term 1 topics"]
+          },
+          {
+            "blockId": "g4-m-t1-b7",
+            "weeks": [11],
+            "hours": 6,
+            "kind": "assessment",
+            "topic": "Formal Assessment Task — Test",
+            "assessmentType": "Test",
+            "scope": ["All Term 1 topics"]
+          }
+        ]
+      }
+    }
+  }
+}
