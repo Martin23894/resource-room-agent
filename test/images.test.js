@@ -35,7 +35,7 @@ test('renderResource embeds image bytes when provided in opts', async () => {
     '89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d49444154789c63600100000005000142d40c1f0000000049454e44ae426082',
     'hex',
   );
-  const imageBytes = new Map([['protea-cynaroides', tinyPng]]);
+  const imageBytes = new Map([['fynbos-flower', tinyPng]]);
 
   const resource = {
     meta: {
@@ -56,7 +56,7 @@ test('renderResource embeds image bytes when provided in opts', async () => {
     stimuli: [{
       id: 'protea-photo',
       kind: 'image',
-      imageId: 'protea-cynaroides',
+      imageId: 'fynbos-flower',
       altText: 'A king protea flower in fynbos.',
     }],
     sections: [{
@@ -97,7 +97,7 @@ test('renderResource falls back to caption when image bytes are missing', async 
       learnerInfoFields: [{ kind: 'name', label: 'Name' }],
       instructions: { heading: 'Instructions', items: ['Answer.'] },
     },
-    stimuli: [{ id: 'p', kind: 'image', imageId: 'protea-cynaroides', altText: 'A protea.' }],
+    stimuli: [{ id: 'p', kind: 'image', imageId: 'fynbos-flower', altText: 'A protea.' }],
     sections: [{
       letter: null, title: 'QUESTIONS', stimulusRefs: ['p'],
       questions: [
