@@ -566,6 +566,16 @@ export default async function handler(req, res) {
     }
   }
 
+  // Keep-alive heartbeat — the Anthropic call for a Final Exam can take
+  // 90–150s, during which no real events flow through the SSE stream.
+  // Upstream proxies (Cloudflare ~100s, Railway edge ~120s) kill idle
+  // connections, which the frontend sees as "Network hiccup". A small
+  // heartbeat comment every 15s keeps the pipe warm without polluting
+  // the event stream the client subscribes to.
+  const heartbeatTimer = channel.isSSE
+    ? setInterval(() => channel.sendHeartbeat(), 15000)
+    : null;
+
   try {
     channel.sendPhase('generate', 'started');
     const result = await generate(parsed, { logger: log, signal: abort.signal });
@@ -616,6 +626,8 @@ export default async function handler(req, res) {
     else if (!res.headersSent) {
       res.status(err?.status || 500).json({ error: err?.message || 'Server error' });
     }
+  } finally {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
   }
 }
 
