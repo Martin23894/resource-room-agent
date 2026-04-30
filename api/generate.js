@@ -567,6 +567,18 @@ export default async function handler(req, res) {
     }
   }
 
+  // Hard wall-clock ceiling on the whole generation pipeline. The
+  // per-call Anthropic timeout is 180s, and generate() retries up to 3
+  // times on schema-validation failures, so the worst-case before this
+  // fires would be ~9 min — long enough that the heartbeat masks it as
+  // an indefinite hang from the user's perspective. Aborting at 5 min
+  // surfaces a clear error instead.
+  const HARD_TIMEOUT_MS = 5 * 60 * 1000;
+  const hardTimeout = setTimeout(() => {
+    log.warn({ cacheKey }, 'generate: hard timeout (5 min) — aborting');
+    abort.abort(new Error('TIMEOUT_5MIN'));
+  }, HARD_TIMEOUT_MS);
+
   // Keep-alive heartbeat — the Anthropic call for a Final Exam can take
   // 90–150s, during which no real events flow through the SSE stream.
   // Upstream proxies (Cloudflare ~100s, Railway edge ~120s) kill idle
@@ -622,12 +634,25 @@ export default async function handler(req, res) {
     channel.sendResult(payload);
     safeCacheSet(cacheKey, payload, log);
   } catch (err) {
-    log.error({ err: err?.message || err }, 'generate failed');
-    if (channel.isSSE) channel.sendError(err);
+    // Re-shape the hard-timeout abort into a clean user-facing error so
+    // the frontend renders 'took too long' instead of a generic abort.
+    const isHardTimeout =
+      err?.message === 'TIMEOUT_5MIN' ||
+      abort.signal.reason?.message === 'TIMEOUT_5MIN';
+    const surfaced = isHardTimeout
+      ? Object.assign(
+          new Error('Generation took longer than 5 minutes. Final Exams sometimes hit this; please try again, or generate a Term Test instead which is faster.'),
+          { status: 504, code: 'GENERATE_TIMEOUT' },
+        )
+      : err;
+
+    log.error({ err: err?.message || err, hardTimeout: isHardTimeout }, 'generate failed');
+    if (channel.isSSE) channel.sendError(surfaced);
     else if (!res.headersSent) {
-      res.status(err?.status || 500).json({ error: err?.message || 'Server error' });
+      res.status(surfaced?.status || 500).json({ error: surfaced?.message || 'Server error' });
     }
   } finally {
+    clearTimeout(hardTimeout);
     if (heartbeatTimer) clearInterval(heartbeatTimer);
   }
 }
