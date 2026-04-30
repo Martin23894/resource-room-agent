@@ -209,7 +209,7 @@ export const resourceSchema = {
       additionalProperties: false,
       properties: {
         id:      { type: 'string', pattern: '^[a-z0-9][a-z0-9-]*$', description: 'kebab-case id, referenced by stimulusRef.' },
-        kind:    { type: 'string', enum: ['passage', 'visualText', 'dataSet', 'diagram', 'scenario', 'image'] },
+        kind:    { type: 'string', enum: ['passage', 'visualText', 'dataSet', 'diagram', 'scenario'] },
         heading: { type: 'string' },
         // Discriminator-keyed bodies. JSON Schema can't enforce conditional
         // requireds in pure draft-2020-12 cleanly, so we keep all body fields
@@ -228,13 +228,6 @@ export const resourceSchema = {
           },
         },
         altText:     { type: 'string', description: 'Used when kind=diagram to describe the image-equivalent in words. ALWAYS include this even when spec is provided — used as accessibility text and as the fallback when the renderer is unavailable.' },
-        // ── kind=image ───────────────────────────────────────────────
-        // Reference to a curated photograph in lib/images/catalogue.js.
-        // The renderer fetches the image, caches it, and embeds it in
-        // the DOCX. Use only the ids listed in the catalogue subset
-        // injected into the prompt.
-        imageId:     { type: 'string', minLength: 1, description: 'Catalogue id when kind=image. Must match an entry in lib/images/catalogue.js.' },
-        caption:     { type: 'string', description: 'Optional caption shown below an image. Defaults to the catalogue entry caption when omitted.' },
         // ── Renderable diagram spec (kind=diagram only) ───────────────
         // When present, the renderer rasterises this to a real image
         // embedded in the DOCX. The verbal `description` becomes the

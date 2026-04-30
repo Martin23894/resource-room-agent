@@ -17,23 +17,12 @@ import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/
 import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schema/resource.schema.js';
 import { rebalanceMarks } from '../lib/rebalance.js';
 import { renderResource } from '../lib/render.js';
-import { prefetchImagesForResource } from '../lib/images/prefetch.js';
-import { IMAGES } from '../lib/images/catalogue.js';
 import { createEventChannel } from '../lib/sse.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
 import { logger as defaultLogger } from '../lib/logger.js';
 
 const SONNET_4_6 = 'claude-sonnet-4-6';
-
-// Render the photo catalogue as a compact list for the system prompt.
-// Each line: id — caption (tags). With 5 seed entries this is ~400
-// tokens; cheap with prompt caching.
-function formatImageCatalogueForPrompt() {
-  return Object.entries(IMAGES)
-    .map(([id, e]) => `  - ${id} — ${e.caption} [${e.tags.join(', ')}]`)
-    .join('\n');
-}
 
 /**
  * Build the topic scope (terms covered + ATP topics) for a request.
@@ -174,23 +163,7 @@ function buildSystemPrompt(ctx) {
     `5d. DIAGRAM BUDGET. Across the WHOLE paper aim for 0–3 rendered diagrams in total — never one per question, never one per section. Some papers (a Worksheet on multiplication facts, a vocabulary Test) should have ZERO diagrams; that is correct, not a failure. A bar graph + a number line on every paper is wrong; pick whichever genuinely serves the assessment. Within one paper, never repeat the same SCENARIO across diagrams (do not have two bar graphs both about animals at a watering hole — pick different real-world contexts per diagram). Repeating the same TYPE is fine (e.g. two number lines for two distinct concepts) only when each diagram tests a different skill.`,
     `5e. TABULAR DATA → dataSet, NEVER ASCII PIPES. Tabular data — input/output tables, fraction-decimal-percentage equivalences, multiplication tables, frequency tables, timetables, conversion tables — MUST be declared as a \`dataSet\` stimulus with \`table: { headers: [...], rows: [[...], ...] }\` and referenced via stimulusRef. The renderer turns dataSet into a clean native Word table. Do NOT type a table as pipe-delimited monospace text inside the question stem (e.g. "| 1 | 2 | 3 |") — that renders as ugly ASCII art and fails accessibility. If a row needs a blank for the learner to fill in, use "?" or "____" inside the cell value. Never include both an inline ASCII version AND a dataSet stimulus — the dataSet is the only canonical form.`,
     `5f. MCQ STEMS REQUIRE OPTIONS. Any question whose stem invites a choice from listed alternatives ("Which of the following...", "Choose the correct...", "Select the...", "A quadrilateral with one pair of parallel sides is called a:", "What is the value of ...?" — when followed by selectable answers) MUST be \`type: "MCQ"\` with \`answerSpace.kind: "options"\` AND a complete \`options\` array of 4 items, each \`{ label, text, isCorrect }\`, with exactly ONE isCorrect:true. Never emit an MCQ-phrased stem as \`type: "ShortAnswer"\` or with no options — that produces an unanswerable question (a stem and a [mark] bracket with nothing to choose). If the section is titled "Multiple Choice", every question in that section must follow this pattern.`,
-    `5g. PHOTOGRAPHIC IMAGES — STRICT WHITELIST. The system can ONLY embed photographs whose imageId appears in the catalogue listed at the end of this rule. If you write a question that says "study the photograph below" / "name the plant in the picture" / "identify the biome shown", the photo MUST be one of the catalogue ids — NEVER invent an imageId, and NEVER write a photograph-dependent question if no catalogue entry fits.
-
-       USE A PHOTOGRAPH (not "may use", USE) when ALL THREE of these are true:
-         (a) The question's natural form is recognition or description of a real-world thing (a plant, an animal, a landscape, a daily-life scene).
-         (b) A catalogue entry's tags genuinely match the topic.
-         (c) The paper does not already include another photo (max 1 per paper).
-
-       For NST Life and Living, Geography biomes, and similar topics where the catalogue has matching tags, you SHOULD use a photo at least once per paper rather than relying solely on diagrams.
-
-       Photos and diagrams are different tools: use diagrams (bar_graph, number_line, food_chain) for STRUCTURAL or QUANTITATIVE content; use photos ONLY for REAL-WORLD APPEARANCE.
-
-  PEDAGOGICAL RULE — ANSWER LEAK. If the question asks the learner to IDENTIFY or NAME the subject of the photograph ("Name the plant shown", "Identify the biome", "What animal is in the picture?"), the photograph's CAPTION (in the stimulus's optional \`caption\` field, and the catalogue's default caption) MUST be GENERIC — e.g. "A flowering plant", "A natural landscape", "A South African mammal" — NEVER the specific species or place name. The caption never gives away the answer. If the question is descriptive ("Describe two features of the landscape", "Name three things you can see in the photograph"), the caption may be more specific.
-
-  Catalogue captions in this seed are deliberately generic and safe by default; do not override the caption with a specific name unless the question asks for description, not identification. Always include altText that describes the photo for accessibility — altText is for screen readers, NEVER displayed visually, so altText may be specific.
-
-  Available photo catalogue (use only these ids):
-${formatImageCatalogueForPrompt()}`,
+    `5g. PHOTOGRAPHS / IMAGES — NOT SUPPORTED. The system has NO photographic capability. Do NOT write questions that say "study the photograph", "look at the picture below", "identify the plant/animal in the photo", "what is shown in the image", or any variant. Do NOT emit any stimulus that references an external image. If a question would naturally need a photograph, choose a different question — descriptive, calculation, comprehension, or one that uses the three supported diagrams (bar_graph, number_line, food_chain).`,
     `6. Question numbers are dotted decimals: "1", "1.1", "1.1.1".`,
     `7. memo.answer.markingGuidance is the rationale ONLY (acceptable answer variants, what working should show, common pitfalls). Do NOT write phrases like "Award N marks for X", "Maximum N marks", or "1 mark per ...". The mark column is rendered separately from the structured \`marks\` field — duplicating mark counts in the prose causes inconsistencies when totals are later adjusted.`,
     `8. Every question's \`topic\` field MUST be COPIED VERBATIM from the ATP topic list above. Do not paraphrase, abbreviate, or duplicate phrases inside it. The schema enforces an exact-string match.`,
@@ -655,16 +628,8 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Pre-fetch any catalogue photos referenced by image stimuli so
-    // the synchronous renderer can embed them via ImageRun. Failures
-    // here degrade to caption-only fallback inside the renderer; we
-    // never block generation on a missing photo.
-    channel.sendPhase('image_fetch', 'started');
-    const imageBytes = await prefetchImagesForResource(resource, { logger: log });
-    channel.sendPhase('image_fetch', 'done', { fetched: imageBytes.size });
-
     channel.sendPhase('docx_render', 'started');
-    const doc = renderResource(resource, { imageBytes });
+    const doc = renderResource(resource);
     const buf = await Packer.toBuffer(doc);
     channel.sendPhase('docx_render', 'done', { bytes: buf.length });
 
