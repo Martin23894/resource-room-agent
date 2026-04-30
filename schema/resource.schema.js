@@ -254,7 +254,25 @@ export const resourceSchema = {
       oneOf: [
         { $ref: '#/$defs/diagramSpec_barGraph' },
         { $ref: '#/$defs/diagramSpec_numberLine' },
+        { $ref: '#/$defs/diagramSpec_foodChain' },
       ],
+    },
+
+    diagramSpec_foodChain: {
+      type: 'object',
+      required: ['type', 'organisms'],
+      additionalProperties: false,
+      description: 'Linear food chain showing energy flow from producer to apex predator. Use for NST Life and Living questions about trophic levels, producers/consumers, and food-web fundamentals. Arrows always point in the direction of energy flow (Grass → Grasshopper means grass is eaten by the grasshopper). Organism names are visible — questions should test understanding of trophic roles, NOT recognition of the organism names ("Which organism is the primary consumer?" — fine; "Name the second organism in the chain" — bad, the diagram shows it).',
+      properties: {
+        type:      { const: 'food_chain' },
+        title:     { type: 'string', description: 'Optional caption such as "Grassland food chain" or "Estuary detritivore chain".' },
+        organisms: {
+          type: 'array',
+          minItems: 2, maxItems: 6,
+          description: '2–6 organism names, ordered left → right from producer to top predator. Keep names short (≤ 20 characters) so they fit in the boxes; e.g. "Grass", "Grasshopper", "Frog", "Snake", "Hawk".',
+          items: { type: 'string', minLength: 1, maxLength: 30 },
+        },
+      },
     },
 
     diagramSpec_numberLine: {

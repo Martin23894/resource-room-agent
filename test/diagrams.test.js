@@ -14,6 +14,7 @@ import JSZip from 'jszip';
 import { renderDiagram, listDiagramTypes } from '../lib/diagrams/index.js';
 import { renderBarGraph }   from '../lib/diagrams/bar_graph.js';
 import { renderNumberLine } from '../lib/diagrams/number_line.js';
+import { renderFoodChain }  from '../lib/diagrams/food_chain.js';
 import { rasterSvgToPng } from '../lib/diagrams/raster.js';
 import { assertResource } from '../schema/resource.schema.js';
 import { renderResource } from '../lib/render.js';
@@ -33,7 +34,7 @@ const sampleSpec = {
 };
 
 test('listDiagramTypes returns the registered renderers', () => {
-  assert.deepEqual(listDiagramTypes().sort(), ['bar_graph', 'number_line']);
+  assert.deepEqual(listDiagramTypes().sort(), ['bar_graph', 'food_chain', 'number_line']);
 });
 
 test('renderDiagram dispatches by spec.type', () => {
@@ -262,4 +263,50 @@ test('renderResource falls back gracefully on a malformed spec', async () => {
   const doc = renderResource(resource);
   const buf = await Packer.toBuffer(doc);
   assert.ok(buf.length > 1000);
+});
+
+// ── food_chain tests ──
+const sampleFoodChain = {
+  type: 'food_chain',
+  title: 'Grassland food chain',
+  organisms: ['Grass', 'Grasshopper', 'Frog', 'Snake', 'Hawk'],
+};
+
+test('renderFoodChain produces well-formed SVG with all organisms + arrows', () => {
+  const svg = renderFoodChain(sampleFoodChain);
+  assert.match(svg, /^<svg [^>]*viewBox/);
+  assert.match(svg, /<\/svg>$/);
+  // 5 organism boxes
+  assert.equal((svg.match(/class="fc-box"/g) || []).length, 5);
+  // 4 arrows between 5 boxes
+  assert.equal((svg.match(/class="fc-arrow"/g) || []).length, 4);
+  // Each organism name appears
+  for (const o of sampleFoodChain.organisms) assert.match(svg, new RegExp(o));
+});
+
+test('renderFoodChain works with the minimum (2) and maximum (6) organisms', () => {
+  assert.doesNotThrow(() => renderFoodChain({ type: 'food_chain', organisms: ['A', 'B'] }));
+  assert.doesNotThrow(() => renderFoodChain({ type: 'food_chain', organisms: ['A','B','C','D','E','F'] }));
+});
+
+test('renderFoodChain rejects invalid specs', () => {
+  assert.throws(() => renderFoodChain(null),                                     /spec must be an object/);
+  assert.throws(() => renderFoodChain({ type: 'food_chain' }),                   /must be an array/);
+  assert.throws(() => renderFoodChain({ type: 'food_chain', organisms: ['A'] }), /2.6 entries/);
+  assert.throws(() => renderFoodChain({ type: 'food_chain', organisms: ['A','B','C','D','E','F','G'] }), /2.6 entries/);
+  assert.throws(() => renderFoodChain({ type: 'food_chain', organisms: ['A', ''] }), /non-empty/);
+  assert.throws(() => renderFoodChain({ type: 'food_chain', organisms: ['A', 'X'.repeat(31)] }), /too long/);
+});
+
+test('renderDiagram dispatches food_chain', () => {
+  const a = renderFoodChain(sampleFoodChain);
+  const b = renderDiagram(sampleFoodChain);
+  assert.equal(a, b);
+});
+
+test('rasterSvgToPng renders food_chain text correctly', () => {
+  const svg = renderFoodChain(sampleFoodChain);
+  const png = rasterSvgToPng(svg, { widthPx: 800 });
+  assert.equal(png[0], 0x89);
+  assert.ok(png.length > 3000, `PNG seems text-less: ${png.length} bytes`);
 });
