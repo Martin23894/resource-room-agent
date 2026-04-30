@@ -573,7 +573,7 @@ export default async function handler(req, res) {
   // fires would be ~9 min — long enough that the heartbeat masks it as
   // an indefinite hang from the user's perspective. Aborting at 5 min
   // surfaces a clear error instead.
-  const HARD_TIMEOUT_MS = 5 * 60 * 1000;
+  const HARD_TIMEOUT_MS = 5.5 * 60 * 1000;
   const hardTimeout = setTimeout(() => {
     log.warn({ cacheKey }, 'generate: hard timeout (5 min) — aborting');
     abort.abort(new Error('TIMEOUT_5MIN'));
@@ -591,7 +591,17 @@ export default async function handler(req, res) {
 
   try {
     channel.sendPhase('generate', 'started');
-    const result = await generate(parsed, { logger: log, signal: abort.signal });
+    // Final Exam is the longest-prompt, longest-output path: full year
+    // scope + max marks. Sonnet often takes >180s to produce a valid
+    // response, which means a single attempt already eats most of our
+    // 5-min wall-clock budget. Drop the schema-retry to a single attempt
+    // and rely on the per-call timeout (now 240s) to bound the call.
+    const isFinalExam = parsed.resourceType === 'Final Exam';
+    const result = await generate(parsed, {
+      logger: log,
+      signal: abort.signal,
+      maxRetries: isFinalExam ? 0 : 2,
+    });
     const { resource, validation, rebalance, ctx } = result;
     channel.sendPhase('generate', 'done', {
       leafSum: rebalance.finalSum,
