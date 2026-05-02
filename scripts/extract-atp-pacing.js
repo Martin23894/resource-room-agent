@@ -144,20 +144,26 @@ async function callClaude({ apiKey, model, system, user }) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 16000,
+      // A full Maths ATP across 4 terms with subtopic trees can run to
+      // 30-50k output tokens. Languages PDFs with parallel skill units
+      // are larger still. Generous budget; we pay for what we use.
+      max_tokens: 64000,
       system,
       messages: [{ role: 'user', content: user }],
     }),
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`Claude API ${res.status}: ${body.slice(0, 500)}`);
+    throw new Error(`Claude API ${res.status}: ${body.slice(0, 800)}`);
   }
   const data = await res.json();
   const text = (data.content || [])
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
     .join('\n');
+  if (data.stop_reason && data.stop_reason !== 'end_turn') {
+    console.warn(`  ⚠ unusual stop_reason from Claude: ${data.stop_reason}`);
+  }
   return { text, raw: data };
 }
 
@@ -475,11 +481,22 @@ async function main() {
     });
 
     let parsed;
+    let modelText = '';
     try {
-      const { text } = await callClaude({ apiKey, model: args.model, system: SYSTEM_PROMPT, user });
-      parsed = extractJson(text);
+      const r = await callClaude({ apiKey, model: args.model, system: SYSTEM_PROMPT, user });
+      modelText = r.text;
+      parsed = extractJson(modelText);
     } catch (e) {
       console.error(`${tag} extraction failed: ${e.message}`);
+      if (modelText) {
+        // First 500 + last 500 of the response so we can diagnose
+        // truncation vs malformed JSON without dumping a 60k-char wall.
+        const head = modelText.slice(0, 500);
+        const tail = modelText.length > 1000 ? modelText.slice(-500) : '';
+        console.error(`  model response (len=${modelText.length}):`);
+        console.error(`  HEAD: ${head}`);
+        if (tail) console.error(`  TAIL: ${tail}`);
+      }
       summary.errored++;
       continue;
     }
@@ -514,7 +531,17 @@ async function main() {
     console.log('\n--dry-run: no API calls, no file written.');
   }
   console.log(`Summary: processed=${summary.processed} skipped=${summary.skipped} errored=${summary.errored} docsAdded=${summary.docsAdded}`);
-  if (summary.errored > 0) process.exit(1);
+
+  // Per-PDF errors are expected on long batch runs (rate limits, occasional
+  // malformed model responses, etc.). The workflow is designed to be
+  // resumable: as long as we wrote the output file with whatever DID
+  // succeed, the next run will pick up the rest. Only exit 1 when nothing
+  // was processed at all — that signals a config-level failure
+  // (no API key, no PDFs found) that the caller needs to fix.
+  if (summary.processed === 0 && summary.docsAdded === 0 && summary.errored > 0) {
+    console.error('No PDFs processed successfully. Aborting.');
+    process.exit(1);
+  }
 }
 
 // Exports for tests — pure helpers only.
