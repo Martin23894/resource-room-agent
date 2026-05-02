@@ -1,0 +1,621 @@
+{
+  "$schemaVersion": "1.0.0",
+  "extractedAt": "2026-05-02T00:00:00Z",
+  "extractor": { "model": "manual", "promptVersion": 0 },
+  "_comment": "HAND-EXTRACTED SAMPLE — Maths Gr 4 (2026) Term 1 + NST Gr 5 (2026) Life-and-Living strand. Verifies the schema in docs/atp-pacing-schema.md against two different PDF layouts. Pending user approval before scripts/extract-atp-pacing.js is built.",
+  "subjects": {
+    "Mathematics": {
+      "4": {
+        "2026": {
+          "subject": "Mathematics",
+          "grade": 4,
+          "year": "2026",
+          "phase": "intermediate",
+          "language": "English",
+          "source": {
+            "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+            "totalPages": 8,
+            "publishedBy": "DBE",
+            "documentTitle": "2026 ANNUAL TEACHING PLANS: ENGLISH MATHEMATICS: GRADE 4"
+          },
+          "capsStrands": [
+            "Numbers, Operations and Relationships",
+            "Patterns, Functions and Algebra",
+            "Space and Shape (Geometry)",
+            "Measurement",
+            "Data Handling"
+          ],
+          "terms": {
+            "1": {
+              "term": 1,
+              "totalWeeks": 11,
+              "totalHours": 61,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "math-4-2026-t1-u1",
+                  "ordinal": 1,
+                  "weeks": [1, 2],
+                  "hours": 9,
+                  "durationLabel": null,
+                  "topic": "Whole Numbers (revision and place value)",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for counting, ordering, comparing and representing, as well as place value of digits",
+                      "concepts": [
+                        "Count forwards and backwards in 2s, 3s, 5s, 10s, 25s, 50s, 100s between 0 and at least 10 000",
+                        "Order, compare and represent numbers to at least four-digit numbers",
+                        "Represent odd and even numbers to at least 1 000",
+                        "Recognise the place value of digits in whole numbers to at least four-digit numbers",
+                        "Round off to the nearest 10, 100 and 1 000"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Counting ordering, comparing and representing the place value of three-digit numbers up to 800",
+                    "Recognise the place value of digits in whole numbers to at least three-digit numbers up to 800",
+                    "Round off to the nearest 10"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Revision of Grade 3 work to be integrated into the topics accordingly"
+                  ],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "id": "math-4-2026-t1-u2",
+                  "ordinal": 2,
+                  "weeks": [3],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "Number Sentences",
+                  "capsStrand": "Patterns, Functions and Algebra",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Write number sentences to describe problem situations",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solve and complete number sentences by:",
+                      "concepts": [
+                        "‒ Inspection",
+                        "‒ Trial and improvement",
+                        "‒ Checking the solution by substitution"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Properties of whole numbers",
+                      "concepts": [
+                        "Recognize and use the commutative, associative and distributive properties of operations with whole numbers",
+                        "0 in terms of its additive property"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Multiply 2, 3, 4, 5 and 10 to at least 100",
+                    "Divide numbers to 100 by 2, 3, 4, 5 and 10",
+                    "Use of appropriate symbols (+, −, ×, ÷, =)"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "id": "math-4-2026-t1-u3",
+                  "ordinal": 3,
+                  "weeks": [4, 5, 6],
+                  "hours": 18,
+                  "durationLabel": null,
+                  "topic": "Whole Numbers: Addition and Subtraction",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for calculations",
+                      "concepts": [
+                        "Addition and subtraction of whole numbers of at least 4-digits"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculation techniques",
+                      "concepts": [
+                        "Use any two techniques to perform and check written and mental calculations of whole numbers including:",
+                        "‒ Estimation",
+                        "‒ Building up and breaking down numbers",
+                        "‒ Using a number line",
+                        "‒ Rounding off and compensating",
+                        "‒ Using addition and subtraction as inverse operations"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems involving whole numbers, including the following:",
+                        "─ Financial contexts",
+                        "─ Measurement contexts"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Counting, ordering, comparing and representing the place value of three-digit numbers up to 800",
+                    "Add up to 800",
+                    "Subtract from 800",
+                    "Recognise the place value of digits in whole numbers to at least 800",
+                    "Round off to the nearest 10, 100 and 1 000",
+                    "Adding and subtracting units, multiples of 10 and multiples of 100 to/from any three-digit number up to 800"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Ensure that the strategies used do not compromise conceptual understanding"
+                  ],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "id": "math-4-2026-t1-u4-assessment",
+                  "ordinal": 4,
+                  "weeks": [7],
+                  "hours": 3,
+                  "durationLabel": null,
+                  "topic": "Formal Assessment Task — Assignment",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Assignment to be completed in class within three hours",
+                    "Covers: Whole numbers (counting, ordering, representing); Number sentences; Whole numbers (addition and subtraction)"
+                  ],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "id": "math-4-2026-t1-u5",
+                  "ordinal": 5,
+                  "weeks": [8, 9],
+                  "hours": 15,
+                  "durationLabel": null,
+                  "topic": "Whole Numbers: Multiplication",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for calculations",
+                      "concepts": [
+                        "Multiplication of one-digit numbers by numbers up to 10",
+                        "Multiplication of at least a two-digit number by a one-digit number",
+                        "Multiplication of at least a whole two-digit number by two-digit numbers"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculation techniques",
+                      "concepts": [
+                        "Use any two techniques to perform and check written and mental calculations of whole numbers including:",
+                        "‒ Estimation",
+                        "‒ Building up and breaking down numbers",
+                        "‒ Doubling and halving",
+                        "‒ Using multiplication and division as inverse operations"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Number range for multiples and factors",
+                      "concepts": [
+                        "Multiples of one-digit numbers to at least 100",
+                        "Factors of one-digit whole numbers to at least 10",
+                        "Factors of two-digit whole numbers to at least 100"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems involving whole numbers, including:",
+                        "‒ Financial contexts",
+                        "‒ Measurement contexts",
+                        "‒ Comparing two or more quantities of the same kind (ratio)",
+                        "‒ Comparing two quantities of different kinds (rate)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Multiply 2, 3, 4, 5 and 10 to at least 100",
+                    "Multiply 1 by one-digit whole numbers",
+                    "Halving and doubling",
+                    "Multiplication facts for units by multiples of 10 and 100",
+                    "Building up and breaking down three-digit whole numbers",
+                    "Round off to the nearest 10 and estimate answers"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Ensure that the strategies used do not compromise conceptual understanding"
+                  ],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "id": "math-4-2026-t1-u6-revision",
+                  "ordinal": 6,
+                  "weeks": [10],
+                  "hours": 4,
+                  "durationLabel": null,
+                  "topic": "Revision",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "id": "math-4-2026-t1-u7-assessment",
+                  "ordinal": 7,
+                  "weeks": [11],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "Formal Assessment Task — Test",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": ["Covers: All Term 1 topics"],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Assignment",
+                  "type": "Assignment",
+                  "term": 1,
+                  "weeks": [7],
+                  "minMarks": 25,
+                  "maxMarks": 50,
+                  "weightingPercent": null,
+                  "topicsCovered": [
+                    "Whole numbers: Counting, ordering, representing",
+                    "Number sentences",
+                    "Whole numbers: Addition and subtraction"
+                  ],
+                  "conditions": "Assignment to be completed in class within three hours",
+                  "rubricNotes": [],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                },
+                {
+                  "label": "Test",
+                  "type": "Test",
+                  "term": 1,
+                  "weeks": [11],
+                  "minMarks": 25,
+                  "maxMarks": 50,
+                  "weightingPercent": null,
+                  "topicsCovered": ["All Term 1 topics"],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": { "pdf": "2026_ATP_Mathematics_Grade 4.pdf", "page": 1 }
+                }
+              ]
+            }
+          },
+          "yearOverview": null,
+          "notes": []
+        }
+      }
+    },
+    "Natural Sciences and Technology": {
+      "5": {
+        "2026": {
+          "subject": "Natural Sciences and Technology",
+          "grade": 5,
+          "year": "2026",
+          "phase": "intermediate",
+          "language": "English",
+          "source": {
+            "pdf": "2026_ATP_NS & Tech_Grade 5.pdf",
+            "totalPages": null,
+            "publishedBy": "DBE",
+            "documentTitle": "2026 Annual Teaching Plan — Natural Sciences and Technology: Grade 5"
+          },
+          "capsStrands": [
+            "Life and Living",
+            "Matter and Materials",
+            "Energy and Change",
+            "Planet Earth and Beyond"
+          ],
+          "terms": {
+            "1": {
+              "term": 1,
+              "totalWeeks": null,
+              "totalHours": null,
+              "termNotes": ["Strand: Life and Living"],
+              "units": [
+                {
+                  "id": "nst-5-2026-t1-u1",
+                  "ordinal": 1,
+                  "weeks": [1, 2, 3],
+                  "hours": null,
+                  "durationLabel": "2½ weeks",
+                  "topic": "Plants and animals on Earth",
+                  "capsStrand": "Life and Living",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Many different plants and animals",
+                      "concepts": [
+                        "there are many different plants and animals living in different habitats on Earth (South Africa has a wide variety of indigenous plants and animals and their habitats)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Inter-dependence",
+                      "concepts": [
+                        "plants and animals depend on each other",
+                        "they also depend on the resources available (such as air, water, soil, food, and places to hide) in their own habitats"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Animal types",
+                      "concepts": [
+                        "there are many different kinds of animals,",
+                        "‒ some do not have bones, and some have hard outer 'skins' or shells (invertebrates)",
+                        "‒ some have bones (vertebrates)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": ["Pictures of plants and animals"],
+                  "informalAssessment": [
+                    "Identify different habitats in South Africa and some of the plants and animals that we find there",
+                    "Describe and compare animals without bones to animals with bones",
+                    "Describe interdependence between living and non-living things",
+                    "Identify the interdependence between the animals and/or plants and the non-living things in their environment",
+                    "Identify common characteristics of invertebrates and vertebrates"
+                  ],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                },
+                {
+                  "id": "nst-5-2026-t1-u2",
+                  "ordinal": 2,
+                  "weeks": [4],
+                  "hours": null,
+                  "durationLabel": "1 week",
+                  "topic": "Animal skeletons",
+                  "capsStrand": "Life and Living",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skeletons of vertebrates",
+                      "concepts": [
+                        "a vertebrate skeleton consists of bones and joints, and is inside the body",
+                        "bones are hard and form a strong frame structure",
+                        "a skeleton provides support for an animal's body and protection for its organs;",
+                        "‒ skull - protects the brain",
+                        "‒ backbone with vertebrae - protects the spinal cord",
+                        "‒ ribs - protect the lungs and heart",
+                        "‒ shoulder blades, arms, legs, hip bones – for movement"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Movement",
+                      "concepts": [
+                        "vertebrate animals can move because there are",
+                        "‒ muscles attached to the skeleton",
+                        "joints between the bones (In this grade, details about how muscles are attached, and the structure of joints are not required)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": ["Pictures and examples of animal skeletons/bones"],
+                  "informalAssessment": [
+                    "Identify the different types of skeletons",
+                    "Use pictures of animals to identify the five groups of vertebrates and their common characteristics",
+                    "Identify and describe different bones in a vertebrate skeleton and state the functions of each bone",
+                    "Label a diagram of the human skeleton",
+                    "Describe how different vertebrate animals move, including humans"
+                  ],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                },
+                {
+                  "id": "nst-5-2026-t1-u3",
+                  "ordinal": 3,
+                  "weeks": [5, 6],
+                  "hours": null,
+                  "durationLabel": "2 weeks",
+                  "topic": "Skeletons as structures",
+                  "capsStrand": "Life and Living",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Frame and shell structures",
+                      "concepts": [
+                        "a vertebrate skeleton is a frame structure (also refer to grade 4 Matter & Materials)",
+                        "some invertebrate skeletons are shell structures such as that of a crab"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [
+                    "Paper, drinking straws, wooden dowels or sticks (30 cm × 10 mm), sticky tape and metal paper fasteners"
+                  ],
+                  "informalAssessment": [
+                    "Design, draw, make and evaluate a skeleton. Write a paragraph about the skeleton that you built to address what worked and what did not work. Your skeleton should have the following specifications: It must be three-dimensional, it must look realistic, it must have/show the basic parts, i.e. skull, backbone and ribs, and it must be strong and rigid so that it can stand on its own"
+                  ],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                },
+                {
+                  "id": "nst-5-2026-t1-u4",
+                  "ordinal": 4,
+                  "weeks": [7, 8],
+                  "hours": null,
+                  "durationLabel": "1½ weeks",
+                  "topic": "Food chains",
+                  "capsStrand": "Life and Living",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Food and feeding",
+                      "concepts": [
+                        "green plants make their own food and build their branches and stems using water and carbon dioxide from the air, and energy from sunlight. (This important process is called \"photosynthesis.\" However no further detail is required in this grade, learners will deal with it in detail only in higher grades). Plants use carbon dioxide from the air and release oxygen into the air",
+                        "animals need food to carry out their life processes (to move, feed, grow, sense the environment, excrete, breathe and reproduce)",
+                        "all animals depend on plants as their primary source of food (herbivores, carnivores and omnivores)",
+                        "a food chain describes the feeding relationships between plants and animals.",
+                        "a food chain",
+                        "‒ starts with a plant, (produces foods)",
+                        "‒ then follows with an animal that eats the plant",
+                        "‒ after that with an animal that eats that animal",
+                        "includes the transfer of energy which flows from the plant through to the last animal in the chain"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": ["Pictures of various plants and animals"],
+                  "informalAssessment": [
+                    "Describe how each living thing gets food and how energy is passed from one organism to the next",
+                    "Sequence plants and animals to make up a proper food chain in which the energy is transferred from one organism to the next, with up to four organisms each, and describe their relationships",
+                    "Draw a food chain using common plants and animals with at least one sentence next to, below, or above each arrow.",
+                    "Classify animals according to their feeding relationships (as herbivores, omnivores, carnivores, scavengers or decomposers)",
+                    "Identify predators and their prey",
+                    "Explain the four stages in the life cycle of a flowering plant"
+                  ],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                },
+                {
+                  "id": "nst-5-2026-t1-u5",
+                  "ordinal": 5,
+                  "weeks": [9, 10],
+                  "hours": null,
+                  "durationLabel": "2 weeks",
+                  "topic": "Life cycles",
+                  "capsStrand": "Life and Living",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Growth and development",
+                      "concepts": [
+                        "plants and animals grow and develop throughout their lives",
+                        "a life cycle describes the stages and processes that take place as a plant or animal grows and develops",
+                        "a life cycle describes how one generation of a plant or animal gives rise to the next generation through reproduction",
+                        "death can occur at any stage of the life cycle",
+                        "many animals care for their young in order for them to grow and develop"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [
+                    "Pictures of different stages in the development of various plants and animals"
+                  ],
+                  "informalAssessment": [
+                    "Describe the different stages in the life cycle of an animal"
+                  ],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                },
+                {
+                  "id": "nst-5-2026-t1-u6-revision",
+                  "ordinal": 6,
+                  "weeks": [11],
+                  "hours": null,
+                  "durationLabel": "1 week",
+                  "topic": "Remediation, revision and consolidation",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Practical task / investigation",
+                  "type": "Practical Task",
+                  "term": 1,
+                  "weeks": [],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "weightingPercent": null,
+                  "topicsCovered": [],
+                  "conditions": null,
+                  "rubricNotes": ["Listed under SBA (FORMAL ASSESSMENT) for Term 1"],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                },
+                {
+                  "label": "Test",
+                  "type": "Test",
+                  "term": 1,
+                  "weeks": [],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "weightingPercent": null,
+                  "topicsCovered": [],
+                  "conditions": null,
+                  "rubricNotes": ["Listed under SBA (FORMAL ASSESSMENT) for Term 1"],
+                  "source": { "pdf": "2026_ATP_NS & Tech_Grade 5.pdf", "page": 1 }
+                }
+              ]
+            }
+          },
+          "yearOverview": null,
+          "notes": []
+        }
+      }
+    }
+  }
+}
