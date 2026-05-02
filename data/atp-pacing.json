@@ -1,11 +1,4327 @@
 {
   "$schemaVersion": "1.0.0",
-  "extractedAt": "2026-05-02T21:17:58.279Z",
+  "extractedAt": "2026-05-02T23:36:12.981Z",
   "extractor": {
     "model": "claude-sonnet-4-6",
     "promptVersion": 1
   },
   "subjects": {
+    "Afrikaans Home Language": {
+      "4": {
+        "2023-24": {
+          "subject": "Afrikaans Home Language",
+          "grade": 4,
+          "year": "2023-24",
+          "phase": "intermediate",
+          "language": "Afrikaans",
+          "source": {
+            "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+            "totalPages": 24,
+            "publishedBy": "DBE",
+            "documentTitle": "2023/2024 JAARLIKSE ONDERRIGPLAN: AFRIKAANS HUISTAAL: GRAAD 4"
+          },
+          "capsStrands": [
+            "LUISTER EN PRAAT (MONDELING)",
+            "LEES EN KYK",
+            "SKRYF EN AANBIED",
+            "TAALSTRUKTURE EN -KONVENSIES"
+          ],
+          "terms": {
+            "1": {
+              "term": 1,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [
+                "'n Grondslagassesseringstoets moet op skoolvlak gedurende die 1ste 3 dae van die kwartaal opgestel en afgelê word. Die data word gebruik om leerders se bevoegdhede asook hulle leergapings te identifiseer. Hierdie inligting moet as vertrekpunt vir leer en onderrig gebruik word."
+              ],
+              "units": [
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na inligtingsteks van 'n plakkaat",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na inligtingsteks van 'n plakkaat wat 'n gebeurtenis adverteer",
+                      "concepts": [
+                        "• Identifiseer spesifieke besonderhede",
+                        "• Interpreteer die inligting wat gegee is",
+                        "• Bepaal verband met persoonlike ervarings"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees inligtingsteks met visuele prikkels",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees inligtingsteks met visuele prikkels, bv. grafieke / tabelle / diagramme breinkaarte / kaarte / prente, ens.",
+                      "concepts": [
+                        "• Pre-lees: Voorspellings oor titel en prente / visuele beelde",
+                        "• Gebruik leesstrategieë soos soeklees",
+                        "• Vra en beantwoord vrae",
+                        "• Bespreek hoofgedagte en spesifieke besonderhede wat die visuele beelde interpreteer"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees vir begrip",
+                      "concepts": [
+                        "• Pre-lees: Praat oor prente",
+                        "• Interpreteer die inligting",
+                        "• Bespreek die doel van die teks",
+                        "• Bespreek die taalgebruik",
+                        "• Identifiseer en bespreek ontwerpkenmerke soos kleur en verskillende skrifgroottes"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees vir genot",
+                      "concepts": [
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n inligtingsteks soos 'n verslag",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n inligtingsteks soos 'n verslag",
+                      "concepts": [
+                        "• Organiseer inligting logies",
+                        "• Sluit besonderhede in",
+                        "• Gebruik onderwerp en ondersteunende sinne om samehangende paragrawe te ontwikkel",
+                        "• Ontwikkel toepaslike hulpmiddels soos kaarte en tabelle",
+                        "• Gebruik toepaslike taal, spelling en punktuasie",
+                        "• Gebruik toepaslike woordeskat",
+                        "• Skryf woorde en hul betekenisse in 'n persoonlike woordeboek neer",
+                        "• Beplan, skryf 'n eerste weergawe en verfyn skryfwerk"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Skep 'n persoonlike woordeboek",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, woordeskat (Weke 1-2)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Lidwoorde, soortname, abstrakte selfstandige naamwoorde, byvoeglike naamwoorde, werkwoorde, alfabetiese rangskikking, sinonieme, antonieme"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Enkelvoudige sinne, stelsinne, vraagsinne, werkwoorde, tydsvorme, sinsoorte (stelsin, vraagsin, bevelsin, uitroepsin)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat en betekenisleer",
+                      "concepts": [
+                        "Vergelykings, metafore, idiome"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Vraagteken, uitroepteken, gebruik van woordeboeke, spelling (kappie) en spelpatrone (d / t, f / v), hoofletters, punt, komma"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na en reageer op 'n uittreksel uit die novelle",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na en reageer op 'n uittreksel uit die novelle",
+                      "concepts": [
+                        "Inleidende aktiwiteite",
+                        "• Voorspellings",
+                        "• Luister na die uittreksel uit die novelle",
+                        "• Luister na die hoofgedagte en spesifieke besonderhede"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Beskryf gebeure",
+                      "concepts": [
+                        "• Bespreek die hoofgedagtes en spesifieke besonderhede",
+                        "• Verduidelik gebeure duidelik en in volgorde",
+                        "• Druk gevoelens uit in verband met gebeure",
+                        "• Bepaal verband met eie lewe",
+                        "• Bespreek sosiale, morele en kulturele waardes in die teks"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Neem deel aan groepbesprekings",
+                      "concepts": [
+                        "• Maak beurte",
+                        "• Bly by onderwerp",
+                        "• Vra relevante vrae",
+                        "• Handhaaf besprekings",
+                        "• Reageer met empatie en respek op ander se idees"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n uittreksel uit 'n novelette",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n uittreksel uit 'n novelette",
+                      "concepts": [
+                        "• Pre-lees strategieë: Soeklees, vluglees, voorspellings oor die titel en besprekings oor die tema / inhoud",
+                        "• Identifiseer en verduidelik die hoofgebeure",
+                        "• Bespreek die karakters",
+                        "• Identifiseer en bespreek gevoelens wat in die teks uitgespreek word",
+                        "• Verbind karakters en gebeure met eie lewe"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik 'n skryfraam om 'n uittreksel puntsgewys op te som",
+                      "concepts": [
+                        "• Wie?",
+                        "• Wat?",
+                        "• Wanneer?",
+                        "• Waar?",
+                        "• Waarom?",
+                        "• Hoe?"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Letterkunde",
+                      "concepts": [
+                        "• Bespreek die struktuur, taalgebruik, doel en gehoor",
+                        "• Identifiseer die verskil tussen bibliografieë, dagboeke en stories",
+                        "• Gebruik 'n woordeboek vir woordeskatontwikkeling"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees vir genot",
+                      "concepts": [
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n karakterskets van die hoofkarakter",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n karakterskets van die hoofkarakter",
+                      "concepts": [
+                        "• Gebruik 'n skryfraam",
+                        "• Pre-skryf: Luister na die uittreksel van die novelle",
+                        "• Kies toepaslike taalgebruik en teksstruktuur",
+                        "• Gebruik korrekte formaat",
+                        "• Organiseer inhoud logies",
+                        "• Skryf in kronologiese orde",
+                        "• Gebruik toepaslike taal, spelling en punktuasie, insluitende onderwerp en werkwoord"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word. 'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, woordeskat (Weke 3-4)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Betreklike en besitlike voornaamwoorde, byvoeglike naamwoorde, bywoorde, voegwoorde, vokaalgroep 1 en 2, woordfamilies, lettergrepe, klankgrepe"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Teenwoordige tyd, verlede tyd, werkwoorde, selfstandige naamwoorde (meervoud, verkleining, geslag)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat en betekenisleer",
+                      "concepts": [
+                        "Antonieme, sinonieme"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Punt, komma, woordverdeling, gebruik van woordeboeke, spelling (deelteken) en spelpatrone (ei / y), hoofletters"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na 'n kortverhaal",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na 'n kortverhaal – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Identifiseer karakters",
+                        "• Herroep hoofgedagte",
+                        "• Beantwoord mondelinge vrae"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Hervertel 'n storie",
+                      "concepts": [
+                        "• Vertel in korrekte volgorde",
+                        "• Noem korrekte karakters"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n kortverhaal",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Pre-lees: Voorspel vanuit titel en prente",
+                      "concepts": [
+                        "• Gebruik leesstrategieë, bv. voorspelling, kontekstuele leidrade",
+                        "• Bespreek nuwe woordeskat uit die teks"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees met begrip",
+                      "concepts": [
+                        "Gebruik 'n woordeboek"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik leesstrategieë",
+                      "concepts": [
+                        "• Vluglees vir hoofgedagtes",
+                        "• Soeklees vir ondersteunende besonderhede",
+                        "• Maak voorspellings",
+                        "• Lei betekenis van onbekende woorde en beelde af"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik begripstrategieë",
+                      "concepts": [
+                        "• Visualisering",
+                        "• Maak verbindings",
+                        "• Voorspelling",
+                        "• Maak afleidings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Letterkunde",
+                      "concepts": [
+                        "• Identifiseer en lewer kommentaar oor die karakters",
+                        "• Druk gevoelens uit oor die teks en bespreek dit"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n storie gebaseer op 'n persoonlike ondervinding",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n storie gebaseer op 'n persoonlike ondervinding",
+                      "concepts": [
+                        "• Selekteer toepaslike inhoud",
+                        "• Gebruik gepaste struktuur en formaat",
+                        "• Sluit karakters in",
+                        "• Gebruik toepaslike taalgebruik, spelling en punktuasie",
+                        "• Gebruik 'n verskeidenheid woorde wat verband hou met die onderwerpe"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word. 'n Woordmuur kan ook gebruik word. Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 5-6)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Abstrakte selfstandige naamwoorde, byvoeglike naamwoorde, telwoorde, vokaalgroep 3, alfabetiese rangskikking, opbreek van woorde, lettergrepe en klankgrepe"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Enkelvoudige sinne, enkelvoudige sin (onderwerp, voorwerp, gesegde)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Punt, komma, hoof- en kleinletters, spelling en spelpatrone, koppelteken"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister en bespreek 'n resep",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister en bespreek 'n resep – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Herroep prosedure",
+                        "• Identifiseer die kenmerke van instruksies teks",
+                        "• Gee duidelike instruksies oor hoe om 'n koppie tee te maak",
+                        "• Maak notas en pas instruksies toe",
+                        "• Vra vrae om kommentaar om duidelikheid van instruksies te verkry"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n resep",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n resep",
+                      "concepts": [
+                        "• Pre-lees: Voorspel vanuit titel en prente",
+                        "• Gebruik leesstrategieë, bv. voorspelling, kontekstuele leidrade",
+                        "• Bespreek spesifieke besonderhede van teks",
+                        "• Bespreek volgorde van instruksies"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees met begrip",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik leesstrategieë",
+                      "concepts": [
+                        "• Vluglees vir hoofgedagtes",
+                        "• Soeklees vir ondersteunende besonderhede",
+                        "• Maak voorspellings",
+                        "• Lei betekenis van onbekende woorde en beelde af"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik leesbegripstrategieë",
+                      "concepts": [
+                        "• Visualisering",
+                        "• Maak verbindings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u15",
+                  "ordinal": 15,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf instruksies: Hoe om 'n koppie tee maak",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf instruksies: Hoe om 'n koppie tee maak",
+                      "concepts": [
+                        "• Maak 'n lys van bestanddele",
+                        "• Gebruik korrekte en spesifieke besonderhede",
+                        "• Gebruik korrekte volgorde",
+                        "• Maak van opdragte (bevele) gebruik",
+                        "• Gebruik korrekte struktuur en formaat"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning /pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u16",
+                  "ordinal": 16,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 7-8)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Vokaalgroep 3, opbreek van woorde, lettergrepe, klankgrepe, sinonieme, antonieme, voegwoorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Hoof- en hulpwerkwoorde, byvoeglike naamwoorde (verbuiging, trappe van vergelyking, intensiewe vorme), teenwoordige en verlede tyd, idiomatiese uitdrukkings, enkelvoudige sinne"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, koppelteken, kappie, deelteken"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u17",
+                  "ordinal": 17,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Neem deel aan 'n kort gesprek oor 'n bekende onderwerp",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Neem deel aan 'n kort gesprek oor 'n bekende onderwerp",
+                      "concepts": [
+                        "• Maak beurte",
+                        "• Bly by die onderwerp",
+                        "• Vra relevante vrae"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Oefen luister en praat (Kies een vir daaglikse oefening)",
+                      "concepts": [
+                        "• Voer 'n eenvoudige rympie, gedig of liedjie uit",
+                        "• Speel 'n eenvoudige taalspeletjie",
+                        "• Gee en volg eenvoudige instruksies / aanwysings",
+                        "• Vertel eie nuus",
+                        "• Vertel 'n storie wat gehoor of gelees is"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u18",
+                  "ordinal": 18,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n plakkaat of kennisgewing",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n plakkaat of kennisgewing",
+                      "concepts": [
+                        "• Pre-lees: Bespreek die prente",
+                        "• Bespreek waaroor die teks handel",
+                        "• Identifiseer spesifieke inligting",
+                        "• Interpreteer die inligting",
+                        "• Bespreek die doel van die teks",
+                        "• Bespreek die taalgebruik",
+                        "• Identifiseer en bespreek ontwerpkenmerke soos kleur en verskillende skrifgroottes"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Oefen om te lees",
+                      "concepts": [
+                        "• Lees hardop met toepaslike uitspraak, uitdrukking en tempo"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u19",
+                  "ordinal": 19,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Ontwerp 'n plakkaat wat 'n geleentheid adverteer",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Ontwerp 'n plakkaat wat 'n geleentheid adverteer",
+                      "concepts": [
+                        "• Kies toepaslike inligting",
+                        "• Gebruik die korrekte formaat",
+                        "• Gebruik ontwerpkenmerke soos kleur en verskillende lettergroottes of -soorte"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t1-u20",
+                  "ordinal": 20,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 9-10)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Sinonieme en antonieme"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Bywoorde van tyd, plek en wyse, sinsoorte, enkelvoudige sin, woordorde, ontkenning, metafore, vergelykings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks uit gelese teks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 5
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 1: MONDELING – Hardoplees (20 punte)",
+                  "type": "Oral",
+                  "term": 1,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Hardoplees",
+                      "marks": 20,
+                      "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                      "notes": "Begin met hierdie taak in kwartaal 1 en sluit af in kwartaal 2 wanneer die punt opgeteken sal word."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Hardoplees"
+                  ],
+                  "conditions": "Begin met hierdie taak in kwartaal 1 en sluit af in kwartaal 2 wanneer die punt opgeteken sal word.",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 2: SKRYF – Opstel (20 punte)",
+                  "type": "Assignment",
+                  "term": 1,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Opstel – Verhalend of beskrywend, drie (3) paragrawe",
+                      "marks": 20,
+                      "capsStrand": "SKRYF EN AANBIED",
+                      "notes": "Taak word gedurende die kwartaal voltooi"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Opstel – Verhalend of beskrywend, drie (3) paragrawe"
+                  ],
+                  "conditions": "Taak word gedurende die kwartaal voltooi",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 3: RESPONS OP TEKSTE (40 punte)",
+                  "type": "Test",
+                  "term": 1,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Literêre / Nie-literêre teks",
+                      "marks": 15,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Visuele teks",
+                      "marks": 10,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Taalstrukture en -konvensies",
+                      "marks": 15,
+                      "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Literêre / Nie-literêre teks (15 punte)",
+                    "Visuele teks (10 punte)",
+                    "Taalstrukture en -konvensies (15 punte)"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 5
+                  }
+                }
+              ]
+            },
+            "2": {
+              "term": 2,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na 'n gedig / lied",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na 'n gedig / lied",
+                      "concepts": [
+                        "• Herroep hoofgedagte",
+                        "• Bespreek sentrale idee / boodskap",
+                        "• Verwys na eie ervaring",
+                        "• Identifiseer ritme en lewer kommentaar op die effek daarvan op die luisteraar",
+                        "• Druk gevoelens uit wat deur die gedig opgeroep is",
+                        "• Bied lied / gesiteerde reëls aan"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n gedig / lied",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n gedig / lied",
+                      "concepts": [
+                        "• Gebruik 'n teks uit 'n handboek of die onderwyser se hulpbronlêer",
+                        "• Bespreek hoofgedagte(s)",
+                        "• Druk gevoelens uit wat deur die gedig / lied opgeroep is",
+                        "• Identifiseer ritme en rym en die effek daarvan",
+                        "• Verdeel woorde in lettergrepe om ritme te verstaan"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees met begrip",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik leesstrategieë",
+                      "concepts": [
+                        "• Vluglees vir hoofgedagtes",
+                        "• Soeklees vir ondersteunende besonderhede",
+                        "• Maak voorspellings",
+                        "• Lei betekenis van onbekende woorde en beelde af"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik leesbegripstrategieë",
+                      "concepts": [
+                        "• Visualisering",
+                        "• Maak verbindings",
+                        "• Voorspellings",
+                        "• Maak afleidings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n eenvoudige gedig / lied",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n eenvoudige gedig / lied",
+                      "concepts": [
+                        "• Gebruik toepaslike inhoud",
+                        "• Gebruik gepaste struktuur en formaat",
+                        "• Beplan, ontwerp en hersien 'n gedig / lied",
+                        "• Gebruik toepaslike ritme en rym",
+                        "• Gebruik kennis van lettergrepe om ritme te ontwikkel",
+                        "• Skryf woorde en hul betekenisse in 'n persoonlike woordeboek neer",
+                        "• Beplan, skryf 'n eerste weergawe en verfyn skryfwerk"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling (teken / sin waarin woord gebruik word / verduideliking van woord).",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 1-2 K2)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Abstrakte selfstandige naamwoorde, ander selfstandige naamwoorde, samestellings, leenwoorde, personifikasie, alliterasie, rym"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Enkelvoudige sinne, saamgestelde sinne"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, afkappingsteken, vraagteken"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na weerverslag",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na weerverslag – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Luister vir spesifieke besonderhede"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Neem deel aan klasbesprekings wat deur die onderwyser gelei word",
+                      "concepts": [
+                        "• Bespreek bruikbaarheid van die inligting",
+                        "• Koppel inligting aan eie lewe",
+                        "• Bespreek moontlike uitwerking op mense",
+                        "• Vergelyk toestande op verskillende plekke en dui voorkeurbestemmings met redes aan",
+                        "• Regverdig eie mening",
+                        "• Identifiseer kenmerke van weer",
+                        "• Verslae: Register en die aard van taalgebruik",
+                        "• Gebruik interaksiestrategieë om effektief in groepsituasies te kommunikeer"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Luister na 'n beskrywing en beskryf 'n voorwerp",
+                      "concepts": [
+                        "• Identifiseer die voorwerp wat korrek beskryf word",
+                        "• Gebruik woorde wat die voorwerp korrek beskryf",
+                        "• Gebruik enkele nuwe woorde",
+                        "• Gebruik byvoeglike naamwoorde"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n weerverslag",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n weerverslag",
+                      "concepts": [
+                        "• Identifiseer en verduidelik ooreenkomste en verskille",
+                        "• Identifiseer die wyse waarop die teks georganiseer is",
+                        "• Lees 'n informatiewe teks met hulpmiddels soos kaarte of grafiese voorstellings",
+                        "• Bespreek Pre-lees: Voorspel na aanleiding van titel, opskrifte en prente, sentrale idee en besonderhede",
+                        "• Gebruik leesstrategieë soos voorspellings, tekstuele en kontekstuele leidrade",
+                        "• Interpreteer hulpmiddels",
+                        "• Gebruik 'n kopkaart of notas om inligting op te som"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n informatiewe teks met visuele komponente",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n informatiewe teks met visuele komponente soos 'n boekomslag / advertensie / tydlyn",
+                      "concepts": [
+                        "• Organiseer inligting logies, insluitend besonderhede",
+                        "• Gebruik onderwerp en ondersteunende sinne om samehangende paragrawe te ontwikkel",
+                        "• Ontwerp toepaslike hulpmiddels soos kaarte en tabelle",
+                        "• Gebruik toepaslike taal, spelling en punktuasie",
+                        "• Gebruik toepaslike woordeskat",
+                        "• Gebruik die woordeboek om spelling en woordbetekenisse te kontroleer",
+                        "• Beplan, skryf 'n eerste weergawe en verfyn skryfwerk"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word. 'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling. Gebruik tekeninge of sinne met die woorde of verduidelikings om die betekenis oor te dra.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 3-4 K2)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Werkwoorde, byvoeglike naamwoorde, werkwoorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Enkelvoudige sin (onderwerp, gesegde, voorwerp), tydsvorme: verlede tyd, toekomende tyd"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, afkappingsteken, vraagteken, uitroepteken"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na 'n dialoog",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na 'n dialoog – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Luister en bepaal verband met eie ervaring",
+                        "• Voorspelling",
+                        "• Identifiseer spesifieke besonderhede"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Neem deel aan groepbesprekings",
+                      "concepts": [
+                        "• Maak beurte om te praat",
+                        "• Bly by onderwerp",
+                        "• Vra relevante vrae",
+                        "• Handhaaf bespreking",
+                        "• Reageer met empatie en respek op ander se idees",
+                        "• Gee gebalanseerde en konstruktiewe terugvoering"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Rolspeel 'n scenario wat verband hou met die gekose roman in kwartaal 1",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n dialoog",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n dialoog",
+                      "concepts": [
+                        "• Pre-lees: Voorspel vanuit titel en prente",
+                        "• Gebruik leesstrategieë: Vluglees, maak voorspellings, lei die betekenis van onbekende woorde en beelde af",
+                        "• Hersiening om begrip te bevorder",
+                        "• Verstaan die woordeskat",
+                        "• Identifiseer hoof- en ondersteunende idees",
+                        "• Bespreek nuwe woordeskat uit die gelese teks",
+                        "• Gebruik 'n woordeboek",
+                        "• Dink na oor tekste wat onafhanklik gelees word",
+                        "• Vertel storie of hoofgedagtes oor in 3 tot 5 sinne"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Letterkunde",
+                      "concepts": [
+                        "• Identifiseer en lewer kommentaar op die plot",
+                        "• Gee redes vir optrede",
+                        "• Identifiseer en bespreek waardes in die teks",
+                        "• Druk emosionele reaksie uit op tekste wat gelees word"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees met begrip",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik leesbegripstrategieë",
+                      "concepts": [
+                        "• Visualisering",
+                        "• Maak verbindings",
+                        "• Voorspellings",
+                        "• Maak afleidings",
+                        "• Vra vrae"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot:",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n onderhoud",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n onderhoud",
+                      "concepts": [
+                        "• Kies inhoud toepaslik",
+                        "• Gebruik die skryfraam",
+                        "• Gebruik direkte rede vir dialoog",
+                        "• Brei sinne uit deur byvoeglike naamwoorde en bywoorde by te voeg",
+                        "• Gebruik uitgebreide woordeskat, insluitend voornaamwoorde, verbindingswoorde en frases",
+                        "• Gebruik gepaste grammatika, spelling en punktuasie",
+                        "• Gebruik die woordeboek om spelling en betekenis van woorde na te gaan"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning",
+                        "• Konsep",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Skryf 'n boekresensie oor die gekose novelle in kwartaal 1",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spel en woordeskat ontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 5-6 K2)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Afleiding, samestelling, idiome, metafore, spreekwoorde, woorde wat verwar, woordorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Deelwoorde in sinne, direkte en indirekte rede"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, afkappingsteken, deelteken, kappie, aanhalingstekens"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na en voer instruksies uit",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na en voer instruksies uit, bv. aanwysings / reëls / veiligheidsreëls wanneer jy die pad oorsteek / hoe om jou hande te was / instruksies om iets te maak",
+                      "concepts": [
+                        "• Inleidende aktiwiteite: voorspelling",
+                        "• Herroep prosedure",
+                        "• Identifiseer die kenmerke van instruksiesteks",
+                        "• Let op na hoofopskrifte",
+                        "• Gee duidelike instruksies en voorbeelde",
+                        "• Maak aantekeninge en pas instruksies toe",
+                        "• Vra vrae vir duidelikheid",
+                        "• Lewer kommentaar oor duidelikheid van instruksies"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Luister na en gee aanwysings",
+                      "concepts": [
+                        "• Luister vir spesifieke besonderhede",
+                        "• Gebruik besonderhede akkuraat",
+                        "• Gebruik die korrekte taalvorm"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n instruksiesteks",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n instruksiesteks, bv. aanwysings / reëls / veiligheidsreëls wanneer jy die pad oorsteek / hoe om jou hande te was / instruksies om iets te maak",
+                      "concepts": [
+                        "• Pre-lees: Voorspelling wat op titel en prente gebaseer is",
+                        "• Bespreek besonderhede van teks",
+                        "• Bespreek volgorde van instruksies",
+                        "• Gebruik woordeboek om spelling van woorde en betekenis na te slaan"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u15",
+                  "ordinal": 15,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n instruksiesteks",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n instruksiesteks, bv. aanwysings / reëls / veiligheidsreëls wanneer jy die pad oorsteek / hoe om jou hande te was / instruksies om iets te maak",
+                      "concepts": [
+                        "• Kies gepaste inhoud vir die onderwerp",
+                        "• Gebruik die toepaslike struktuur as 'n skryfraam",
+                        "• Orden inligting logies",
+                        "• Gebruik kern- en ondersteunende sinne om samehangende paragrawe te ontwikkel",
+                        "• Gebruik toepaslike taal, spelling en punktuasie",
+                        "• Bied werk netjies aan deur opskrifte en spasies vir paragrawe te gebruik",
+                        "• Skryf woorde en hul betekenisse in ŉ persoonlike woordeboek neer"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering en proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word. 'n Woordmuur kan ook gebruik word. Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u16",
+                  "ordinal": 16,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 7-8 K2)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Afleidings, samestellings, woorde wat verwar, voorsetsels, bywoorde, voegwoorde, onpersoonlike voornaamwoorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Saamgestelde sinne, direkte en indirekte rede"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, dubbelpunt"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t2-u17",
+                  "ordinal": 17,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "FORMELE ASSESSERINGSTAAK 5: JUNIE-KONTROLETOETS",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 11
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 1: MONDELING (20 punte) – Hardoplees",
+                  "type": "Oral",
+                  "term": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Hardoplees",
+                      "marks": 20,
+                      "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                      "notes": "Begin met hierdie taak in kwartaal 1 en sluit af in kwartaal 2 wanneer die punt aangeteken sal word."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Hardoplees"
+                  ],
+                  "conditions": "Begin met hierdie taak in kwartaal 1 en sluit af in kwartaal 2 wanneer die punt aangeteken sal word.",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 4: SKRYFWERK – Transaksionele skryf (10 punte)",
+                  "type": "Assignment",
+                  "term": 2,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 10,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Transaksionele skryf",
+                      "marks": 10,
+                      "capsStrand": "SKRYF EN AANBIED",
+                      "notes": "Word voor die kontroletoets geskryf"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Transaksionele skryf"
+                  ],
+                  "conditions": "Word voor die kontroletoets geskryf",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 5: JUNIE-KONTROLETOETS – RESPONS OP TEKS (40 punte)",
+                  "type": "Examination",
+                  "term": 2,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Vraag 1: Literêre / Nie-literêre teks",
+                      "marks": 15,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Vraag 2: Visuele teks",
+                      "marks": 10,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Vraag 3: Opsomming",
+                      "marks": 5,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Vraag 4: Taalstrukture en -konvensies in konteks",
+                      "marks": 10,
+                      "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Vraag 1: Literêre / Nie-literêre teks (15 punte)",
+                    "Vraag 2: Visuele teks (10 punte)",
+                    "Vraag 3: Opsomming (5 punte)",
+                    "Vraag 4: Taalstrukture en -konvensies in konteks (10 punte)"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 11
+                  }
+                }
+              ]
+            },
+            "3": {
+              "term": 3,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [
+                "KREATIEWE SKRYFPROJEK: FASE 3 – MONDELINGE AANBIEDING: Alle aktiwiteite moet in die klas onder leiding van die onderwyser gedoen word. Die mondelinge aanbieding kan op die volgende maniere gedoen word: Onafhanklik, pare of groepe, maar individueel nagesien met 'n aparte rubriek. Dit moet relevant wees tot die genre wat gekies word, bv. poësie / volksverhale / drama / kortverhaal.",
+                "Byvoorbeeld: Drama kan rolspel doen, Poësie: Slam-poësie, ens.",
+                "Voorbereiding vir die mondelinge voordrag moet in kwartaal 3 begin en gedurende kwartaal 4 uitgevoer word vir rekord- en verslagdoeningsdoeleindes.",
+                "Assessering vir leer moet deurlopend plaasvind."
+              ],
+              "units": [
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na volksverhale (mite, legende)",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na volksverhale, bv. mite, legende – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspel waaroor die teks moontlik kan handel",
+                        "• Identifiseer die intrige, karakters en omgewing",
+                        "• Bespreek die hoofgedagte",
+                        "• Beantwoord mondelinge vrae"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Vertel die storie oor (Volksverhale: mite of legende?)",
+                      "concepts": [
+                        "• Vertel gebeure in die teks in die korrekte volgorde oor",
+                        "• Benoem karakters korrek",
+                        "• Druk gedagtes en gevoelens uit oor die storielyn / karakters / omgewing / boodskap / tema van die teks, ens."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees volksverhale (mite / legende)",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees volksverhale, bv. mite / legende – Lees met begrip / Begripstoets",
+                      "concepts": [
+                        "Inleidende aktiwiteite",
+                        "• Pre-lees: Maak voorspellings van die titel en prente in die teks"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Gebruik leesstrategieë om voorspellings te maak",
+                        "• Gebruik kontekstuele leidrade om betekenis te vorm",
+                        "• Bespreek intrige, hoofkarakters en omgewing",
+                        "• Bespreek boodskap / moraal van die storie",
+                        "• Druk menings en eie gevoelens oor teks uit",
+                        "• Onderskei tussen realistiese en onrealistiese gebeure in die storie"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Assesseer vir leer – ter voorbereiding van hardoplees",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n hervertelling van die volksverhale-genre",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n hervertelling van die volksverhale-genre gelees, bv. mite / legende deur 'n skryfraam te gebruik – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Stel die karakters, plek en tyd van die gelese teks bekend"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Beskryf 'n reeks gebeurtenisse wat plaasgevind het",
+                        "• Gee 'n mening oor die teks wat gelees is",
+                        "• Gebruik 'n skryfraam of voltooiing van onvolledige sinne (waar nodig)",
+                        "• Vertel gebeure in opeenvolgende volgorde oor",
+                        "• Gebruik gevarieerde woordeskat",
+                        "• Vertellings wat in die verlede tyd geskryf is"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 1-2 K3)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Voorvoegsel, basisvorm, agtervoegsel, samestellings, afleidings, sinonieme, antonieme, homonieme, byvoeglike naamwoorde, verlede tyd"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Voornaamwoorde, bywoorde, voorsetsels, ontkenning, idiome en idiomatiese, uitdrukkings, letterlike en figuurlike taalgebruik, saamgestelde sinne, enkelvoudige sinne"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, dubbelpunt, kommapunt, hoofletters"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Kreatiewe skryfprojek: Fase 1 Navorsing",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 1: Navorsing",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na en neem deel aan 'n kort gesprek oor die kreatiewe skryfprojek gebaseer op die geselekteerde genre, bv. poësie / drama / kortverhaal – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Bespreek die navorsingsproses en tydlyn",
+                        "• Bespreek die ontwikkeling van 'n leidende vraag / onderwerp",
+                        "• Praat oor die gebruik van navorsingsbronne en hulpbronne",
+                        "• Fokus op aantekeninge",
+                        "• Verduidelik verwysings en die belangrikheid van 'n bibliografie",
+                        "• Verduidelik assesseringskriteria en beskrywings in die rubriek / kontrolelys"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Verdeel in groepe of werk individueel",
+                        "• Versamel inligting vir navorsing",
+                        "• Deel idees, menings en neem deel aan die bespreking",
+                        "• Stel 'n bibliografie saam",
+                        "• Hou rekord van die navorsingsproses (Portefeulje van Bewyse)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "NOTA AAN DIE ONDERWYSER: Die navorsingsproses gaan voort oor die twee-week-siklus",
+                    "Bewyse van aktiwiteite en die proses wat in leerderwerkboek / lêer / portefeulje van bewyse gehou moet word",
+                    "Demonstreer hoe om navorsing te doen – 'Ek doen, ons doen, jy doen'",
+                    "Bevindinge in die navorsing moet reageer op die gestelde probleem / onderwerp",
+                    "Gee spesiale aandag aan verwysings en die formaat van die bibliografie",
+                    "Assesseer Fase 1: Navorsing deur 'n rubriek / kontrolelys te gebruik en gee terugvoering aan leerders",
+                    "Alle aktiwiteite moet in die klas onder leiding van die onderwyser gedoen word",
+                    "Assessering vir leer moet deurlopend plaasvind."
+                  ],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees vir inligting gebaseer op die genre (Kreatiewe skryfprojek Fase 1)",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 1: Navorsing",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees vir inligting gebaseer op die genre wat gekies is, bv. poësie / drama / kortverhaal – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Verskaf navorsingsmateriaal",
+                        "• Moedig leerders aan om by te voeg tot navorsingsmateriaal wat verskaf word",
+                        "• Hersien die teks om begrip te bevorder",
+                        "• Bespreek die uitwerking van die kenmerke / elemente van poësie / volksverhale / drama / kortverhaal",
+                        "• Bespreek die impak van visuele tegnieke wat sigbaar is in letterkunde (poësie / volksverhale / drama / kortverhaal)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Gebruik leesstrategieë vir begrip",
+                        "• Vluglees na hoofgedagtes",
+                        "• Soeklees vir ondersteunende besonderhede",
+                        "• Maak voorspellings",
+                        "• Lei die betekenis van onbekende woorde en beelde af",
+                        "• Sintetiseer geselekteerde inligting in 'n grafiese organiseerder, bv. breinkaart, volgordegrafiek, Venn-diagram, ens.",
+                        "• Skryf aantekeninge ter voorbereiding vir Fase 2: Skryf"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Gebruik verskillende soorte grafiese organiseerders (Kreatiewe skryfprojek Fase 1)",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 1: Navorsing",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Gebruik verskillende soorte grafiese organiseerders om navorsingsbevindinge van die kreatiewe skryfprojek te versamel – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Demonstreer toepaslike skryframe / -gereedskap om die soort produk wat geproduseer moet word te ondersteun, bv. breinkaart, volgordekaart, Venn-diagram, ens.",
+                        "• Herhaal verwysings en die belangrikheid van 'n bibliografie",
+                        "• Herhaal die assesseringskriteria en beskrywings in die rubriek / kontrolelys",
+                        "• Herinner leerders om aandag te gee aan die antwoord op die gestelde probleem / onderwerp"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Ontwerp en vervaardig 'n visuele teks, bv. plakkaat, kennisgewing, brosjure",
+                      "concepts": [
+                        "• Voorafskryf: Bestudeer die formaat, struktuur en taalgebruik in brosjures",
+                        "• Kies die korrekte formaat",
+                        "• Kies toepaslike inligting",
+                        "• Gebruik gepaste struktuur",
+                        "• Beplan, skryf 'n eerste weergawe en verfyn skryfwerk"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 3-4 K3)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 1: Navorsing",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Basisvorm, samestellings, afleidings, voor- en agtervoegsels (affikse), sinonieme, antonieme, homonieme"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Voornaamwoorde, bywoorde, voorsetsels, ontkenning, idiome, idiomatiese uitdrukkings, letterlike en figuurlike taalgebruik, direkte en indirekte rede"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, dubbelpunt, aanhalingstekens"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [
+                        "Versterking van taalstrukture en -konvensies wat verband hou met navorsing van die literêre genre waarop gefokus word, bv. poësie / volksverhale / drama / kortverhaal",
+                        "• Organisering van navorsingsbevindinge, bv. breinkaart, volgordekaart, Venn-diagram, ens.",
+                        "• Duidelikheid van inligting",
+                        "• Gebruik van woordeskat wat met navorsing verband hou",
+                        "• Verwysing van konvensies"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Kreatiewe skryfprojek: Fase 2 Skryf",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 2: Skryf",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister- en praatstrategieë – Fokus op die relevante literatuurgenre, bv. poësie/volksverhale/drama/kortverhaal – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Herhaal die leidende vraag / onderwerp waarop gefokus is tydens navorsing",
+                        "• Bespreek literêre kenmerke en elemente wat relevant is tot die genre wat nagevors word",
+                        "• Maak seker dat alle leerders voorbereid is om met Fase 2: Skryf te begin",
+                        "• Bespreek met leerders hoe om hul skryfwerk te beplan deur hul navorsingsbevindings te gebruik",
+                        "• Bespreek die skryfproses",
+                        "• Gee instruksies gebaseer op die skryfaktiwiteit",
+                        "• Bespreek die formaat van die skryfaktiwiteit wat geproduseer moet word, bv. opstel / verslag / plakkaat, ens."
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Leerders dra by tot die bespreking",
+                        "• Verstaan verwagtinge wat verband hou met die leidende vraag / onderwerp"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "NOTA AAN DIE ONDERWYSER: Die skryfproses gaan voort oor die twee-week-siklus",
+                    "Bewyse van skryfproses wat in leerderwerkboek / lêer / portefeulje van bewyse gehou moet word",
+                    "Bestuur die skryfproses",
+                    "Assesseer Fase 2: Skryf deur 'n rubriek te gebruik en gee terugvoer aan leerders",
+                    "Alle aktiwiteite moet in die klas onder leiding van die onderwyser gedoen word",
+                    "Bevindinge in die navorsing moet reageer op die gestelde probleem / onderwerp",
+                    "Gee spesiale aandag aan verwysings en die formaat van die bibliografie",
+                    "Elke leerder moet sy / haar eie werk skryf wat individueel nagesien sal word deur 'n rubriek te gebruik"
+                  ],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 14
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees- en kykstrategieë vir die kreatiewe skryfprojek Fase 2",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 2: Skryf",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lei leerders om die kreatiewe skryfprojek se rubrieke en assesseringsvereistes te verstaan – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Verskaf duidelikheid oor tydlyne",
+                        "• Lei leerders om die navorsingsnotas te lees en te gebruik",
+                        "• Lees en bespreek die rubriek",
+                        "• Verduidelik die kriteria en beskrywings in die rubriek"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Lees die gekose genre",
+                        "• Lees en verstaan die rubriek",
+                        "• Lees en verstaan die skryfraamwerk",
+                        "• Identifiseer die konvensies spesifiek vir die genre wat nagevors word"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 14
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Kreatiewe skryfprojek Fase 2: Skryf / teken / skep / ontwerp / produseer",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 2: Skryf",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf/teken/skep/ontwerp/produseer 'n produk van die gekose onderwerp – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Gee vir die leerders 'n skryfraam om te gebruik wanneer hulle skryf / ontwerp",
+                        "• Lei die leerders oor hoe om die skryf- / ontwerpraamwerk te voltooi"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Bespreek die literêre elemente / kenmerke spesifiek vir die gekose genre",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Skryf 'n dialoog",
+                      "concepts": [
+                        "• Selekteer toepaslike karakters",
+                        "• Organiseer die gesprek logies",
+                        "• Skryf sinne deur die direkte en indirekte rede te gebruik",
+                        "• Gebruik 'n uitgebreide woordeskat",
+                        "• Gebruik toepaslike taal, spelling, punktuasie en spasiëring",
+                        "• Lewer verslag oor woorde en hul betekenis in 'n persoonlike woordeboek"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 14
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 5-6 K3)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": "Kreatiewe skryfprojek – Fase 2: Skryf",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Basisvorm, samestellings en afleidings, voor- en agtervoegsels (affikse), klankverandering, sinonieme, antonieme, homonieme, leenwoorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Direkte en indirekte rede, figuurlike taalgebruik, vergelykings, idiome, spreekwoorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, leestekens, skryftekens"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [
+                        "Versterking van taalstrukture en -konvensies wat verband hou met navorsing van die literêre genre waarop gefokus word, bv. poësie / volksverhale / drama / kortverhaal",
+                        "• Organisering van navorsingsbevindinge, bv. breinkaart, volgordekaart, Venn-diagram, ens.",
+                        "• Duidelikheid van inligting",
+                        "• Gebruik van woordeskat wat met navorsing verband hou",
+                        "• Verwysing van konvensies"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 14
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na 'n gedig / gedigte en voltooi 'n luisterbegripaktiwiteit",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na 'n gedig / gedigte en voltooi 'n luisterbegripaktiwiteit – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Bespreek waaroor die gedig handel",
+                        "• Bepaal verband met eie ervaring",
+                        "• Identifiseer rym en ritme",
+                        "• Druk gevoelens uit wat deur die gedig opgeroep word",
+                        "• Dra gedig / -te of gekose strofes voor"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Oefen verskeie luister- en praataktiwiteite",
+                        "• Bring gedig / -te in verband met eie ervaring",
+                        "• Identifiseer ritme en rym in die gedig / -te",
+                        "• Druk gevoelens uit wat deur die gedig opgeroep word",
+                        "• Identifiseer woorde wat met dieselfde klank begin",
+                        "• Oefen die gebruik van woorde wat hul klanke naboots, bv. bye gons, glas rinkel, ens. (onomatopee)",
+                        "• Dra 'n gedig of gekose strofes voor"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "LET WEL",
+                      "concepts": [
+                        "Deurlopende assessering vir leer om voor te berei vir die mondelinge aanbieding in kwartaal 4"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n gedig en voltooi 'n begripstoets",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n gedig en voltooi 'n begripstoets – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Pre-lees: Voorspellings vanuit titel en prente",
+                        "• Gebruik leesstrategieë, bv. Voorspelling",
+                        "• Kyk noukeurig na prente en gebruik kontekstuele leidrade"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Identifiseer ritme en rym",
+                        "• Breek woorde in lettergrepe op",
+                        "• Druk gevoelens uit wat deur die gelese gedig opgeroep word"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "• Lees hardop met toepaslike uitspraak, uitdrukking en tempo",
+                        "• Dink na oor tekste wat tydens onafhanklike / gepaarde lees gelees is",
+                        "Voltooi 'n kort mondelinge boekresensie deur 'n toepaslike raam te gebruik"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees vir genot",
+                      "concepts": [
+                        "Gedig / Leesboek moet daagliks ten minste 30 minute lank gelees word.",
+                        "• Besin oor tekste wat onafhanklik gelees word",
+                        "• Verwantskap aan eie konteks"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u15",
+                  "ordinal": 15,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf sinne wat rym",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf sinne wat rym – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Identifiseer en demonstreer hoe woorde rym deur klanke in woorde te manipuleer, by te voeg, te skrap of te vervang",
+                        "• Gebruik beskrywende taal om te verduidelik of om vrae te vra",
+                        "• Herken letters en letterklankpassings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Skryf pare sinne van dieselfde lengte wat rym",
+                        "• Gebruik gepaste ritme en rym",
+                        "• Gebruik kennis van lettergrepe om die ritme en rym te ontwikkel"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u16",
+                  "ordinal": 16,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 7-8 K3)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Vokaalgroep 1, 2 en 3, diftonge, alfabetiese rangskikking, klank- en lettergrepe, opbreek van woorde, leenwoorde, versamelname, voegwoorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Sinsoorte (stelsin, bevelsin, vraagsin, uitroepsin), enkelvoudige sin, saamgestelde sin, lydende en bedrywende vorm, idiome, idiomatiese uitdrukkings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, leestekens, skryftekens"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u17",
+                  "ordinal": 17,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na of lees 'n advertensie hardop",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na of lees 'n advertensie hardop / Luister na 'n advertensie op radio of TV – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Interpreteer en bespreek boodskap, insluitend die waardes in die teks",
+                        "• Bespreek die struktuur, taalgebruik, doel en gehoor van die teks"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Neem deel aan groepbespreking oor 'n sosiale kwessie wat met die advertensies verband hou",
+                      "concepts": [
+                        "• Bespreek sosiale waardes",
+                        "• Vra relevante vrae deur gepaste vraagvorms te gebruik, bv. wie, wat, wat, wanneer, hoe, hoekom"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "LET WEL",
+                      "concepts": [
+                        "Deurlopende assessering vir leer om voor te berei vir die mondelinge aanbieding in kwartaal 4"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 16
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u18",
+                  "ordinal": 18,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees 'n advertensie en voltooi 'n leesbegrip",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees 'n advertensie en voltooi 'n leesbegrip – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Interpreteer en bespreek boodskap insluitend die waardes in die teks",
+                        "• Bespreek die struktuur, taalgebruik, doel en gehoor van die teks"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Bespreek taalgebruik, insluitend oorredende en emosionele taal en die ekonomiese gebruik van taal",
+                        "• Vra relevante en kritiese vrae deur gepaste vraagvorms te gebruik, bv. wie, wat, wat, wanneer, waarom, hoe",
+                        "• Identifiseer en bespreek stereotipes",
+                        "• Identifiseer en bespreek grafiese tegnieke soos kleur, ontwerp, keuse van beelde, ens. en hoe dit die boodskap wat oorgedra word, beïnvloed"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "• Lees hardop met toepaslike uitspraak, uitdrukking en tempo",
+                        "• Dink na oor tekste wat tydens onafhanklike / gepaarde lees gelees is",
+                        "• Voltooi 'n kort mondelinge boekresensie deur 'n toepaslike raam te gebruik"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees vir genot",
+                      "concepts": [
+                        "Gedig / Leesboek moet daagliks ten minste 30 minute lank gelees word.",
+                        "• Besin oor tekste wat onafhanklik gelees word",
+                        "• Verwantskap aan eie konteks"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 16
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u19",
+                  "ordinal": 19,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n advertensie",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n advertensie – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Interpreteer en bespreek boodskap, insluitend die waardes in die teks",
+                        "• Bespreek die struktuur, taalgebruik, doel en gehoor van die teks"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leerders",
+                      "concepts": [
+                        "• Gebruik inhoud wat geskik is vir doel en gehoor",
+                        "• Gebruik gepaste beeldmateriaal en uitleg vir die doel",
+                        "• Gebruik gepaste grammatika en woordeskat",
+                        "• Gebruik taal kreatief",
+                        "• Gebruik die woordeboek om spelling en betekenis van woorde na te gaan"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 16
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t3-u20",
+                  "ordinal": 20,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 9-10 K3)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Vokaalgroep 1, 2 en 3, diftonge, alfabetiese rangskikking, klank- en lettergrepe, opbreek van woorde, antonieme, sinonieme, homonieme, homofone, basisvorme, voor- en agtervoegsels (affikse)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Werkwoorde en deelwoorde, selfstandige naamwoorde (geslag, verkleining, meervoud), byvoeglike naamwoord (trappe van vergelyking, verboë vorme, intensiewe vorme)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, kommapunte"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 16
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "ASSESSERINGSTAAK 6: KREATIEWE SKRYFPROJEK",
+                  "type": "Project",
+                  "term": 3,
+                  "weeks": [
+                    3,
+                    4,
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Stap 1: Navorsing – Leerders doen navorsing oor hul projek",
+                      "marks": 10,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": "Week 4-5"
+                    },
+                    {
+                      "label": "Stap 2: Skryfwerk – Leerders skryf inleiding en begin met projekuiteensetting",
+                      "marks": 30,
+                      "capsStrand": "SKRYF EN AANBIED",
+                      "notes": "Beplanning van die kreatiewe skryfprojek; Skryf eerste weergawe; Hersiening; Redigering; Proeflees; Aanbieding"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Projek gebaseer op enige van die bestudeerde literatuurgenres: Gedigte / volksverhale / kortverhale / drama",
+                    "Opmerking: Daar moet verskillende soorte genres oor die verskillende grade gedoen word."
+                  ],
+                  "conditions": "Stap 2: Onderwyser verduidelik die instruksies en metodologie van projek.",
+                  "rubricNotes": [
+                    "Assesseer Fase 1: Navorsing deur 'n rubriek / kontrolelys te gebruik en gee terugvoering aan leerders",
+                    "Assesseer Fase 2: Skryf deur 'n rubriek te gebruik en gee terugvoer aan leerders",
+                    "Elke leerder moet sy / haar eie werk skryf wat individueel nagesien sal word deur 'n rubriek te gebruik"
+                  ],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 17
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 7: MONDELING – Mondelinge aanbieding (20 punte)",
+                  "type": "Oral",
+                  "term": 3,
+                  "weeks": [
+                    7,
+                    8,
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Stap 3: Mondelinge aanbieding – Leerders doen hul mondelinge aanbieding van hul projek",
+                      "marks": 20,
+                      "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                      "notes": "Gebruik gepaste struktuur: Inleiding, liggaam en slot; Bied sentrale idee en ondersteunende besonderhede aan; Toon bewyse van navorsing / ondersoek; Gebruik toepaslike liggaamstaal- en aanbiedingsvaardighede, bv. maak oogkontak, volume; Neem deel aan 'n bespreking; Lewer konstruktiewe terugvoering; Toon sensitiwiteit vir die regte en gevoelens van ander"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Mondelinge aanbieding van kreatiewe skryfprojek"
+                  ],
+                  "conditions": "Begin met die mondelinge taak in kwartaal 3 en sluit af in kwartaal 4 wanneer die punt aangeteken sal word.",
+                  "rubricNotes": [
+                    "Die mondelinge aanbieding kan op die volgende maniere gedoen word: Onafhanklik, pare of groepe, maar individueel nagesien met 'n aparte rubriek"
+                  ],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 17
+                  }
+                }
+              ]
+            },
+            "4": {
+              "term": 4,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [
+                "GRAAD 4 FORMELE ASSESSERINGSTAKE – SKOOLGEBASEERDE ASSESSERING (SGA): GEDURENDE DIE JAAR",
+                "SES (6) FORMELE ASSESSERINGTAKE: 1 mondeling: Hardoplees (Semester 1); 1 mondelinge aanbieding oor die kreatiewe skryfprojek (Semester 2); 4 skryftake; 1 respons op teks; 1 Junie-kontroletoets",
+                "EEN (1) FORMELE ASSESSERINGSTAAK: 1 einde-van-die-jaar-kontroletoets"
+              ],
+              "units": [
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na kortverhaal",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na kortverhaal",
+                      "concepts": [
+                        "• Maak 'n voorspelling uit titel",
+                        "• Luister en bepaal verband met eie ervaring",
+                        "• Identifiseer spesifieke besonderhede",
+                        "• Hou by die onderwerp",
+                        "• Identifiseer intrige, agtergrond en karakters",
+                        "• Beantwoord mondelinge vrae gebaseer op die storie",
+                        "• Vertel die storie oor"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Neem deel aan groepbesprekings",
+                      "concepts": [
+                        "• Maak beurte om te praat",
+                        "• Bly by die onderwerp",
+                        "• Vra relevante vrae",
+                        "• Handhaaf bespreking",
+                        "• Reageer met empatie en respek op ander se idees",
+                        "• Gee gebalanseerde en konstruktiewe terugvoering"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Assessering vir leer – ter voorbereiding vir mondelinge aanbieding",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees kortverhaal",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees kortverhaal",
+                      "concepts": [
+                        "• Pre-lees: Voorspel volgens titel"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees met begrip – Gebruik leesstrategieë",
+                      "concepts": [
+                        "• Soek na hoofidees en skandeer vir ondersteunende besonderhede",
+                        "• Maak voorspellings",
+                        "• Lei die betekenis van onbekende woorde en beelde af",
+                        "• Hersiening om begrip te bevorder",
+                        "• Verstaan die impak van figuurlike en retoriese uitdinksels",
+                        "• Bepaal die impak op visuele tegnieke"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik 'n skryfraam om 'n uittreksel puntsgewys op te som",
+                      "concepts": [
+                        "• Wie?",
+                        "• Wat?",
+                        "• Wanneer?",
+                        "• Waar?",
+                        "• Waarom?",
+                        "• Hoe?"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Besin oor tekste wat onafhanklik gelees word",
+                      "concepts": [
+                        "• Vertel storie of hoofgedagtes oor in 3 tot 5 sinne",
+                        "• Druk emosionele reaksie uit op tekste wat gelees word"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n vriendelike brief aan een van die karakters in die storie",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n vriendelike brief aan een van die karakters in die storie",
+                      "concepts": [
+                        "• Gebruik die korrekte formaat",
+                        "• Kies toepaslike inhoud vir die onderwerp",
+                        "• Gebruik onderwerp- en ondersteunende sinne om samehangende paragrawe te ontwikkel",
+                        "• Gebruik 'n verskeidenheid woordeskat",
+                        "• Gebruik gepaste grammatika, spelling, leestekens en spasies tussen paragrawe",
+                        "• Gebruik die woordeboek om spelling en betekenis van woorde na te gaan"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Hou 'n dinkskrum oor idees deur breinkaarte te gebruik",
+                        "• Produseer eerste konsep",
+                        "• Hersien",
+                        "• Proeflees",
+                        "• Skryf finale konsep",
+                        "• Bied netjiese, leesbare finale konsep aan met korrekte spasiëring tussen paragrawe"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word. 'n Woordmuur kan ook gebruik word. Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 1-2 K4)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Vokaalgroep 1, 2 en 3, diftonge, alfabetiese rangskikking, klank- en lettergrepe, opbreek van woorde, woordvorming, sinonieme, antonieme, homofone, homonieme, een woord vir 'n omskrywing"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Woordsoorte, sinsoorte, enkelvoudige en saamgestelde sinne, direkte en indirekte rede, bedrywende en lydende vorm, ontkenning, woordorde, idiome, idiomatiese uitdrukkings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, afkortings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luisterbegrip: Luister na 'n toneelstuk",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luisterbegrip: Luister na 'n toneelstuk wat oor die radio of op TV uitgesaai word",
+                      "concepts": [
+                        "• Voorspel na aanleiding van die titel",
+                        "• Hervertel 'n drama in volgorde",
+                        "• Gee die name van die karakters korrek",
+                        "• Rolspeel 'n karakter of 'n bekende situasie",
+                        "• Kies toepaslike inhoud",
+                        "• Gebruik besonderhede akkuraat",
+                        "• Druk gedagtes en gevoelens uit",
+                        "• Hou by die onderwerp",
+                        "• Toon bewustheid van sosiale verskille"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Oefen luister en praat (Kies een vir daaglikse oefening)",
+                      "concepts": [
+                        "• Voer 'n eenvoudige rympie, gedig of liedjie uit",
+                        "• Speel 'n eenvoudige taalspeletjie",
+                        "• Gee en volg eenvoudige instruksies / aanwysings",
+                        "• Vertel eie nuus",
+                        "• Vertel 'n storie wat gehoor is"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Rolspeel 'n karakter",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Leesbegrip: Lees 'n toneelstuk en voltooi 'n begripstoets",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Leesbegrip: Lees 'n toneelstuk en voltooi 'n begripstoets",
+                      "concepts": [
+                        "• Pre-lees: Voorspelling volgens titel",
+                        "• Gebruik leesstrategieë",
+                        "• Identifiseer die storielyn",
+                        "• Bespreek karakters en agtergrond",
+                        "• Druk gevoelens uit wat deur die teks opgeroep word",
+                        "• Bespreek kenmerke van die teks, veral punktuasie en formaat",
+                        "• Voer die toneelstuk of 'n kort gedeelte daarvan op"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Oefen om te lees",
+                      "concepts": [
+                        "• Lees hardop met toepaslike uitspraak, uitdrukking en tempo"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees",
+                      "concepts": [
+                        "Groepbegeleide lees / deellees / paarlees / afhanklike lees van 'n toneelstuk"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Leesmetodologieë",
+                      "concepts": [
+                        "Hardoplees / Drop all and read / Groepbegeleide lees / Deellees / Onafhanklike lees van die novelle",
+                        "Lees vir genot",
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n dialoog",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n dialoog",
+                      "concepts": [
+                        "• Kies toepaslike karakters",
+                        "• Organiseer die gesprek logies",
+                        "• Gebruik die skryfraam korrek",
+                        "• Gebruik die direkte rede gepas",
+                        "• Gebruik 'n uitgebreide woordeskat",
+                        "• Gebruik gepaste grammatika, spelling, punktuasie en spasiëring"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Dink oor idees deur breinkaarte te gebruik",
+                        "• Lewer eerste konsep",
+                        "• Hersien",
+                        "• Proeflees",
+                        "• Skryf finale konsep"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Werk met woorde, sinne, spelling (Weke 3-4 K4)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Vokaalgroep 1, 2 en 3, diftonge, alfabetiese rangskikking, klank- en lettergrepe, opbreek van woorde, woordvorming, sinonieme, antonieme, homofone, homonieme, een woord vir 'n omskrywing"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Woordsoorte, sinsoorte, enkelvoudige en saamgestelde sinne, direkte en indirekte rede, bedrywende en lydende vorm, ontkenning, woordorde, idiome, idiomatiese uitdrukkings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Spelling en spelpatrone, afkortings"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Luister en Praat (Mondeling) – Luister na en bespreek aktuele kwessies (koerant/tydskrif)",
+                  "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Luister na en bespreek aktuele kwessies gebaseer op koerant- of tydskrifartikel – Inleidende aktiwiteite",
+                      "concepts": [
+                        "• Voorspelling",
+                        "• Luister vir spesifieke besonderhede",
+                        "• Identifiseer die hoofgedagte",
+                        "• Bepaal verband met eie lewe",
+                        "• Bespreek die hoofgedagtes en spesifieke detail",
+                        "• Gebruik inligting uit die teks in antwoord op die vrae",
+                        "• Bespreek die sosiale, morele en kulturele waardes in die teks",
+                        "• Neem deel aan 'n klas- / onderwysergeleide bespreking"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Bied 'n voorbereide toespraak aan",
+                      "concepts": [
+                        "• Kies relevante inhoud",
+                        "• Gebruik begin, middel en einde",
+                        "• Bly by onderwerp",
+                        "• Gebruik logiese organisasie van idees",
+                        "• Gebruik aanbiedingsvaardighede, bv. volume, pouse, postuur"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Assessering vir leer – ter voorbereiding vir mondelinge aanbieding",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 21
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Lees en Kyk – Lees koerant- of tydskrifartikel",
+                  "capsStrand": "LEES EN KYK",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Lees koerant- of tydskrifartikel",
+                      "concepts": [
+                        "• Pre-lees: Voorspel volgens titel en prente"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees met begrip",
+                      "concepts": [
+                        "• Gebruik leesstrategieë, bv. maak voorspellings, gebruik kontekstuele leidrade om betekenis te vind, vluglees vir algemene idee",
+                        "• Gebruik opskrif, by-reël, hoofparagraaf, antwoorde op wie, wat, waar, wanneer, waarom en hoe",
+                        "• Bespreek opskrifte",
+                        "• Bespreek hoofgedagte en spesifieke besonderhede",
+                        "• Lewer kommentaar op die keuse van prente in teks",
+                        "• Verduidelik betekenis van onbekende woorde"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reflekteer oor tekste wat tydens onafhanklike / paarlees gelees is",
+                      "concepts": [
+                        "• Vertel storie oor of verduidelik hoofgedagtes",
+                        "• Druk emosionele reaksie op tekste wat gelees word uit"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Lees vir genot",
+                      "concepts": [
+                        "Novelle / Leesboek moet daagliks ten minste 30 minute lank gelees word."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 21
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Skryf en Aanbied – Skryf 'n opsomming van 'n koerantberig",
+                  "capsStrand": "SKRYF EN AANBIED",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Skryf 'n opsomming van 'n koerantberig",
+                      "concepts": [
+                        "• Gebruik opskrif, by-reël, hoofparagraaf, antwoorde op wie, wat, waar, wanneer, waarom en hoe",
+                        "• Kies toepaslike inhoud",
+                        "• Gebruik 'n gepaste skryfraam",
+                        "• Skryf 'n opskrif / titel",
+                        "• Rangskik gebeure korrek",
+                        "• Gebruik gepaste woordeskat",
+                        "• Gebruik gepaste grammatika, spelling en leestekens",
+                        "• Korrigeer spelling deur 'n woordeboek te gebruik"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Gebruik die skryfproses",
+                      "concepts": [
+                        "• Beplanning / pre-skryf",
+                        "• Opstel",
+                        "• Hersiening",
+                        "• Redigering",
+                        "• Proeflees",
+                        "• Aanbieding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Persoonlike woordeboek en hulpmiddels",
+                      "concepts": [
+                        "Skep 'n persoonlike woordeboek waarin nuwe woorde en hul betekenis neergeskryf word.",
+                        "'n Woordmuur kan ook gebruik word.",
+                        "Gebruik 'n woordeboek vir spelling en woordeskatontwikkeling.",
+                        "Gebruik 'n leesjoernaal om die leesproses te bestuur."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 21
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Taalstrukture en -konvensies – Geïntegreerde taalleer (hersiening) (Weke 5-6 K4)",
+                  "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Werk met woorde",
+                      "concepts": [
+                        "Geïntegreerde taalleer (hersiening)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Werk met sinne",
+                      "concepts": [
+                        "Hersiening"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling en punktuasie",
+                      "concepts": [
+                        "Hersiening"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Woordeskat in konteks",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 21
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Hersiening en Formele Mondelinge Aanbieding (Weke 7-8)",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Hersiening",
+                      "concepts": [
+                        "Luister en Praat (Mondeling): Hersiening; Formele assessering van die mondelinge aanbieding",
+                        "Lees en Kyk: Hersiening; Formele assessering van die mondelinge aanbieding",
+                        "Skryf en Aanbied: Hersiening; Formele assessering van die mondelinge aanbieding",
+                        "Taalstrukture en -konvensies: Hersiening; Formele assessering van die mondelinge aanbieding"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 21
+                  }
+                },
+                {
+                  "id": "AFR-HL-4-2023-24-t4-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "FORMELE ASSESSERINGSTAAK 9: EINDE-VAN-DIE-JAAR-KONTROLETOETS",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 22
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 7: MONDELING – Mondelinge aanbieding (20 punte)",
+                  "type": "Oral",
+                  "term": 4,
+                  "weeks": [
+                    3,
+                    4,
+                    7,
+                    8
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Mondelinge aanbieding",
+                      "marks": 20,
+                      "capsStrand": "LUISTER EN PRAAT (MONDELING)",
+                      "notes": "Hierdie taak is 'n voortsetting van kwartaal 3. Dit word in kwartaal 4 voltooi en opgeteken."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Mondelinge aanbieding"
+                  ],
+                  "conditions": "Hierdie taak is 'n voortsetting van kwartaal 3. Dit word in kwartaal 4 voltooi en opgeteken.",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 8: SKRYFWERK – Transaksionele skryf (10 punte)",
+                  "type": "Assignment",
+                  "term": 4,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 10,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Transaksionele skryf",
+                      "marks": 10,
+                      "capsStrand": "SKRYF EN AANBIED",
+                      "notes": "Geskryf voor die kontroletoets"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Transaksionele skryf"
+                  ],
+                  "conditions": "Geskryf voor die kontroletoets",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 21
+                  }
+                },
+                {
+                  "label": "FORMELE ASSESSERINGSTAAK 9: EINDE-VAN-DIE-JAAR-KONTROLETOETS – RESPONS OP TEKSTE (40 punte)",
+                  "type": "Examination",
+                  "term": 4,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Vraag 1: Literêre / Nie-literêre teks",
+                      "marks": 15,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Vraag 2: Visuele teks",
+                      "marks": 10,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Vraag 3: Opsomming",
+                      "marks": 5,
+                      "capsStrand": "LEES EN KYK",
+                      "notes": null
+                    },
+                    {
+                      "label": "Vraag 4: Taalstrukture en -konvensies",
+                      "marks": 10,
+                      "capsStrand": "TAALSTRUKTURE EN -KONVENSIES",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Vraag 1: Literêre / Nie-literêre teks (15 punte)",
+                    "Vraag 2: Visuele teks (10 punte)",
+                    "Vraag 3: Opsomming (5 punte)",
+                    "Vraag 4: Taalstrukture en -konvensies (10 punte)"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.020 ATP 2023-24 Gr 4 Afrikaans HL final.pdf",
+                    "page": 22
+                  }
+                }
+              ]
+            }
+          },
+          "yearOverview": null,
+          "notes": [
+            "GRAAD 4 FORMELE ASSESSERINGSTAKE – SKOOLGEBASEERDE ASSESSERING (SGA): GEDURENDE DIE JAAR: SES (6) FORMELE ASSESSERINGTAKE: 1 mondeling: Hardoplees (Semester 1); 1 mondelinge aanbieding oor die kreatiewe skryfprojek (Semester 2); 4 skryftake; 1 respons op teks; 1 Junie-kontroletoets. EEN (1) FORMELE ASSESSERINGSTAAK: 1 einde-van-die-jaar-kontroletoets."
+          ]
+        }
+      }
+    },
     "Economic and Management Sciences": {
       "7": {
         "2023-24": {
