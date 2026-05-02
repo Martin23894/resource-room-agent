@@ -390,7 +390,71 @@ function extractJson(modelText) {
   if (first === -1 || last === -1) {
     throw new Error('No JSON object found in model response.');
   }
-  return JSON.parse(s.slice(first, last + 1));
+  const sliced = s.slice(first, last + 1);
+  try {
+    return JSON.parse(sliced);
+  } catch (e) {
+    // On a 100k+ JSON response, Claude occasionally emits malformations
+    // that JSON.parse rejects but a targeted repair can fix:
+    //   1. literal control characters (newline, tab, CR) inside string
+    //      values from verbatim PDF excerpts;
+    //   2. trailing commas before } or ] (legal JS, illegal JSON);
+    //   3. missing commas between adjacent } { or ] [ pairs (the most
+    //      common cause of "Expected ',' or ']' after array element").
+    // The repair is string-aware so we never alter content inside quotes.
+    const repaired = repairJson(sliced);
+    return JSON.parse(repaired);
+  }
+}
+
+// Single-pass, string-aware JSON repair. Walks every character once and
+// branches on whether we're currently inside a double-quoted string.
+function repairJson(s) {
+  let out = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (escaped) { out += ch; escaped = false; continue; }
+    if (inString) {
+      if (ch === '\\') { out += ch; escaped = true; continue; }
+      if (ch === '"')  { out += ch; inString = false; continue; }
+      // Escape control chars that JSON forbids inside strings.
+      const code = ch.charCodeAt(0);
+      if (code === 0x0A) { out += '\\n'; continue; }
+      if (code === 0x0D) { out += '\\r'; continue; }
+      if (code === 0x09) { out += '\\t'; continue; }
+      if (code < 0x20)   { out += '\\u' + code.toString(16).padStart(4, '0'); continue; }
+      out += ch;
+      continue;
+    }
+    // Outside a string.
+    if (ch === '"') { inString = true; out += ch; continue; }
+    if (ch === ',') {
+      // Trailing comma: drop if the next non-space char is } or ].
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      if (j < s.length && (s[j] === '}' || s[j] === ']')) continue;
+      out += ch;
+      continue;
+    }
+    if (ch === '}' || ch === ']') {
+      out += ch;
+      // Missing comma: if the next non-space char clearly starts another
+      // value, insert one. Restricted to {, [, " — the cases that show
+      // up in real Claude output. Bare literals (numbers / true / false /
+      // null) glued together are rare and risky to auto-fix.
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      if (j < s.length) {
+        const nxt = s[j];
+        if (nxt === '{' || nxt === '[' || nxt === '"') out += ',';
+      }
+      continue;
+    }
+    out += ch;
+  }
+  return out;
 }
 
 // ---------- Validation -------------------------------------------------
@@ -644,6 +708,7 @@ async function main() {
 export {
   parseFilename,
   extractJson,
+  repairJson,
   validatePacingDoc,
   mergePacingDoc,
   stableSerialise,

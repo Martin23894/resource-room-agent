@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {
   parseFilename,
   extractJson,
+  repairJson,
   mergePacingDoc,
   stableSerialise,
   CANONICAL_SUBJECTS,
@@ -112,6 +113,48 @@ describe('extractJson', () => {
 
   test('throws on no JSON', () => {
     assert.throws(() => extractJson('no json here'), /No JSON object found/);
+  });
+
+  test('recovers from literal newline inside a string value', () => {
+    // Claude sometimes preserves a verbatim PDF excerpt with a real
+    // newline mid-string instead of escaping it as \n.
+    const broken = '{"label":"line one\nline two","ok":true}';
+    const j = extractJson(broken);
+    assert.equal(j.label, 'line one\nline two');
+    assert.equal(j.ok, true);
+  });
+
+  test('recovers from missing comma between adjacent objects', () => {
+    const broken = '{"items":[{"a":1} {"b":2}]}';
+    const j = extractJson(broken);
+    assert.deepEqual(j, { items: [{ a: 1 }, { b: 2 }] });
+  });
+
+  test('recovers from trailing comma before ]', () => {
+    const broken = '{"items":[1,2,3,]}';
+    const j = extractJson(broken);
+    assert.deepEqual(j, { items: [1, 2, 3] });
+  });
+
+  test('recovers from a tab inside a string value', () => {
+    const broken = '{"label":"col1\tcol2"}';
+    const j = extractJson(broken);
+    assert.equal(j.label, 'col1\tcol2');
+  });
+});
+
+describe('repairJson', () => {
+  test('leaves valid JSON untouched', () => {
+    const valid = '{"a":1,"b":[2,3],"c":"hello"}';
+    assert.equal(repairJson(valid), valid);
+  });
+
+  test('does not insert commas inside strings', () => {
+    // The "} {" pattern appears inside the string value but must NOT be
+    // touched; only structural occurrences outside quotes get a comma.
+    const s = '{"label":"} {","ok":true}';
+    const repaired = repairJson(s);
+    assert.deepEqual(JSON.parse(repaired), { label: '} {', ok: true });
   });
 });
 
