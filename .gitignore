@@ -4,6 +4,7 @@ node_modules/
 *.log
 data/cache.db*
 data/bench/
+data/atp-source/
 schema/spike-outputs*/
 schema/g*-teacher-review/
 g*-teacher-review.zip

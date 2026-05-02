@@ -235,16 +235,53 @@ flat string list). After migration:
 
 ---
 
-## Open questions for review
+## Resolved decisions
 
-1. **Year selection.** When both 2026 and 2023-24 exist for a subject/grade
-   (currently: Maths Gr 4-5; NS&T Gr 4-6; NS Gr 7), which does the generator
-   default to? Proposal: prefer the latest year present, fall back gracefully.
-2. **Languages PDFs.** The four-skill column layout means each week has up to
-   four parallel `Unit`s. Does that match how you think about a weekly plan,
-   or would you prefer one `Unit` per week with the four skills as
-   `subtopics`?
-3. **Mark-allocation guidance.** CAPS Maths assessments are "25-50 marks";
-   Languages and Soc Sci sometimes specify exact mark splits per section.
-   Do we want to capture those splits at the assessment level, or leave that
-   to the generator?
+1. **Year selection — use the latest available.** Generator picks the most
+   recent year for which a `PacingDoc` exists. So 2026 wins for Maths Gr 4-5
+   and NS&T Gr 4-7; 2023-24 is used for everything else until newer PDFs land.
+   Both years remain in `atp-pacing.json` so we can still serve historical
+   resources or A/B compare.
+2. **Languages PDFs — parallel `Unit`s per week.** Each weekly row in an
+   English/Afrikaans HL/FAL ATP becomes up to four parallel `Unit`s, one per
+   CAPS skill, distinguished by `Unit.capsStrand`:
+   - `"Listening and Speaking"`
+   - `"Reading and Viewing"`
+   - `"Writing and Presenting"`
+   - `"Language Structures and Conventions"`
+   All four share the same `weeks` value but each carries its own subtopic
+   tree. This matches the planner's per-skill column view and lets the
+   worksheet generator scope to a single skill cleanly.
+3. **Mark allocation — capture per-section splits.** `FormalAssessment`
+   gains a `sections[]` array. Each entry records the section label, mark
+   value, and (where the PDF specifies) the skill or topic it tests.
+
+### Updated `FormalAssessment` shape
+
+```jsonc
+{
+  "label": "Formal Assessment Task 1: Oral",
+  "type": "Oral",
+  "term": 1,
+  "weeks": [1, 2, 3, 4],
+  "minMarks": null,
+  "maxMarks": 20,
+  "totalMarks": 20,
+  "weightingPercent": null,
+  "sections": [
+    {
+      "label": "Read Aloud",
+      "marks": 20,
+      "capsStrand": "Reading and Viewing",
+      "notes": "Commence with this task in Term 1 and conclude in Term 2 when the mark will be recorded."
+    }
+  ],
+  "topicsCovered": [],
+  "conditions": null,
+  "rubricNotes": [],
+  "source": { "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf", "page": 1 }
+}
+```
+
+When a PDF only gives a mark range (e.g. CAPS Maths "25-50 marks"),
+`sections` stays empty and `minMarks`/`maxMarks` carry the range.

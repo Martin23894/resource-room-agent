@@ -334,6 +334,259 @@
         }
       }
     },
+    "English Home Language": {
+      "4": {
+        "2023-24": {
+          "subject": "English Home Language",
+          "grade": 4,
+          "year": "2023-24",
+          "phase": "intermediate",
+          "language": "English",
+          "source": {
+            "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf",
+            "totalPages": null,
+            "publishedBy": "DBE",
+            "documentTitle": "2023/24 ANNUAL TEACHING PLANS: ENGLISH HOME LANGUAGE: GRADE 4"
+          },
+          "capsStrands": [
+            "Listening and Speaking",
+            "Reading and Viewing",
+            "Writing and Presenting",
+            "Language Structures and Conventions"
+          ],
+          "terms": {
+            "1": {
+              "term": 1,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [
+                "Baseline Assessment (set internally by the school) and Orientation to be conducted during the first 3 days of the term in Week 1 – Day 1 to 3. Data is captured so that competency is determined and learning gaps identified. This information should be used to inform subsequent teaching and learning activities."
+              ],
+              "units": [
+                {
+                  "id": "enghl-4-2023-24-t1-w1-2-ls",
+                  "ordinal": 1,
+                  "weeks": [1, 2],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Information text — listening to a poster advertising an event",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to information text of a poster advertising an event",
+                      "concepts": [
+                        "Identifies specific details",
+                        "Interprets the information given",
+                        "Relates to personal experience"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf", "page": 1 }
+                },
+                {
+                  "id": "enghl-4-2023-24-t1-w1-2-rv",
+                  "ordinal": 2,
+                  "weeks": [1, 2],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Information text — reading with visuals",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads information text with visuals, e.g., charts/ tables/ diagrams/ mind maps/ maps/ pictures",
+                      "concepts": [
+                        "Pre-reading: Predicting from title and pictures/ visuals",
+                        "Uses reading strategies, e.g., skimming",
+                        "Asks and answers questions",
+                        "Discusses main idea and specific details",
+                        "Interprets the information in the visuals"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "Pre-reading: Discusses pictures",
+                        "Interprets the information",
+                        "Discusses the purpose of the text",
+                        "Discusses some of the language used",
+                        "Identifies and discusses design features such as colour and different sizes or kinds of print (font)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud / Drop all and read / group guided / shared / paired / independent reading of novelette"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Assessment for Learning – in preparation for Read Aloud",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf", "page": 1 }
+                },
+                {
+                  "id": "enghl-4-2023-24-t1-w1-2-wp",
+                  "ordinal": 3,
+                  "weeks": [1, 2],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes an advertisement",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes an advertisement",
+                      "concepts": [
+                        "Uses content appropriate for purpose and audience",
+                        "Uses appropriate visuals and layout for the purpose",
+                        "Uses appropriate grammar and vocabulary",
+                        "Uses language creatively",
+                        "Uses the dictionary to check spelling and meanings of words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "Brainstorms ideas using mind maps",
+                        "Produces first draft",
+                        "Revises",
+                        "Proofreads",
+                        "Writes final draft",
+                        "Presents neat, legible final draft"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Records words and their meanings in a personal dictionary or word wall.",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses a dictionary for spelling and vocabulary development.",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses reading log/ card to manage reading progress.",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf", "page": 1 }
+                },
+                {
+                  "id": "enghl-4-2023-24-t1-w1-2-lsc",
+                  "ordinal": 4,
+                  "weeks": [1, 2],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language structures (W1-2)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Articles, plurals (noun prefixes), common nouns, abstract nouns, adjectives, verbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple sentences, statements, questions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Similes, metaphors, idioms"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Question mark, exclamation mark, dictionary use"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": { "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf", "page": 1 }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task 1: Oral",
+                  "type": "Oral",
+                  "term": 1,
+                  "weeks": [1, 2, 3, 4],
+                  "minMarks": null,
+                  "maxMarks": 20,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Read Aloud",
+                      "marks": 20,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": "Commence with this task in Term 1 and conclude in Term 2 when the mark will be recorded."
+                    }
+                  ],
+                  "topicsCovered": [],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": { "pdf": "1.050 ATP 2023-24 Gr 4 Eng HL final.pdf", "page": 1 }
+                }
+              ]
+            }
+          },
+          "yearOverview": null,
+          "notes": []
+        }
+      }
+    },
     "Natural Sciences and Technology": {
       "5": {
         "2026": {
