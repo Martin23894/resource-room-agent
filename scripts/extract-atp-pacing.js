@@ -390,21 +390,46 @@ function extractJson(modelText) {
   if (first === -1 || last === -1) {
     throw new Error('No JSON object found in model response.');
   }
-  const sliced = s.slice(first, last + 1);
-  try {
-    return JSON.parse(sliced);
-  } catch (e) {
-    // On a 100k+ JSON response, Claude occasionally emits malformations
-    // that JSON.parse rejects but a targeted repair can fix:
-    //   1. literal control characters (newline, tab, CR) inside string
-    //      values from verbatim PDF excerpts;
-    //   2. trailing commas before } or ] (legal JS, illegal JSON);
-    //   3. missing commas between adjacent } { or ] [ pairs (the most
-    //      common cause of "Expected ',' or ']' after array element").
-    // The repair is string-aware so we never alter content inside quotes.
-    const repaired = repairJson(sliced);
-    return JSON.parse(repaired);
+  let cur = s.slice(first, last + 1);
+
+  // Stage 1 — fast path. Accept well-formed JSON without touching it.
+  try { return JSON.parse(cur); } catch { /* fall through */ }
+
+  // Stage 2 — structural repair (control chars, trailing commas, } { →
+  // }, {). Cheap and covers the well-known structural malformations.
+  cur = repairJson(cur);
+  try { return JSON.parse(cur); } catch { /* fall through */ }
+
+  // Stage 3 — position-aware comma insertion. V8 reports the exact
+  // offset of the first malformation. For the "Expected ',' or ']' /
+  // '}' after element/value" family of errors, the fix is unambiguous:
+  // insert a comma at the reported position. Iterate because a long
+  // response can have several missed commas (most often "string"
+  // "string" inside an array of verbatim PDF bullets).
+  for (let attempt = 0; attempt < 50; attempt++) {
+    let err;
+    try { return JSON.parse(cur); } catch (e) { err = e; }
+    const next = tryInsertCommaAtError(cur, err.message);
+    if (next === null) throw err;
+    cur = next;
   }
+  // Safety: if we somehow can't converge, surface the latest error.
+  return JSON.parse(cur);
+}
+
+// V8 / SpiderMonkey both report missing-comma errors with a precise
+// "at position N" offset. Insert a comma there and let the caller retry
+// the parse. Returns null when the error isn't one we should auto-fix.
+function tryInsertCommaAtError(s, message) {
+  // Examples we DO fix (Node 20+ wording):
+  //   "Expected ',' or ']' after array element in JSON at position N"
+  //   "Expected ',' or '}' after property value in JSON at position N"
+  if (!/Expected ',' or '[\]}]'/.test(message)) return null;
+  const m = message.match(/at position (\d+)/);
+  if (!m) return null;
+  const pos = Number(m[1]);
+  if (pos <= 0 || pos > s.length) return null;
+  return s.slice(0, pos) + ',' + s.slice(pos);
 }
 
 // Single-pass, string-aware JSON repair. Walks every character once and

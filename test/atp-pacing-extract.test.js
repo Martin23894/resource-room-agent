@@ -141,6 +141,33 @@ describe('extractJson', () => {
     const j = extractJson(broken);
     assert.equal(j.label, 'col1\tcol2');
   });
+
+  test('recovers from missing comma between two strings in an array', () => {
+    // The exact failure mode the workflow keeps hitting: Claude emits a
+    // long array of verbatim PDF bullets and forgets a comma between two
+    // adjacent quoted strings.
+    const broken = '{"concepts":["Listening" "Speaking","Reading"]}';
+    const j = extractJson(broken);
+    assert.deepEqual(j.concepts, ['Listening', 'Speaking', 'Reading']);
+  });
+
+  test('recovers from multiple missing commas in the same array', () => {
+    const broken = '{"items":["a" "b" "c","d"]}';
+    const j = extractJson(broken);
+    assert.deepEqual(j.items, ['a', 'b', 'c', 'd']);
+  });
+
+  test('recovers from missing comma between key-value pairs in an object', () => {
+    const broken = '{"a":"first" "b":"second"}';
+    const j = extractJson(broken);
+    assert.deepEqual(j, { a: 'first', b: 'second' });
+  });
+
+  test('recovers from missing comma deep in a nested structure', () => {
+    const broken = '{"x":[{"k":"v"} {"k":"w"}],"y":42}';
+    const j = extractJson(broken);
+    assert.deepEqual(j, { x: [{ k: 'v' }, { k: 'w' }], y: 42 });
+  });
 });
 
 describe('repairJson', () => {
