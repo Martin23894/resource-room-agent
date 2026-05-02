@@ -134,10 +134,10 @@ function pdftotextLayout(pdfPath) {
 
 // ---------- Claude API -------------------------------------------------
 
-// Languages PDFs with 4 parallel skill columns x 4 terms can take 4-6 minutes
-// of generation time at max_tokens=64000. 8 minutes leaves headroom; anything
-// longer than that is almost always a stalled connection, not slow generation.
-const PER_ATTEMPT_TIMEOUT_MS = 8 * 60_000;
+// Whole-call ceiling. With streaming, headers arrive in <1s and tokens
+// flow as they're generated, so this is just an upper bound on truly
+// stuck generations. 12 minutes covers worst-case Languages PDFs.
+const PER_ATTEMPT_TIMEOUT_MS = 12 * 60_000;
 const MAX_ATTEMPTS = 3;
 
 // Walks the .cause chain so the underlying network failure
@@ -154,46 +154,95 @@ function formatErrorChain(e) {
   return parts.join(' ← ');
 }
 
+// Streams /v1/messages with stream:true and accumulates the text deltas.
+//
+// Why streaming: Node's undici fetch has a 5-min headers timeout. The
+// non-streaming endpoint doesn't send response headers until the WHOLE
+// reply is generated; a Languages PDF at max_tokens=64000 takes ~5-6 min
+// to fully generate, so the socket gets killed before a single byte
+// arrives. With stream:true headers arrive in <1s and SSE events flow as
+// the model writes tokens — undici's headers timeout is a non-issue.
+async function streamClaudeOnce({ apiKey, model, system, user, signal }) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'accept': 'text/event-stream',
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: 64000,
+      stream: true,
+      system,
+      messages: [{ role: 'user', content: user }],
+    }),
+    signal,
+  });
+
+  if (!res.ok) {
+    const body = await res.text();
+    const err = new Error(`Claude API ${res.status}: ${body.slice(0, 800)}`);
+    err.status = res.status;
+    // 4xx other than 429 = malformed request; don't burn retries.
+    if (res.status !== 429 && res.status < 500) err._noRetry = true;
+    throw err;
+  }
+
+  let text = '';
+  let stopReason = null;
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      // SSE events are separated by blank lines.
+      let idx;
+      while ((idx = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        const dataLine = block.split('\n').find((l) => l.startsWith('data:'));
+        if (!dataLine) continue;
+        const data = dataLine.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        let evt;
+        try { evt = JSON.parse(data); } catch { continue; }
+        if (evt.type === 'content_block_delta' && evt.delta?.type === 'text_delta') {
+          text += evt.delta.text;
+        } else if (evt.type === 'message_delta' && evt.delta?.stop_reason) {
+          stopReason = evt.delta.stop_reason;
+        } else if (evt.type === 'error') {
+          // Anthropic-side stream error (e.g. overloaded). Retryable.
+          const msg = evt.error?.message || 'unknown stream error';
+          const err = new Error(`Claude stream error: ${msg}`);
+          err.streamError = true;
+          throw err;
+        }
+      }
+    }
+  } finally {
+    try { reader.releaseLock(); } catch { /* ignore */ }
+  }
+
+  if (stopReason && stopReason !== 'end_turn') {
+    console.warn(`  ⚠ unusual stop_reason from Claude: ${stopReason}`);
+  }
+  return { text, raw: { stop_reason: stopReason } };
+}
+
 async function callClaude({ apiKey, model, system, user }) {
   let lastErr;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify({
-          model,
-          // A full Maths ATP across 4 terms with subtopic trees can run to
-          // 30-50k output tokens. Languages PDFs with parallel skill units
-          // are larger still. Generous budget; we pay for what we use.
-          max_tokens: 64000,
-          system,
-          messages: [{ role: 'user', content: user }],
-        }),
+      return await streamClaudeOnce({
+        apiKey, model, system, user,
         signal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
       });
-      if (!res.ok) {
-        const body = await res.text();
-        const err = new Error(`Claude API ${res.status}: ${body.slice(0, 800)}`);
-        err.status = res.status;
-        // Retry only on transient server-side / rate-limit failures.
-        // 4xx other than 429 means our request is wrong — fail fast.
-        if (res.status !== 429 && res.status < 500) err._noRetry = true;
-        throw err;
-      }
-      const data = await res.json();
-      const text = (data.content || [])
-        .filter((b) => b.type === 'text')
-        .map((b) => b.text)
-        .join('\n');
-      if (data.stop_reason && data.stop_reason !== 'end_turn') {
-        console.warn(`  ⚠ unusual stop_reason from Claude: ${data.stop_reason}`);
-      }
-      return { text, raw: data };
     } catch (e) {
       lastErr = e;
       if (e._noRetry || attempt === MAX_ATTEMPTS) throw e;
