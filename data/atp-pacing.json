@@ -1,0 +1,1519 @@
+{
+  "$schemaVersion": "1.0.0",
+  "extractedAt": "2026-05-02T17:48:24.137Z",
+  "extractor": {
+    "model": "claude-sonnet-4-6",
+    "promptVersion": 1
+  },
+  "subjects": {
+    "Mathematics": {
+      "4": {
+        "2026": {
+          "subject": "Mathematics",
+          "grade": 4,
+          "year": "2026",
+          "phase": "intermediate",
+          "language": "English",
+          "source": {
+            "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+            "totalPages": 9,
+            "publishedBy": "DBE",
+            "documentTitle": "2026 ANNUAL TEACHING PLANS: ENGLISH MATHEMATICS: GRADE 4"
+          },
+          "capsStrands": [
+            "Numbers, Operations and Relationships",
+            "Patterns, Functions and Algebra",
+            "Space and Shape (Geometry)",
+            "Measurement",
+            "Data Handling"
+          ],
+          "terms": {
+            "1": {
+              "term": 1,
+              "totalWeeks": 11,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "MATH-4-2026-t1-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": 9,
+                  "durationLabel": null,
+                  "topic": "Revision of Grade 3 work (to be integrated into the topics accordingly) – WHOLE NUMBERS",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": "Whole Numbers",
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for counting, ordering, comparing and representing, as well as place value of digits",
+                      "concepts": [
+                        "Count forwards and backwards in 2s, 3s, 5s, 10s, 25s, 50s, 100s between 0 and at least 10 000",
+                        "Order, compare and represent numbers to at least four-digit numbers",
+                        "Represent odd and even numbers to at least 1 000.",
+                        "Recognise the place value of digits in whole numbers to at least four-digit numbers",
+                        "Round off to the nearest 10, 100 and 1 000"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Counting ordering, comparing and representing the place value of three-digit numbers up to 800",
+                    "Recognise the place value of digits in whole numbers to at least three-digit numbers up to 800",
+                    "Round off to the nearest 10"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t1-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    3
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "NUMBER SENTENCES",
+                  "capsStrand": "Patterns, Functions and Algebra",
+                  "subStrand": "Number Sentences",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Write number sentences to describe problem situations",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solve and complete number sentences by:",
+                      "concepts": [
+                        "‒ Inspection",
+                        "‒ Trial and improvement",
+                        "‒ Checking the solution by substitution"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Properties of whole numbers",
+                      "concepts": [
+                        "Recognize and use the commutative, associative and distributive properties of operations with whole numbers",
+                        "0 in terms of its additive property"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Multiply 2, 3, 4, 5 and 10 to at least 100",
+                    "Divide numbers to 100 by 2, 3, 4, 5 and 10",
+                    "Use of appropriate symbols (+, −, ×, ÷, =)"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t1-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    4,
+                    5,
+                    6
+                  ],
+                  "hours": 18,
+                  "durationLabel": null,
+                  "topic": "WHOLE NUMBERS: ADDITION AND SUBTRACTION",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": "Whole Numbers",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for calculations",
+                      "concepts": [
+                        "Addition and subtraction of whole numbers of at least 4-digits"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculation techniques",
+                      "concepts": [
+                        "Use any two techniques to perform and check written and mental calculations of whole numbers including:",
+                        "‒ Estimation",
+                        "‒ Building up and breaking down numbers",
+                        "‒ Using a number line",
+                        "‒ Rounding off and compensating",
+                        "‒ Using addition and subtraction as inverse operations"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems involving whole numbers, including the following:",
+                        "─ Financial contexts",
+                        "─ Measurement contexts"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Counting, ordering, comparing and representing the place value of three-digit numbers up to 800",
+                    "Add up to 800",
+                    "Subtract from 800",
+                    "Recognise the place value of digits in whole numbers to at least 800",
+                    "Round off to the nearest 10, 100 and 1 000",
+                    "Adding and subtracting units, multiples of 10 and multiples of 100 to/from any three-digit number up to 800"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Note: Ensure that the strategies used do not compromise conceptual understanding"
+                  ],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t1-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    7
+                  ],
+                  "hours": 3,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK – ASSIGNMENT",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Note: Assignment to be completed in class within three hours",
+                    "Whole numbers: Counting, ordering and representing numbers; Number sentences; Whole numbers: Addition and subtraction"
+                  ],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t1-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    8,
+                    9,
+                    10
+                  ],
+                  "hours": 15,
+                  "durationLabel": null,
+                  "topic": "WHOLE NUMBERS: MULTIPLICATION",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": "Whole Numbers",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for calculations",
+                      "concepts": [
+                        "Multiplication of one-digit numbers by numbers up to 10",
+                        "Multiplication of at least a two-digit number by a one-digit number",
+                        "Multiplication of at least a whole two-digit number by two-digit numbers"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculation techniques",
+                      "concepts": [
+                        "Use any two techniques to perform and check written and mental calculations of whole numbers including:",
+                        "‒ Estimation",
+                        "‒ Building up and breaking down numbers",
+                        "‒ Doubling and halving",
+                        "‒ Using multiplication and division as inverse operations"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Number range for multiples and factors",
+                      "concepts": [
+                        "Multiples of one-digit numbers to at least 100",
+                        "Factors of one-digit whole numbers to at least 10",
+                        "Factors of two-digit whole numbers to at least 100"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems involving whole numbers, including:",
+                        "‒ Financial contexts",
+                        "‒ Measurement contexts",
+                        "‒ Comparing two or more quantities of the same kind (ratio)",
+                        "‒ Comparing two quantities of different kinds (rate)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Multiply 2, 3, 4, 5 and 10 to at least 100",
+                    "Multiply 1 by one-digit whole numbers",
+                    "Halving and doubling",
+                    "Multiplication facts for units by multiples of 10 and 100",
+                    "Building up and breaking down three-digit whole numbers.",
+                    "Round off to the nearest 10 and estimate answers"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Note: Ensure that the strategies used do not compromise conceptual understanding"
+                  ],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t1-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    11
+                  ],
+                  "hours": 4,
+                  "durationLabel": null,
+                  "topic": "REVISION",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t1-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    11
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK – TEST: All topics",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task: Assignment",
+                  "type": "Assignment",
+                  "term": 1,
+                  "weeks": [
+                    7
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "Whole numbers: Counting, ordering and representing numbers",
+                    "Number sentences",
+                    "Whole numbers: Addition and subtraction"
+                  ],
+                  "conditions": "Assignment to be completed in class within three hours",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task: TEST – All topics",
+                  "type": "Test",
+                  "term": 1,
+                  "weeks": [
+                    11
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "All Term 1 topics"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 1
+                  }
+                }
+              ]
+            },
+            "2": {
+              "term": 2,
+              "totalWeeks": 12,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "MATH-4-2026-t2-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1
+                  ],
+                  "hours": 3,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK – INVESTIGATION",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Note: Administer an investigation on any ONE of the Term 2 topics before teaching it"
+                  ],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    2,
+                    3,
+                    4
+                  ],
+                  "hours": 15,
+                  "durationLabel": null,
+                  "topic": "WHOLE NUMBERS: DIVISION",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": "Whole Numbers",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Number range for calculations",
+                      "concepts": [
+                        "Division of at least a two-digit number by a one-digit number",
+                        "Division of at least a whole three-digit number by one-digit numbers"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculation techniques",
+                      "concepts": [
+                        "Use any two of the range of techniques to perform and check written and mental calculations with whole numbers including:",
+                        "‒ Estimation",
+                        "‒ Building up and breaking down numbers",
+                        "‒ Using multiplication and division as inverse operations"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems in contexts involving whole numbers, including:",
+                        "‒ Financial contexts",
+                        "‒ Measurement contexts",
+                        "‒ Comparing two or more quantities of the same kind (ratio)",
+                        "‒ Comparing two quantities of different kinds (rate)",
+                        "‒ Grouping and equal sharing with remainders"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Divide numbers to 100 by 2, 3, 4, 5 and 10",
+                    "Halving and doubling",
+                    "Building up and breaking down three-digit whole numbers",
+                    "Use multiplication and division as inverse operations",
+                    "Round off to the nearest 10 and estimate answers"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Note: Ensure that the strategies used do not compromise conceptual understanding"
+                  ],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    4,
+                    5
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "GEOMETRIC PATTERNS: Investigate and extend patterns",
+                  "capsStrand": "Patterns, Functions and Algebra",
+                  "subStrand": "Geometric Patterns",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Investigate and extend geometric patterns",
+                      "concepts": [
+                        "Investigate and extend geometric patterns looking for relationships or rules of patterns:",
+                        "‒ in sequences not limited to a constant difference or ratio",
+                        "‒ of the learners' own creation"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Describe observed relationships or rules in learners' own words",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Input and output values",
+                      "concepts": [
+                        "Determine input values, output values and rules for the patterns and relationships using flow diagrams"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Equivalent forms",
+                      "concepts": [
+                        "Determine equivalence of different descriptions of the same relationship or rule presented in the following ways:",
+                        "‒ Verbally",
+                        "‒ In a flow diagram",
+                        "‒ By a number sentence"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Investigate and extend patterns",
+                    "Describe patterns in own words"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    5,
+                    6,
+                    7
+                  ],
+                  "hours": 9,
+                  "durationLabel": null,
+                  "topic": "NUMERIC PATTERNS: Investigate and extend patterns",
+                  "capsStrand": "Patterns, Functions and Algebra",
+                  "subStrand": "Numeric Patterns",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Investigate and extend numeric patterns",
+                      "concepts": [
+                        "Investigate and extend numeric patterns looking for relationships or rules of patterns:",
+                        "‒ sequences involving a constant difference or ratio",
+                        "‒ of learner's own creation"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Describe observed relationships or rules for sequences involving constant difference or ratio in learners' own words",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Input and output values",
+                      "concepts": [
+                        "Determine input values, output values and rules for patterns and relationships:",
+                        "‒ Flow diagrams",
+                        "‒ Tables"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Equivalent forms",
+                      "concepts": [
+                        "Determine the equivalence of different descriptions of the same relationship or rule presented in the following ways:",
+                        "‒ Verbally",
+                        "‒ In a flow diagram",
+                        "‒ In a table",
+                        "‒ By a number sentence"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Investigate and extend patterns",
+                    "Describe patterns in own words"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    7,
+                    8,
+                    9
+                  ],
+                  "hours": 12,
+                  "durationLabel": null,
+                  "topic": "PROPERTIES OF 2D SHAPES",
+                  "capsStrand": "Space and Shape (Geometry)",
+                  "subStrand": "2D Shapes",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Range of shapes",
+                      "concepts": [
+                        "Recognise, visualise and name 2-D shapes in the environment and geometric setting, focusing on regular and irregular polygons:",
+                        "‒ Triangles",
+                        "‒ Squares",
+                        "‒ Rectangles",
+                        "‒ Other quadrilaterals",
+                        "‒ Pentagons",
+                        "‒ Hexagons",
+                        "‒ Heptagons",
+                        "Recognise, visualise and name 2-D shapes in the environment and geometric setting, focusing on circles"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Characteristics of shapes",
+                      "concepts": [
+                        "Describe, sort and compare 2-D shapes in terms of the following:",
+                        "‒ Straight and curved sides",
+                        "‒ Number of sides"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Further activities",
+                      "concepts": [
+                        "Draw 2-D shapes on grid paper"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "SYMMETRY",
+                      "concepts": [
+                        "Recognize, draw and describe line(s) of symmetry in 2-D shapes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Identify circles, triangles, squares and rectangles",
+                    "Describe, sort and compare 2D shapes in terms of the following:",
+                    "o Shape",
+                    "o Straight sides",
+                    "o Round sides"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    9,
+                    10,
+                    11
+                  ],
+                  "hours": 9,
+                  "durationLabel": null,
+                  "topic": "PROPERTIES OF 3D OBJECTS",
+                  "capsStrand": "Space and Shape (Geometry)",
+                  "subStrand": "3D Objects",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Range of objects",
+                      "concepts": [
+                        "Recognize, visualize and name 3-D objects in the environment and geometric settings, focusing on:",
+                        "‒ rectangular prisms,",
+                        "‒ spheres",
+                        "‒ cylinders",
+                        "‒ pyramids"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "characteristics of objects",
+                      "concepts": [
+                        "Describe, sort and compare 3-D objects in terms of",
+                        "‒ shapes of faces",
+                        "‒ flat and curved surfaces"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Further activities",
+                      "concepts": [
+                        "Make 3-D models using cut out polygons"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Recognise and name 3-D objects in the classroom and in pictures",
+                    "‒ ball shapes (spheres)",
+                    "‒ box shapes (prisms)",
+                    "‒ cylinders"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    11,
+                    12
+                  ],
+                  "hours": 9,
+                  "durationLabel": null,
+                  "topic": "REVISION",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t2-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    12
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK – TEST: All Term 1 & 2 topics",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task: Investigation",
+                  "type": "Investigation",
+                  "term": 2,
+                  "weeks": [
+                    1
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "Any ONE of the Term 2 topics (administered before teaching it)"
+                  ],
+                  "conditions": "Administer an investigation on any ONE of the Term 2 topics before teaching it",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task: TEST – All Term 1 & 2 topics",
+                  "type": "Test",
+                  "term": 2,
+                  "weeks": [
+                    12
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "All Term 1 & 2 topics"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 3
+                  }
+                }
+              ]
+            },
+            "3": {
+              "term": 3,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "MATH-4-2026-t3-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK – PROJECT",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "Note: The project must cover a combination of topics from Term 1 to 3 and must be completed before the end of Term 3"
+                  ],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t3-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    2,
+                    3
+                  ],
+                  "hours": 9,
+                  "durationLabel": null,
+                  "topic": "COMMON FRACTIONS",
+                  "capsStrand": "Numbers, Operations and Relationships",
+                  "subStrand": "Common Fractions",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Describing and ordering fractions",
+                      "concepts": [
+                        "Compare and order common fractions with different denominators (halves, thirds, quarters, fifths, sixths, sevenths and eighths)",
+                        "Describe and compare common fractions in diagram form"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculations with fractions",
+                      "concepts": [
+                        "Recognise, describe and use the equivalence of division and fractions",
+                        "Addition of common fractions with same denominators."
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems in contexts involving fractions, including grouping and equal sharing"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Equivalent forms",
+                      "concepts": [
+                        "Recognise and use equivalent forms of common fractions (denominators which are multiples of one another)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Use and name unitary and non-unitary fractions in familiar contexts including halves, quarters, eighths, thirds, sixths and fifths",
+                    "Recognise fractions in diagrammatic form",
+                    "Recognise that two halves or three thirds make one whole and that one half and two quarters are equivalent",
+                    "Write fractions as one half, two thirds"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t3-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    3,
+                    4,
+                    5,
+                    6
+                  ],
+                  "hours": 14,
+                  "durationLabel": null,
+                  "topic": "DATA CYCLE",
+                  "capsStrand": "Data Handling",
+                  "subStrand": "Data Cycle",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Collecting and organising data",
+                      "concepts": [
+                        "Collect data using tally marks and tables for recording"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Representing data",
+                      "concepts": [
+                        "Draw a variety of graphs to display and interpret data including:",
+                        "‒ pictographs (one-to-one correspondence) data and representation)",
+                        "‒ bar graphs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Interpreting data",
+                      "concepts": [
+                        "Critically read and interpret data represented in",
+                        "‒ words",
+                        "‒ pictographs",
+                        "‒ bar graphs",
+                        "‒ pie charts"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Analysing data",
+                      "concepts": [
+                        "Analyse data by answering questions related to data categories"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reporting data",
+                      "concepts": [
+                        "Summarise data verbally and in short written paragraphs making predictions based on the data"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "PROBABILITY",
+                      "concepts": [],
+                      "children": [
+                        {
+                          "heading": "Probability experiments",
+                          "concepts": [
+                            "Perform simple repeated events and list possible outcomes for experiments such as:",
+                            "‒ tossing a coin",
+                            "‒ rolling a die"
+                          ],
+                          "children": []
+                        }
+                      ]
+                    }
+                  ],
+                  "prerequisites": [
+                    "Collect data about the class or school to answer questions posed by the teacher",
+                    "Organise data supplied by teacher or workbook/textbook",
+                    "Organise data in lists, tally marks and tables",
+                    "Represent data in",
+                    "‒ pictograph (limited to pictographs with one-to-one correspondence)",
+                    "‒ bar graphs",
+                    "Answer questions about data presented in",
+                    "─ pictographs (limited to pictographs with one-to-one correspondence)",
+                    "─ bar graphs"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t3-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    6,
+                    7
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "MASS",
+                  "capsStrand": "Measurement",
+                  "subStrand": "Mass",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Practical measuring",
+                      "concepts": [
+                        "Estimate and practically measure 3D objects using measuring instruments such as the following:",
+                        "‒ bathroom scales",
+                        "‒ kitchen scales and",
+                        "‒ balances",
+                        "Record, compare and order the mass in grams (g) and kilograms (kg);"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculations and problem-solving",
+                      "concepts": [
+                        "Solve problems in contexts involving mass",
+                        "Convert between grams and kilograms limited to examples with whole numbers and fractions"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Estimate, measure, compare, order and record mass",
+                    "Compare, order and record the mass of commercially packaged objects"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t3-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "TRANSFORMATIONS",
+                  "capsStrand": "Space and Shape (Geometry)",
+                  "subStrand": "Transformations",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Build composite shapes",
+                      "concepts": [
+                        "Put 2-D shapes together to make different composite 2-D shapes including some shapes with line symmetry."
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Tessellations",
+                      "concepts": [
+                        "Pack out 2-D shapes to make tessellated patterns including some patterns with line symmetry."
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Describe patterns",
+                      "concepts": [
+                        "Refer to lines, 2-D shapes, 3-D objects and lines of symmetry when describing patterns",
+                        "‒ in nature",
+                        "‒ from modern everyday life",
+                        "‒ our cultural heritage"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Recognise and draw line of symmetry in 2-D geometrical and non-geometrical shapes"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t3-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    9
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "REVISION",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t3-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    10
+                  ],
+                  "hours": 3,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASKS – TEST: All Term 3 topics",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task: Project",
+                  "type": "Project",
+                  "term": 3,
+                  "weeks": [
+                    1,
+                    2,
+                    3,
+                    4,
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "Combination of topics from Term 1 to 3"
+                  ],
+                  "conditions": "The project must cover a combination of topics from Term 1 to 3 and must be completed before the end of Term 3",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task: TEST – All Term 3 topics",
+                  "type": "Test",
+                  "term": 3,
+                  "weeks": [
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "All Term 3 topics"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 5
+                  }
+                }
+              ]
+            },
+            "4": {
+              "term": 4,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "MATH-4-2026-t4-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": 12,
+                  "durationLabel": null,
+                  "topic": "TIME",
+                  "capsStrand": "Measurement",
+                  "subStrand": "Time",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reading time and time instruments",
+                      "concepts": [
+                        "Read, tell and write time in 12-hour and 24-hour formats on both analogue and digital instruments in the following:",
+                        "‒ Hours",
+                        "‒ Minutes",
+                        "‒ Seconds",
+                        "Instruments include clocks watches and stopwatches"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading calendars",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculations and problem solving with regard to time include the following:",
+                      "concepts": [
+                        "Solve problems in contexts involving time",
+                        "Calculation of the number of days between any two dates within the same or consecutive years",
+                        "calculation of time intervals where time is given in:",
+                        "‒ seconds and/or minutes",
+                        "‒ minutes and/or hours",
+                        "‒ hours and/or days",
+                        "‒ days, weeks and/or months",
+                        "‒ years and/or decades"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Read dates on calendars",
+                    "Place birthdays, religious festivals, public holidays, historical events and school events on a calendar",
+                    "Use calendars to calculate and describe lengths of time in days or weeks or months, including the following:",
+                    "o Converting between days and weeks",
+                    "o Converting between weeks and months",
+                    "Use clocks to calculate length of time in hours, half hours and quarters of an hour"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t4-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    2,
+                    3,
+                    4
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "LENGTH",
+                  "capsStrand": "Measurement",
+                  "subStrand": "Length",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Practical measuring",
+                      "concepts": [
+                        "Estimate and practically measure 2D shapes and 3D objects using measuring instruments such as the following:",
+                        "‒ Rulers",
+                        "‒ Metre sticks",
+                        "‒ Tape measures",
+                        "‒ Trundle wheels",
+                        "Record, compare and order lengths of shapes and objects in millimetres (mm) and centimetres (cm), metres (m) and kilometres (km)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Solving problems",
+                      "concepts": [
+                        "Solve problems in contexts involving length",
+                        "Convert between the following:",
+                        "‒ Millimetres (mm) and centimetres (cm)",
+                        "‒ Centimetres (cm) and metres (m)",
+                        "‒ Metres (m) and kilometres (km)",
+                        "Conversions limited to whole numbers and common fractions"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Estimate, measure, compare, order and record length using non-standard measures, e.g. hand spans, paces, pencil lengths, counters, etc.",
+                    "Describe the length of objects by counting and stating the length in informal units",
+                    "Solve problems in contexts involving length",
+                    "Convert between the following:",
+                    "‒ Millimetres (mm) and centimetres (cm)",
+                    "‒ Centimetres (cm) and metres (m)",
+                    "‒ Metres (m) and kilometres (km)"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t4-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    4,
+                    5
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "PERIMETER, AREA AND VOLUME",
+                  "capsStrand": "Measurement",
+                  "subStrand": "Perimeter, Area and Volume",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Measure perimeter",
+                      "concepts": [
+                        "Measure perimeter using rulers or measuring tapes"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Measurement of area",
+                      "concepts": [
+                        "Find areas of regular and irregular shapes by counting squares on grids in order to develop an understanding of square units"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Measurement of volume",
+                      "concepts": [
+                        "Find volume/ capacity of objects by packing or filling them in order to develop an understanding of cubic units"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t4-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": 6,
+                  "durationLabel": null,
+                  "topic": "CAPACITY/VOLUME",
+                  "capsStrand": "Measurement",
+                  "subStrand": "Capacity/Volume",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Practical measuring",
+                      "concepts": [
+                        "Estimate and practically measure 3D objects using measuring instruments such as the following:",
+                        "‒ Measuring spoons",
+                        "‒ Measuring cups",
+                        "‒ Measuring jugs",
+                        "Record, compare and order the capacity and volume of 3D objects in millilitres (ml) and litres (ℓ)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Calculations and problem-solving",
+                      "concepts": [
+                        "Solve problems in contexts involving capacity/volume",
+                        "Convert between millilitres and litres (limited to examples with whole numbers and fractions)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [
+                    "Estimate, measure, compare, order and record the capacity of objects by measuring in litres, half litres and quarter litres",
+                    "Describe the volume on jugs where the volume is near to a numbered millilitre gradation line using almost/ nearly/close to/a bit more than/more or less than/exactly the number of litres read on the jug"
+                  ],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t4-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    7,
+                    8,
+                    9,
+                    10
+                  ],
+                  "hours": 21,
+                  "durationLabel": null,
+                  "topic": "REVISION",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "MATH-4-2026-t4-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    7,
+                    8,
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK – TEST: Term 1-4 topics",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task: TEST – Term 1-4 topics",
+                  "type": "Test",
+                  "term": 4,
+                  "weeks": [
+                    7,
+                    8,
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": null,
+                  "weightingPercent": null,
+                  "sections": [],
+                  "topicsCovered": [
+                    "Term 1-4 topics"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "2026_ATP_Mathematics_Grade 4.pdf",
+                    "page": 7
+                  }
+                }
+              ]
+            }
+          },
+          "yearOverview": null,
+          "notes": []
+        }
+      }
+    }
+  }
+}
