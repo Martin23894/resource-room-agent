@@ -134,37 +134,76 @@ function pdftotextLayout(pdfPath) {
 
 // ---------- Claude API -------------------------------------------------
 
+// Languages PDFs with 4 parallel skill columns x 4 terms can take 4-6 minutes
+// of generation time at max_tokens=64000. 8 minutes leaves headroom; anything
+// longer than that is almost always a stalled connection, not slow generation.
+const PER_ATTEMPT_TIMEOUT_MS = 8 * 60_000;
+const MAX_ATTEMPTS = 3;
+
+// Walks the .cause chain so the underlying network failure
+// (UND_ERR_SOCKET, ETIMEDOUT, ECONNRESET, …) is visible in logs instead of
+// just the generic "fetch failed".
+function formatErrorChain(e) {
+  const parts = [];
+  let cur = e;
+  while (cur) {
+    const code = cur.code ? ` [${cur.code}]` : '';
+    parts.push(`${cur.name || 'Error'}${code}: ${cur.message}`);
+    cur = cur.cause;
+  }
+  return parts.join(' ← ');
+}
+
 async function callClaude({ apiKey, model, system, user }) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model,
-      // A full Maths ATP across 4 terms with subtopic trees can run to
-      // 30-50k output tokens. Languages PDFs with parallel skill units
-      // are larger still. Generous budget; we pay for what we use.
-      max_tokens: 64000,
-      system,
-      messages: [{ role: 'user', content: user }],
-    }),
-  });
-  if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`Claude API ${res.status}: ${body.slice(0, 800)}`);
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model,
+          // A full Maths ATP across 4 terms with subtopic trees can run to
+          // 30-50k output tokens. Languages PDFs with parallel skill units
+          // are larger still. Generous budget; we pay for what we use.
+          max_tokens: 64000,
+          system,
+          messages: [{ role: 'user', content: user }],
+        }),
+        signal: AbortSignal.timeout(PER_ATTEMPT_TIMEOUT_MS),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        const err = new Error(`Claude API ${res.status}: ${body.slice(0, 800)}`);
+        err.status = res.status;
+        // Retry only on transient server-side / rate-limit failures.
+        // 4xx other than 429 means our request is wrong — fail fast.
+        if (res.status !== 429 && res.status < 500) err._noRetry = true;
+        throw err;
+      }
+      const data = await res.json();
+      const text = (data.content || [])
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text)
+        .join('\n');
+      if (data.stop_reason && data.stop_reason !== 'end_turn') {
+        console.warn(`  ⚠ unusual stop_reason from Claude: ${data.stop_reason}`);
+      }
+      return { text, raw: data };
+    } catch (e) {
+      lastErr = e;
+      if (e._noRetry || attempt === MAX_ATTEMPTS) throw e;
+      // 4s, 8s, 16s — capped so we don't waste the whole runner budget.
+      const delayMs = Math.min(60_000, 4_000 * 2 ** (attempt - 1));
+      console.warn(`  ⚠ attempt ${attempt}/${MAX_ATTEMPTS} failed (${formatErrorChain(e)}); retrying in ${delayMs}ms`);
+      await new Promise((r) => setTimeout(r, delayMs));
+    }
   }
-  const data = await res.json();
-  const text = (data.content || [])
-    .filter((b) => b.type === 'text')
-    .map((b) => b.text)
-    .join('\n');
-  if (data.stop_reason && data.stop_reason !== 'end_turn') {
-    console.warn(`  ⚠ unusual stop_reason from Claude: ${data.stop_reason}`);
-  }
-  return { text, raw: data };
+  throw lastErr;
 }
 
 const SYSTEM_PROMPT = `You extract South African DBE Annual Teaching Plan (ATP) PDFs into structured JSON.
@@ -487,7 +526,7 @@ async function main() {
       modelText = r.text;
       parsed = extractJson(modelText);
     } catch (e) {
-      console.error(`${tag} extraction failed: ${e.message}`);
+      console.error(`${tag} extraction failed: ${formatErrorChain(e)}`);
       if (modelText) {
         // First 500 + last 500 of the response so we can diagnose
         // truncation vs malformed JSON without dumping a 60k-char wall.
@@ -521,6 +560,15 @@ async function main() {
     }
     summary.processed++;
     summary.docsAdded += addedHere;
+
+    // Persist after each PDF that contributed something. If a later PDF
+    // crashes the run (timeout, OOM, runner cancellation), every doc up to
+    // here is already on disk — the next run's skip-existing logic picks
+    // up cleanly instead of redoing the whole batch.
+    if (addedHere > 0) {
+      corpus.extractedAt = new Date().toISOString();
+      writeFileSync(outPath, stableSerialise(corpus));
+    }
   }
 
   if (!args.dryRun) {
