@@ -254,6 +254,52 @@ async function callClaude({ apiKey, model, system, user }) {
   throw lastErr;
 }
 
+// Last-resort JSON repair via Haiku 4.5. Used only when the synchronous
+// repair pass in extractJson can't fix the malformation (e.g. a closing
+// quote dropped mid-string, leaving content the parser can't recover
+// from heuristically). Cheaper than re-running Sonnet, and Haiku is
+// strong at structural fix-up tasks.
+const REPAIR_MODEL = 'claude-haiku-4-5-20251001';
+const REPAIR_SYSTEM = `You are a JSON repair tool.
+
+You will receive:
+  1. A JSON.parse error message (with byte offset).
+  2. A JSON document that fails to parse.
+
+Output the SAME document as VALID JSON, fixing only syntax errors.
+Preserve every field, every key, every value VERBATIM. Do not summarise,
+abbreviate, rename, or drop anything. Do not add fields that weren't there.
+
+Common fixes:
+  - Insert missing commas between elements
+  - Escape unescaped " inside strings as \\"
+  - Escape literal control chars inside strings (\\n, \\r, \\t)
+  - Wrap an obviously-unquoted string value in double quotes
+  - Strip trailing commas before } or ]
+  - Close unterminated strings
+
+Output ONLY the repaired JSON document. No commentary, no code fences,
+no markdown. The first character of your output must be { and the last
+must be }.`;
+
+async function repairJsonViaClaude({ apiKey, brokenJson, errorMessage }) {
+  const user = `JSON.parse failed with:
+${errorMessage}
+
+Broken document:
+
+${brokenJson}`;
+  // Reuse the same retry/streaming wrapper so transient network failures
+  // here are also handled (and we get the cause-chain logging).
+  const r = await callClaude({
+    apiKey,
+    model: REPAIR_MODEL,
+    system: REPAIR_SYSTEM,
+    user,
+  });
+  return r.text;
+}
+
 const SYSTEM_PROMPT = `You extract South African DBE Annual Teaching Plan (ATP) PDFs into structured JSON.
 
 Your output is the SINGLE SOURCE OF TRUTH for a downstream worksheet/lesson/planner system, so capture EVERY pedagogical detail in the PDF text. Do not summarise, do not abbreviate, do not drop bullets, do not paraphrase.
@@ -658,23 +704,46 @@ async function main() {
 
     let parsed;
     let modelText = '';
+    // Stage 1: API call. Network/headers/server failures are already
+    // retried inside callClaude; if it throws here, all attempts failed.
     try {
       const r = await callClaude({ apiKey, model: args.model, system: SYSTEM_PROMPT, user });
       modelText = r.text;
+    } catch (e) {
+      console.error(`${tag} API call failed: ${formatErrorChain(e)}`);
+      summary.errored++;
+      continue;
+    }
+
+    // Stage 2: parse the model's response. extractJson does a 3-stage
+    // synchronous repair internally (control chars, structural pass,
+    // position-aware comma insertion). If that still fails, hand the
+    // broken document to Haiku for a final repair pass.
+    try {
       parsed = extractJson(modelText);
     } catch (e) {
-      console.error(`${tag} extraction failed: ${formatErrorChain(e)}`);
-      if (modelText) {
-        // First 500 + last 500 of the response so we can diagnose
+      console.warn(`  ⚠ sync JSON repair failed (${e.message}); asking Haiku to repair`);
+      try {
+        const repaired = await repairJsonViaClaude({
+          apiKey,
+          brokenJson: modelText,
+          errorMessage: e.message,
+        });
+        parsed = extractJson(repaired);
+        console.log(`  ✓ Haiku repair succeeded (${repaired.length} chars)`);
+      } catch (e2) {
+        console.error(`${tag} extraction failed: ${formatErrorChain(e)}`);
+        console.error(`  + Haiku repair also failed: ${formatErrorChain(e2)}`);
+        // First 500 + last 500 of the original response so we can diagnose
         // truncation vs malformed JSON without dumping a 60k-char wall.
         const head = modelText.slice(0, 500);
         const tail = modelText.length > 1000 ? modelText.slice(-500) : '';
         console.error(`  model response (len=${modelText.length}):`);
         console.error(`  HEAD: ${head}`);
         if (tail) console.error(`  TAIL: ${tail}`);
+        summary.errored++;
+        continue;
       }
-      summary.errored++;
-      continue;
     }
 
     const docs = Array.isArray(parsed.pacingDocs) ? parsed.pacingDocs : [];
