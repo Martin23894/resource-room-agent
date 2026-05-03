@@ -482,10 +482,20 @@ export async function generate(req, opts = {}) {
  *     surface a clean error.
  *   • Sonnet sometimes stringifies individual array items (a single
  *     stimulus object inside the stimuli array) — recurse one level in.
+ *   • The `lesson` branch is the deepest nested top-level branch (phases,
+ *     slides, vocabulary, etc.) and Sonnet stringifies it more reliably
+ *     than meta/cover/memo. Without unwrapping, assertResource passes
+ *     spuriously (a non-empty string is truthy, defeating !lesson) and
+ *     the renderer's conditional sections all return [] (because string
+ *     properties are undefined), producing a "lesson plan" with only the
+ *     headers and no body — and a missing PPTX (slides=undefined→empty).
+ *     Same for lesson.phases / lesson.slides — they may come back as
+ *     stringified arrays, so we recurse one level into the lesson branch
+ *     too.
  */
 function unwrapStringifiedBranches(obj) {
   if (!obj || typeof obj !== 'object') return obj;
-  const TOP_KEYS = ['meta', 'cover', 'stimuli', 'sections', 'memo'];
+  const TOP_KEYS = ['meta', 'cover', 'stimuli', 'sections', 'memo', 'lesson'];
   for (const k of TOP_KEYS) {
     if (typeof obj[k] === 'string') {
       try {
@@ -505,6 +515,30 @@ function unwrapStringifiedBranches(obj) {
   // Recurse one level into stimuli + sections to catch stringified items.
   if (Array.isArray(obj.stimuli)) obj.stimuli = obj.stimuli.map(unwrapItem);
   if (Array.isArray(obj.sections)) obj.sections = obj.sections.map(unwrapItem);
+
+  // Recurse one level into the lesson branch's array properties — same
+  // stringification pattern but at one extra depth. Also coerce non-array
+  // values back to [] so the lesson renderer's array iterators don't crash.
+  if (obj.lesson && typeof obj.lesson === 'object') {
+    for (const k of ['phases', 'slides', 'learningObjectives', 'priorKnowledge', 'vocabulary', 'materials', 'teacherNotes']) {
+      if (typeof obj.lesson[k] === 'string') {
+        try {
+          const parsed = JSON.parse(obj.lesson[k]);
+          if (Array.isArray(parsed)) obj.lesson[k] = parsed;
+        } catch { /* fallthrough */ }
+      }
+    }
+    if (Array.isArray(obj.lesson.phases)) obj.lesson.phases = obj.lesson.phases.map(unwrapItem);
+    if (Array.isArray(obj.lesson.slides)) obj.lesson.slides = obj.lesson.slides.map(unwrapItem);
+    // capsAnchor is a single object, not an array — handle the rare case
+    // where Sonnet stringifies it directly.
+    if (typeof obj.lesson.capsAnchor === 'string') {
+      try {
+        const parsed = JSON.parse(obj.lesson.capsAnchor);
+        if (parsed && typeof parsed === 'object') obj.lesson.capsAnchor = parsed;
+      } catch { /* fallthrough */ }
+    }
+  }
 
   return obj;
 }
