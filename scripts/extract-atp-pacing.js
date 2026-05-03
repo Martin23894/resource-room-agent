@@ -44,7 +44,7 @@ function parseArgs(argv) {
                  model: 'claude-sonnet-4-6' };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--only')           args.only = argv[++i];
+    if (a === '--only')           args.only = (argv[++i] || '').trim();
     else if (a === '--limit')     args.limit = Number(argv[++i]);
     else if (a === '--force')     args.force = true;
     else if (a === '--dry-run')   args.dryRun = true;
