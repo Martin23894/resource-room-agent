@@ -78,6 +78,11 @@ export const resourceSchema = {
     stimuli:  { type: 'array', items: { $ref: '#/$defs/stimulus' } },
     sections: { type: 'array', minItems: 1, items: { $ref: '#/$defs/section' } },
     memo:     { $ref: '#/$defs/memo' },
+    // Optional lesson branch — populated only when meta.resourceType === 'Lesson'.
+    // Adds the teacher-facing pedagogy (objectives, phases, slides, vocabulary)
+    // that wraps the existing sections+memo, which in a Lesson act as the
+    // embedded learner worksheet. Validated by assertResource when present.
+    lesson:   { $ref: '#/$defs/lesson' },
   },
 
   $defs: {
@@ -102,7 +107,7 @@ export const resourceSchema = {
         language:           { type: 'string', enum: ['English', 'Afrikaans'] },
         resourceType:       {
           type: 'string',
-          enum: ['Worksheet', 'Test', 'Exam', 'Final Exam', 'Investigation', 'Project', 'Practical', 'Assignment'],
+          enum: ['Worksheet', 'Test', 'Exam', 'Final Exam', 'Investigation', 'Project', 'Practical', 'Assignment', 'Lesson'],
         },
         totalMarks:         { type: 'integer', minimum: 5, maximum: 200 },
         duration:           {
@@ -522,6 +527,154 @@ export const resourceSchema = {
         },
       },
     },
+
+    // ─────────────────────────────────────────────────────────────────
+    // LESSON — teacher-facing pedagogy that wraps the worksheet (the
+    // existing sections + memo). Populated only for resourceType="Lesson".
+    // Phase minutes must sum to lessonMinutes (±5) — runtime check in
+    // assertResource. The worksheet acts as the in-class practice during
+    // the phase that has worksheetRef:true.
+    // ─────────────────────────────────────────────────────────────────
+    lesson: {
+      type: 'object',
+      required: ['lessonMinutes', 'capsAnchor', 'learningObjectives', 'phases', 'slides'],
+      additionalProperties: false,
+      properties: {
+        lessonMinutes: { type: 'integer', minimum: 20, maximum: 120 },
+        capsAnchor: {
+          type: 'object',
+          required: ['unitTopic'],
+          additionalProperties: false,
+          properties: {
+            unitTopic:  { type: 'string', minLength: 1 },
+            capsStrand: { type: 'string' },
+            subStrand:  { type: 'string' },
+            weekRange:  { type: 'string', description: 'e.g. "Weeks 4–6" / "Weke 4–6".' },
+            sourcePdf:  { type: 'string', description: 'ATP PDF filename for traceable citation.' },
+            sourcePage: { type: 'integer', minimum: 1 },
+          },
+        },
+        learningObjectives: {
+          type: 'array',
+          minItems: 2,
+          maxItems: 6,
+          items:    { type: 'string', minLength: 1 },
+          description: '"By the end of this lesson learners will be able to …" — Bloom-tagged where natural.',
+        },
+        priorKnowledge: {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          description: 'What learners are assumed to already know — pulled from the Unit.prerequisites.',
+        },
+        vocabulary: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['term', 'definition'],
+            additionalProperties: false,
+            properties: {
+              term:       { type: 'string', minLength: 1 },
+              definition: { type: 'string', minLength: 1 },
+            },
+          },
+        },
+        materials: {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          description: 'Physical resources the teacher needs (chart paper, counters, ruler, etc.).',
+        },
+        phases: {
+          type: 'array',
+          minItems: 3,
+          maxItems: 6,
+          items:    { $ref: '#/$defs/lessonPhase' },
+        },
+        // Learner-facing slide deck. Rendered to PowerPoint by lib/pptx-
+        // builder.js. Slides reference the same stimuli[] as the worksheet
+        // — a bar graph taught on a slide can then be practised in the
+        // worksheet without redrawing it.
+        slides: {
+          type: 'array',
+          minItems: 5,
+          maxItems: 15,
+          items:    { $ref: '#/$defs/lessonSlide' },
+        },
+        differentiation: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            below:   { type: 'array', items: { type: 'string', minLength: 1 } },
+            onGrade: { type: 'array', items: { type: 'string', minLength: 1 } },
+            above:   { type: 'array', items: { type: 'string', minLength: 1 } },
+          },
+        },
+        homework: {
+          type: 'object',
+          required: ['description'],
+          additionalProperties: false,
+          properties: {
+            description:      { type: 'string', minLength: 1 },
+            estimatedMinutes: { type: 'integer', minimum: 1, maximum: 120 },
+          },
+        },
+        teacherNotes: {
+          type: 'array',
+          items: { type: 'string', minLength: 1 },
+          description: 'Common misconceptions, classroom-management tips, safety notes.',
+        },
+      },
+    },
+
+    // One slide in the learner-facing deck. Layout drives how the renderer
+    // composes the slide; bullets + speakerNotes carry the content. Diagram
+    // slides reference an existing stimulus — never inline an image.
+    lessonSlide: {
+      type: 'object',
+      required: ['ordinal', 'layout', 'heading'],
+      additionalProperties: false,
+      properties: {
+        ordinal: { type: 'integer', minimum: 1, maximum: 30 },
+        layout: {
+          type: 'string',
+          enum: ['title', 'objectives', 'vocabulary', 'concept', 'example', 'practice', 'diagram', 'exitTicket'],
+        },
+        heading:      { type: 'string', minLength: 1, maxLength: 120 },
+        bullets:      {
+          type: 'array',
+          maxItems: 8,
+          items: { type: 'string', minLength: 1, maxLength: 240 },
+        },
+        speakerNotes: { type: 'string', maxLength: 1200 },
+        stimulusRef:  { type: 'string', description: 'Required for layout="diagram". Must resolve to stimuli[].id.' },
+      },
+    },
+
+    // One lesson phase. Names are CAPS-conventional but free-text within
+    // the enum (English + Afrikaans variants) so the renderer can localise.
+    lessonPhase: {
+      type: 'object',
+      required: ['name', 'minutes', 'teacherActions', 'learnerActions'],
+      additionalProperties: false,
+      properties: {
+        name: {
+          type: 'string',
+          enum: [
+            'Introduction', 'Direct Teaching', 'Guided Practice',
+            'Independent Work', 'Consolidation', 'Assessment',
+            'Inleiding', 'Direkte Onderrig', 'Begeleide Oefening',
+            'Onafhanklike Werk', 'Konsolidasie', 'Assessering',
+          ],
+        },
+        minutes:        { type: 'integer', minimum: 1, maximum: 60 },
+        teacherActions: { type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } },
+        learnerActions: { type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } },
+        questionsToAsk: { type: 'array', items: { type: 'string', minLength: 1 } },
+        worksheetRef: {
+          type: 'boolean',
+          description: 'When true, learners do the attached worksheet during this phase.',
+        },
+      },
+    },
   },
 };
 
@@ -651,6 +804,54 @@ export function assertResource(resource) {
   for (const num of answerByNum.keys()) {
     if (!leafByNum.has(num)) {
       err(`memo.answers[${num}]`, `references question ${num} which has no leaf in the paper`);
+    }
+  }
+
+  // (11) Lesson invariants — only checked when resourceType is 'Lesson'.
+  //   • lesson branch must be present
+  //   • sum(phases[*].minutes) within ±5 of lesson.lessonMinutes
+  //   • exactly one phase has worksheetRef:true (the in-class worksheet slot)
+  if (meta.resourceType === 'Lesson') {
+    const lesson = resource.lesson;
+    if (!lesson) {
+      err('lesson', 'required when meta.resourceType === "Lesson"');
+    } else {
+      const phases = Array.isArray(lesson.phases) ? lesson.phases : [];
+      const phaseSum = phases.reduce((a, p) => a + (p.minutes || 0), 0);
+      const target = lesson.lessonMinutes || 0;
+      if (Math.abs(phaseSum - target) > 5) {
+        err('lesson.phases[*].minutes', `sum=${phaseSum}, expected within ±5 of lesson.lessonMinutes=${target}`);
+      }
+      const worksheetPhases = phases.filter((p) => p.worksheetRef === true).length;
+      if (worksheetPhases !== 1) {
+        err('lesson.phases[*].worksheetRef', `exactly one phase must have worksheetRef:true (found ${worksheetPhases})`);
+      }
+
+      // (12) Slide invariants:
+      //   • slides exist (schema enforces minItems:5)
+      //   • ordinals are unique
+      //   • exactly one title-layout slide, and it is first (ordinal 1)
+      //   • diagram-layout slides must carry a stimulusRef that resolves
+      const slides = Array.isArray(lesson.slides) ? lesson.slides : [];
+      const ordinals = slides.map((s) => s.ordinal);
+      if (new Set(ordinals).size !== ordinals.length) {
+        err('lesson.slides[*].ordinal', 'ordinals must be unique');
+      }
+      const titleSlides = slides.filter((s) => s.layout === 'title');
+      if (titleSlides.length !== 1) {
+        err('lesson.slides[*].layout', `exactly one slide must be layout:"title" (found ${titleSlides.length})`);
+      } else if (titleSlides[0].ordinal !== Math.min(...ordinals)) {
+        err('lesson.slides[*]', 'the title slide must be the first slide (lowest ordinal)');
+      }
+      slides.forEach((s, i) => {
+        if (s.layout === 'diagram') {
+          if (!s.stimulusRef) {
+            err(`lesson.slides[${i}].stimulusRef`, 'required when layout="diagram"');
+          } else if (!stimulusIds.has(s.stimulusRef)) {
+            err(`lesson.slides[${i}].stimulusRef`, `"${s.stimulusRef}" not found in stimuli[]`);
+          }
+        }
+      });
     }
   }
 

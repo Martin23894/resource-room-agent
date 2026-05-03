@@ -15,6 +15,7 @@ import refineHandler from './api/refine.js';
 import coverHandler from './api/cover.js';
 import testHandler from './api/test.js';
 import atpHandler from './api/atp.js';
+import pacingUnitsHandler from './api/pacing-units.js';
 import rebuildDocxHandler from './api/rebuild-docx.js';
 import authRequestHandler from './api/auth-request.js';
 import authVerifyHandler from './api/auth-verify.js';
@@ -181,6 +182,7 @@ app.post('/api/cover', requireAuth, apiLimiters, coverHandler);
 // arbitrary content either.
 app.post('/api/rebuild-docx', requireAuth, apiLimiters, rebuildDocxHandler);
 app.get('/api/atp', atpHandler);
+app.get('/api/pacing-units', pacingUnitsHandler);
 app.get('/api/test', testHandler);
 
 // ─── Per-user settings + history (Phase 2.4b) ───────────────

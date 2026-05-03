@@ -17,6 +17,7 @@ import {
   EXAM_SCOPE,
   getPacingUnits,
   getPacingFormalAssessments,
+  getPacingUnitById,
 } from '../lib/atp.js';
 import {
   buildCapsReferenceBlock,
@@ -24,11 +25,13 @@ import {
   formatSubtopics,
   formatPacingUnit,
   formatFormalAssessmentStructure,
+  buildLessonContextBlock,
 } from '../lib/atp-prompt.js';
 import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
 import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schema/resource.schema.js';
 import { rebalanceMarks } from '../lib/rebalance.js';
 import { renderResource } from '../lib/render.js';
+import { renderLessonPptx } from '../lib/pptx-builder.js';
 import { createEventChannel } from '../lib/sse.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
@@ -42,6 +45,7 @@ const SONNET_4_6 = 'claude-sonnet-4-6';
  * - Exam (T2, T4)        → EXAM_SCOPE[t]    cross-term per CAPS
  * - Exam (T1, T3)        → [t]              single-term exams
  * - Final Exam           → [1,2,3,4]        full year
+ * - Lesson               → [t] (with topic locked to the chosen Unit)
  */
 function topicScopeFor(subject, grade, term, resourceType) {
   let coversTerms;
@@ -77,7 +81,26 @@ function buildContext(req) {
     prescribedMarks: prescribedMarks[i],
   }));
 
-  const { coversTerms, topics } = topicScopeFor(subject, grade, term, resourceType);
+  // Lesson path narrows the topic scope to the chosen Unit and pulls the
+  // Unit's full pacing block so the prompt can ground every objective +
+  // phase in CAPS bullets verbatim. Falls back to a clear error when the
+  // unitId doesn't resolve — better than silently generating term-wide.
+  const isLesson = resourceType === 'Lesson';
+  let lessonUnit = null;
+  let lessonTerm = term;
+  if (isLesson) {
+    if (!req.unitId) throw new Error('Lesson requests must include a unitId');
+    const found = getPacingUnitById(subject, grade, req.unitId);
+    if (!found) {
+      throw new Error(`Unit "${req.unitId}" not found for ${subject} Grade ${grade}`);
+    }
+    lessonUnit = found.unit;
+    lessonTerm = found.term;
+  }
+
+  const { coversTerms, topics } = isLesson
+    ? { coversTerms: [lessonTerm], topics: [lessonUnit.topic] }
+    : topicScopeFor(subject, grade, term, resourceType);
   if (topics.length === 0) {
     throw new Error(`No ATP topics for subject="${subject}" grade=${grade} term=${term}`);
   }
@@ -86,24 +109,31 @@ function buildContext(req) {
   // pulled from data/atp-pacing.json. Empty arrays when no pacing data is
   // available — the prompt builder treats them as optional and skips
   // those sections, so this is safe to add for every request.
+  // For lessons, only the chosen Unit's pacing block is in scope.
   const isExamType = resourceType === 'Exam' || resourceType === 'Final Exam';
-  const pacingUnits = coversTerms.flatMap((t) =>
-    getPacingUnits(subject, grade, t, false));
-  const pacingFormalAssessments = getPacingFormalAssessments(
-    subject, grade, term, isExamType);
+  const pacingUnits = isLesson
+    ? [lessonUnit]
+    : coversTerms.flatMap((t) => getPacingUnits(subject, grade, t, false));
+  const pacingFormalAssessments = isLesson
+    ? []
+    : getPacingFormalAssessments(subject, grade, term, isExamType);
 
+  // For a Lesson, the "duration" tracked by meta is still in marks — the
+  // worksheet's marks. The lesson's classroom length lives in lesson.lessonMinutes.
   const durationMin = parseDurationMinutes(marksToTime(totalMarks));
   const localisedDurationLabel = localiseDuration(marksToTime(totalMarks), language);
   const subjectDisplay = subjectDisplayName(subject, language);
   const localResourceLabel = resourceTypeLabel(resourceType, language);
+  const lessonMinutes = isLesson ? (req.lessonMinutes || 45) : null;
 
   return {
-    subject, grade, term, language, resourceType, totalMarks, difficulty,
+    subject, grade, term: lessonTerm, language, resourceType, totalMarks, difficulty,
     frameworkName, cogLevels,
     cognitiveLevelNames: cogLevels.map((l) => l.name),
     coversTerms, topics,
     pacingUnits, pacingFormalAssessments,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
+    isLesson, lessonUnit, lessonMinutes,
   };
 }
 
@@ -126,6 +156,7 @@ function buildSystemPrompt(ctx) {
     frameworkName, cogLevels, coversTerms, topics,
     pacingUnits, pacingFormalAssessments,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
+    isLesson, lessonUnit, lessonMinutes,
   } = ctx;
 
   const cogTable = cogLevels
@@ -165,6 +196,7 @@ function buildSystemPrompt(ctx) {
     ``,
     ...buildCapsReferenceBlock(pacingUnits),
     ...buildAssessmentStructureBlock(pacingFormalAssessments, resourceType, totalMarks),
+    ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language) : []),
     `## Cognitive framework: ${frameworkName}`,
     `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,
     cogTable,
@@ -198,7 +230,9 @@ function buildSystemPrompt(ctx) {
     `8. Every question's \`topic\` field MUST be COPIED VERBATIM from the ATP topic list above. Do not paraphrase, abbreviate, or duplicate phrases inside it. The schema enforces an exact-string match.`,
     ``,
     `## Resource-type guidance`,
-    isRTT && isExamType
+    isLesson
+      ? `- A Lesson pairs a teacher-facing lesson plan (the \`lesson\` branch above) with a short in-class worksheet (sections+memo). The worksheet is one section, ${totalMarks} marks total, focused entirely on the chosen Unit topic. Keep the worksheet practice-oriented — short answer, fill-in, calculation, or simple word problems — not a mini test.`
+      : isRTT && isExamType
       ? `- This is a Response-to-Text (RTT) ${resourceType}. Section A MUST contain a passage stimulus (kind="passage") with the full body and a wordCount. Comprehension questions in Section A MUST stimulusRef that passage. RTT papers also typically include a Section B (summary, ~5 marks) referencing the same passage, and a Section C (language structures + visual text). The visual text in Section C is a separate stimulus (kind="visualText" with a verbal description, since we cannot generate images).`
       : isRTT
       ? `- This is a language ${resourceType}. Use stimuli where appropriate (passages for comprehension, visual texts for visual-literacy items).`
@@ -212,7 +246,7 @@ function buildSystemPrompt(ctx) {
     `## Language and labels`,
     `- All learner-facing strings (cover, section titles, instructions, question stems, memo answers) MUST be written in ${language}.`,
     `- Cover: resourceTypeLabel="${localResourceLabel}", subjectLine="${subjectDisplay}", gradeLine="${language === 'Afrikaans' ? `Graad ${grade}` : `Grade ${grade}`}", termLine="${language === 'Afrikaans' ? `Kwartaal ${term}` : `Term ${term}`}".`,
-    `- learnerInfoFields MUST include all of these in this order: name, surname, date, examiner, time, total. For Worksheets you MAY omit examiner and time. For non-Worksheet resources include all six. Use bare labels (e.g. "Time", "Total") — the renderer adds the value.`,
+    `- learnerInfoFields MUST include all of these in this order: name, surname, date, examiner, time, total. For Worksheets and Lessons you MAY omit examiner and time. For Tests/Exams/Final Exams include all six. Use bare labels (e.g. "Time", "Total") — the renderer adds the value.`,
     `- Section titles should be in ${language}, upper-cased. The TITLE ONLY — do NOT include the "SECTION A:" / "SECTION B:" prefix in section.title (the renderer adds that from section.letter), and do NOT include a "(N marks)" suffix (the renderer computes that from leaf marks). Correct: title="MULTIPLE CHOICE". Wrong: title="SECTION A: MULTIPLE CHOICE  (15 marks)".`,
     ``,
     `## Output`,
@@ -298,12 +332,19 @@ function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isAfr
 }
 
 function buildUserPrompt(ctx) {
-  return [
+  const lines = [
     `Generate the ${ctx.resourceType} described in the system prompt.`,
     `Set meta.schemaVersion="1.0", meta.subject="${ctx.subject}", meta.grade=${ctx.grade}, meta.term=${ctx.term}, meta.language="${ctx.language}", meta.resourceType="${ctx.resourceType}", meta.totalMarks=${ctx.totalMarks}, meta.duration.minutes=${ctx.durationMin}, meta.difficulty="${ctx.difficulty}".`,
     `meta.topicScope.coversTerms=[${ctx.coversTerms.join(',')}], meta.topicScope.topics must be exactly the ATP topic list given above.`,
     `Ensure the leaf-mark sum equals ${ctx.totalMarks} and that every leaf has a corresponding memo answer.`,
-  ].join('\n');
+  ];
+  if (ctx.isLesson) {
+    lines.push(
+      `Populate the lesson branch per the "Lesson plan directives" section above. ` +
+      `Phase minutes must sum to ${ctx.lessonMinutes} (±5), and exactly ONE phase must have worksheetRef:true.`,
+    );
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -359,7 +400,10 @@ export async function generate(req, opts = {}) {
       user,
       tool,
       model: SONNET_4_6,
-      maxTokens: 16000,
+      // Lessons emit a lesson plan + a slide deck on top of the worksheet,
+      // which roughly doubles the structured output. Other resource types
+      // keep the historical 16k budget.
+      maxTokens: ctx.isLesson ? 24000 : 16000,
       // Prompt cache the system prompt. Repeated calls for the same
       // {subject, grade, term, language, resourceType} produce identical
       // system prompts and tool schemas — within the 5-minute ephemeral
@@ -683,7 +727,30 @@ export default async function handler(req, res) {
       : 'invariants_passed';
 
     const filename = buildFilename(parsed);
+    const pptxFilename = parsed.resourceType === 'Lesson'
+      ? filename.replace(/\.docx$/i, '.pptx')
+      : null;
     const preview = buildTextPreview(resource);
+
+    // Lessons additionally render to PowerPoint. We render serially after
+    // DOCX so a PPTX-render failure (very rare — pure JS, no native deps)
+    // doesn't kill the DOCX path the teacher came for. On failure the
+    // payload still carries the DOCX; the frontend just won't show the
+    // PowerPoint button.
+    let pptxBase64 = null;
+    if (parsed.resourceType === 'Lesson') {
+      channel.sendPhase('pptx_render', 'started');
+      try {
+        pptxBase64 = await renderLessonPptx(resource);
+        channel.sendPhase('pptx_render', 'done', {
+          bytes: Math.round((pptxBase64.length * 3) / 4),
+          slides: resource.lesson?.slides?.length || 0,
+        });
+      } catch (err) {
+        log.warn({ err: err?.message || err }, 'generate: PPTX render failed; DOCX still ships');
+        channel.sendPhase('pptx_render', 'failed');
+      }
+    }
 
     const payload = {
       docxBase64: buf.toString('base64'),
@@ -695,6 +762,7 @@ export default async function handler(req, res) {
         rebalanceNudges: rebalance.adjustments.length,
         framework: ctx.frameworkName,
       },
+      ...(pptxBase64 ? { pptxBase64, pptxFilename } : {}),
     };
     channel.sendResult(payload);
     safeCacheSet(cacheKey, payload, log);
@@ -724,25 +792,44 @@ export default async function handler(req, res) {
 
 function parseRequest(body) {
   const subject      = str(body.subject,      { field: 'subject', max: 200 });
-  const resourceType = oneOf(body.resourceType, ['Worksheet', 'Test', 'Exam', 'Final Exam', 'Investigation', 'Project', 'Practical', 'Assignment'], { field: 'resourceType' });
+  const resourceType = oneOf(body.resourceType, ['Worksheet', 'Test', 'Exam', 'Final Exam', 'Investigation', 'Project', 'Practical', 'Assignment', 'Lesson'], { field: 'resourceType' });
   const language     = oneOf(body.language, ['English', 'Afrikaans'], { field: 'language' });
   const grade        = int(body.grade, { field: 'grade', min: 4, max: 7 });
   const term         = int(body.term,  { field: 'term',  min: 1, max: 4 });
   const totalMarks   = int(body.duration, { field: 'duration', required: false, min: 5, max: 200 }) || 50;
   const difficulty   = oneOf(body.difficulty || 'on', ['below', 'on', 'above'], { field: 'difficulty' });
-  return { subject, grade, term, language, resourceType, totalMarks, difficulty };
+  const parsed = { subject, grade, term, language, resourceType, totalMarks, difficulty };
+
+  // Lesson-only extras. The Unit picker on the frontend posts a unitId from
+  // /api/pacing-units; lessonMinutes is the planned classroom length.
+  if (resourceType === 'Lesson') {
+    parsed.unitId = str(body.unitId, { field: 'unitId', max: 200 });
+    parsed.lessonMinutes = int(body.lessonMinutes, {
+      field: 'lessonMinutes', required: false, min: 20, max: 120,
+    }) || 45;
+  }
+  return parsed;
 }
 
 function buildFilename({ subject, resourceType, grade, term }) {
   return `${subject}-${resourceType}-Grade${grade}-Term${term}`.replace(/[^a-zA-Z0-9\-]/g, '-') + '.docx';
 }
 
-// Cache key derived from the seven canonical request fields. Order is fixed
-// so two requests with the same params produce the same key regardless of
-// JSON property order. Bumping the v2 prefix invalidates the whole cache
-// when the response shape changes (DOCX renderer upgrades, _meta additions).
-function buildCacheKey({ subject, grade, term, language, resourceType, totalMarks, difficulty }) {
+// Cache key derived from the canonical request fields. Order is fixed so
+// two requests with the same params produce the same key regardless of
+// JSON property order. Bumping the version prefix invalidates the whole
+// cache when the response shape changes (DOCX renderer upgrades, _meta
+// additions). Lesson requests include unitId + lessonMinutes so two
+// different lessons in the same subject/grade/term don't collide.
+function buildCacheKey({
+  subject, grade, term, language, resourceType, totalMarks, difficulty,
+  unitId, lessonMinutes,
+}) {
   const norm = { subject, grade, term, language, resourceType, totalMarks, difficulty };
+  if (resourceType === 'Lesson') {
+    norm.unitId = unitId || null;
+    norm.lessonMinutes = lessonMinutes || null;
+  }
   return `gen:v2:${JSON.stringify(norm)}`;
 }
 
@@ -760,12 +847,19 @@ function safeCacheSet(key, payload, log) {
 // preview pane; not the DOCX. Walks sections + leaves in document order.
 function buildTextPreview(resource) {
   const lines = [];
-  const { meta, cover, stimuli = [], sections = [], memo } = resource;
+  const { meta, cover, stimuli = [], sections = [], memo, lesson } = resource;
 
-  lines.push(cover.resourceTypeLabel || resourceType);
+  lines.push(cover.resourceTypeLabel || meta.resourceType);
   lines.push(cover.subjectLine);
   lines.push(`${cover.gradeLine}  |  ${cover.termLine}  |  ${meta.totalMarks} marks`);
   lines.push('');
+
+  // Lesson plan goes above the worksheet so the teacher sees both halves
+  // in the preview pane. For non-Lesson resources `lesson` is undefined
+  // and this block is skipped.
+  if (meta.resourceType === 'Lesson' && lesson) {
+    appendLessonPreview(lines, lesson);
+  }
 
   const renderedStimuli = new Set();
   for (const sec of sections) {
@@ -804,6 +898,79 @@ function appendQuestionPreview(lines, q) {
     return;
   }
   lines.push(`${q.number}  ${q.stem}  [${q.marks}]`);
+}
+
+function appendLessonPreview(lines, lesson) {
+  lines.push('— LESSON PLAN —');
+  const anchor = lesson.capsAnchor || {};
+  if (anchor.unitTopic) lines.push(`Unit: ${anchor.unitTopic}`);
+  if (anchor.capsStrand) {
+    lines.push(`Strand: ${anchor.capsStrand}${anchor.subStrand ? ` / ${anchor.subStrand}` : ''}`);
+  }
+  if (anchor.weekRange) lines.push(`Weeks: ${anchor.weekRange}`);
+  if (lesson.lessonMinutes) lines.push(`Length: ${lesson.lessonMinutes} minutes`);
+  if (anchor.sourcePdf) {
+    const pageSuffix = anchor.sourcePage ? `, p. ${anchor.sourcePage}` : '';
+    lines.push(`Source: ${anchor.sourcePdf}${pageSuffix}`);
+  }
+  lines.push('');
+
+  if (lesson.learningObjectives?.length) {
+    lines.push('LEARNING OBJECTIVES');
+    for (const o of lesson.learningObjectives) lines.push(`  • ${o}`);
+    lines.push('');
+  }
+  if (lesson.priorKnowledge?.length) {
+    lines.push('PRIOR KNOWLEDGE');
+    for (const p of lesson.priorKnowledge) lines.push(`  • ${p}`);
+    lines.push('');
+  }
+  if (lesson.vocabulary?.length) {
+    lines.push('KEY VOCABULARY');
+    for (const v of lesson.vocabulary) lines.push(`  • ${v.term} — ${v.definition}`);
+    lines.push('');
+  }
+  if (lesson.materials?.length) {
+    lines.push('MATERIALS');
+    for (const m of lesson.materials) lines.push(`  • ${m}`);
+    lines.push('');
+  }
+  if (lesson.phases?.length) {
+    lines.push('LESSON PHASES');
+    for (const p of lesson.phases) {
+      lines.push(`  ${p.name}  (${p.minutes} min)${p.worksheetRef ? '  ← worksheet' : ''}`);
+      for (const a of p.teacherActions || []) lines.push(`    T: ${a}`);
+      for (const a of p.learnerActions || []) lines.push(`    L: ${a}`);
+      for (const q of p.questionsToAsk || []) lines.push(`    ?  ${q}`);
+    }
+    lines.push('');
+  }
+  if (lesson.differentiation) {
+    const d = lesson.differentiation;
+    if (d.below?.length || d.onGrade?.length || d.above?.length) {
+      lines.push('DIFFERENTIATION');
+      for (const [items, lbl] of [[d.below, 'Below'], [d.onGrade, 'On grade'], [d.above, 'Above']]) {
+        if (items?.length) {
+          lines.push(`  ${lbl}:`);
+          for (const it of items) lines.push(`    • ${it}`);
+        }
+      }
+      lines.push('');
+    }
+  }
+  if (lesson.homework?.description) {
+    const mins = lesson.homework.estimatedMinutes ? ` (${lesson.homework.estimatedMinutes} min)` : '';
+    lines.push(`HOMEWORK${mins}`);
+    lines.push(`  ${lesson.homework.description}`);
+    lines.push('');
+  }
+  if (lesson.teacherNotes?.length) {
+    lines.push('TEACHER NOTES');
+    for (const n of lesson.teacherNotes) lines.push(`  • ${n}`);
+    lines.push('');
+  }
+  lines.push('— LEARNER WORKSHEET —');
+  lines.push('');
 }
 
 function leafSumIn(questions) {
