@@ -858,7 +858,11 @@ function buildCacheKey({
     norm.unitId = unitId || null;
     norm.lessonMinutes = lessonMinutes || null;
   }
-  return `gen:v2:${JSON.stringify(norm)}`;
+  // v3 invalidates Lesson cache entries from before the schema fix that
+  // promotes `lesson` to top-level required. Old entries can be a "Lesson"
+  // shaped exactly like a worksheet (no lesson plan, no slides) — replaying
+  // them would silently re-serve a broken pack.
+  return `gen:v3:${JSON.stringify(norm)}`;
 }
 
 function safeCacheGet(key, log) {

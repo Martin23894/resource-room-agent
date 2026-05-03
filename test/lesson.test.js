@@ -7,7 +7,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { resourceSchema, assertResource } from '../schema/resource.schema.js';
+import { resourceSchema, assertResource, narrowSchemaForRequest } from '../schema/resource.schema.js';
 import { buildLessonContextBlock } from '../lib/atp-prompt.js';
 import { getPacingUnitsSlim, getPacingUnitById } from '../lib/atp.js';
 import { renderLessonPptx } from '../lib/pptx-builder.js';
@@ -188,6 +188,41 @@ describe('Lesson schema invariants', () => {
     delete r.lesson;
     const result = assertResource(r);
     assert.equal(result.ok, true, JSON.stringify(result.errors));
+  });
+});
+
+describe('narrowSchemaForRequest — Lesson requests promote `lesson` to required', () => {
+  const COG_LEVELS = ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'];
+  const TOPICS = ['Whole numbers'];
+
+  test('Lesson requests put `lesson` in top-level required[]', () => {
+    const s = narrowSchemaForRequest({
+      subject: 'Mathematics', language: 'English', resourceType: 'Lesson',
+      cognitiveLevels: COG_LEVELS, topics: TOPICS,
+    });
+    assert.ok(s.required.includes('lesson'),
+      `expected "lesson" in required, got ${JSON.stringify(s.required)}`);
+  });
+
+  test('non-Lesson requests do NOT mark `lesson` required', () => {
+    for (const rt of ['Worksheet', 'Test', 'Exam', 'Final Exam']) {
+      const s = narrowSchemaForRequest({
+        subject: 'Mathematics', language: 'English', resourceType: rt,
+        cognitiveLevels: COG_LEVELS, topics: TOPICS,
+      });
+      assert.ok(!s.required.includes('lesson'),
+        `expected "lesson" NOT in required for ${rt}, got ${JSON.stringify(s.required)}`);
+    }
+  });
+
+  test('the base resourceSchema.required is not mutated across calls', () => {
+    const baseRequired = [...resourceSchema.required];
+    narrowSchemaForRequest({
+      subject: 'Mathematics', language: 'English', resourceType: 'Lesson',
+      cognitiveLevels: COG_LEVELS, topics: TOPICS,
+    });
+    assert.deepEqual(resourceSchema.required, baseRequired,
+      'narrowSchemaForRequest must deep-clone — base schema must stay untouched');
   });
 });
 

@@ -86,9 +86,9 @@ describe('buildCacheKey', () => {
     assert.notEqual(k, buildCacheKey({ ...base, difficulty: 'above' }));
   });
 
-  test('starts with stable v2 prefix for invalidation', () => {
+  test('starts with versioned prefix for invalidation', () => {
     const k = buildCacheKey({ subject: 'Maths', grade: 5, term: 2, language: 'English', resourceType: 'Test', totalMarks: 40, difficulty: 'on' });
-    assert.match(k, /^gen:v2:/);
+    assert.match(k, /^gen:v\d+:/);
   });
 });
 
