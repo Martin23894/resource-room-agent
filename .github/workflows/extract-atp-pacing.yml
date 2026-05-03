@@ -38,6 +38,11 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Install poppler-utils (provides pdftotext)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y poppler-utils
+
       - name: Stage ATP PDFs from main
         # The PDFs live at the repo root on `main`. Pull them into
         # data/atp-source/ so the extractor can read them, without
