@@ -537,7 +537,7 @@ export const resourceSchema = {
     // ─────────────────────────────────────────────────────────────────
     lesson: {
       type: 'object',
-      required: ['lessonMinutes', 'capsAnchor', 'learningObjectives', 'phases'],
+      required: ['lessonMinutes', 'capsAnchor', 'learningObjectives', 'phases', 'slides'],
       additionalProperties: false,
       properties: {
         lessonMinutes: { type: 'integer', minimum: 20, maximum: 120 },
@@ -589,6 +589,16 @@ export const resourceSchema = {
           maxItems: 6,
           items:    { $ref: '#/$defs/lessonPhase' },
         },
+        // Learner-facing slide deck. Rendered to PowerPoint by lib/pptx-
+        // builder.js. Slides reference the same stimuli[] as the worksheet
+        // — a bar graph taught on a slide can then be practised in the
+        // worksheet without redrawing it.
+        slides: {
+          type: 'array',
+          minItems: 5,
+          maxItems: 15,
+          items:    { $ref: '#/$defs/lessonSlide' },
+        },
         differentiation: {
           type: 'object',
           additionalProperties: false,
@@ -612,6 +622,30 @@ export const resourceSchema = {
           items: { type: 'string', minLength: 1 },
           description: 'Common misconceptions, classroom-management tips, safety notes.',
         },
+      },
+    },
+
+    // One slide in the learner-facing deck. Layout drives how the renderer
+    // composes the slide; bullets + speakerNotes carry the content. Diagram
+    // slides reference an existing stimulus — never inline an image.
+    lessonSlide: {
+      type: 'object',
+      required: ['ordinal', 'layout', 'heading'],
+      additionalProperties: false,
+      properties: {
+        ordinal: { type: 'integer', minimum: 1, maximum: 30 },
+        layout: {
+          type: 'string',
+          enum: ['title', 'objectives', 'vocabulary', 'concept', 'example', 'practice', 'diagram', 'exitTicket'],
+        },
+        heading:      { type: 'string', minLength: 1, maxLength: 120 },
+        bullets:      {
+          type: 'array',
+          maxItems: 8,
+          items: { type: 'string', minLength: 1, maxLength: 240 },
+        },
+        speakerNotes: { type: 'string', maxLength: 1200 },
+        stimulusRef:  { type: 'string', description: 'Required for layout="diagram". Must resolve to stimuli[].id.' },
       },
     },
 
@@ -792,6 +826,32 @@ export function assertResource(resource) {
       if (worksheetPhases !== 1) {
         err('lesson.phases[*].worksheetRef', `exactly one phase must have worksheetRef:true (found ${worksheetPhases})`);
       }
+
+      // (12) Slide invariants:
+      //   • slides exist (schema enforces minItems:5)
+      //   • ordinals are unique
+      //   • exactly one title-layout slide, and it is first (ordinal 1)
+      //   • diagram-layout slides must carry a stimulusRef that resolves
+      const slides = Array.isArray(lesson.slides) ? lesson.slides : [];
+      const ordinals = slides.map((s) => s.ordinal);
+      if (new Set(ordinals).size !== ordinals.length) {
+        err('lesson.slides[*].ordinal', 'ordinals must be unique');
+      }
+      const titleSlides = slides.filter((s) => s.layout === 'title');
+      if (titleSlides.length !== 1) {
+        err('lesson.slides[*].layout', `exactly one slide must be layout:"title" (found ${titleSlides.length})`);
+      } else if (titleSlides[0].ordinal !== Math.min(...ordinals)) {
+        err('lesson.slides[*]', 'the title slide must be the first slide (lowest ordinal)');
+      }
+      slides.forEach((s, i) => {
+        if (s.layout === 'diagram') {
+          if (!s.stimulusRef) {
+            err(`lesson.slides[${i}].stimulusRef`, 'required when layout="diagram"');
+          } else if (!stimulusIds.has(s.stimulusRef)) {
+            err(`lesson.slides[${i}].stimulusRef`, `"${s.stimulusRef}" not found in stimuli[]`);
+          }
+        }
+      });
     }
   }
 

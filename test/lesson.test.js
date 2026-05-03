@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 import { resourceSchema, assertResource } from '../schema/resource.schema.js';
 import { buildLessonContextBlock } from '../lib/atp-prompt.js';
 import { getPacingUnitsSlim, getPacingUnitById } from '../lib/atp.js';
+import { renderLessonPptx } from '../lib/pptx-builder.js';
 
 // ─── A minimal valid Lesson resource for invariant testing. ───────────────
 function makeLesson(overrides = {}) {
@@ -117,6 +118,26 @@ function makeLesson(overrides = {}) {
         { name: 'Consolidation',    minutes: 5,  teacherActions: ['Recap key ideas.'], learnerActions: ['Share answers.'] },
       ],
       homework: { description: 'Practise expanded form for 5 numbers.', estimatedMinutes: 10 },
+      slides: [
+        { ordinal: 1, layout: 'title',      heading: 'Whole numbers', speakerNotes: 'Welcome learners and read the lesson topic aloud.' },
+        { ordinal: 2, layout: 'objectives', heading: "Today's goals",
+          bullets: ['Count up to 1000.', 'Compare and order whole numbers.', 'Write numbers in expanded form.'],
+          speakerNotes: 'Walk through each goal in plain language.' },
+        { ordinal: 3, layout: 'vocabulary', heading: 'Key words',
+          speakerNotes: 'Use vocabulary list — call on a learner per term.' },
+        { ordinal: 4, layout: 'concept',    heading: 'Place value',
+          bullets: ['Hundreds, tens, units.', '347 = 300 + 40 + 7.'],
+          speakerNotes: 'Demonstrate with place-value cards on the board.' },
+        { ordinal: 5, layout: 'example',    heading: 'Try this together',
+          bullets: ['Write 526 in expanded form.', '500 + 20 + 6.'],
+          speakerNotes: 'Have learners work in pairs for 60 seconds.' },
+        { ordinal: 6, layout: 'practice',   heading: 'Now try the worksheet',
+          bullets: ['Complete questions 1–4.'],
+          speakerNotes: 'Hand out worksheets and circulate.' },
+        { ordinal: 7, layout: 'exitTicket', heading: 'Exit ticket',
+          bullets: ['Write 814 in expanded form on a sticky note.'],
+          speakerNotes: 'Collect sticky notes at the door.' },
+      ],
     },
   };
   return Object.assign({}, base, overrides);
@@ -173,6 +194,66 @@ describe('Lesson schema invariants', () => {
     delete r.lesson;
     const result = assertResource(r);
     assert.equal(result.ok, true, JSON.stringify(result.errors));
+  });
+});
+
+describe('Lesson slides invariants', () => {
+  test('exactly one title slide is required', () => {
+    const r = makeLesson();
+    // Drop the title layout — make slide 1 a 'concept' instead.
+    r.lesson.slides[0].layout = 'concept';
+    const result = assertResource(r);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => /slides\[\*\]\.layout/.test(e.path)));
+  });
+
+  test('two title slides is invalid', () => {
+    const r = makeLesson();
+    r.lesson.slides[2].layout = 'title';
+    const result = assertResource(r);
+    assert.equal(result.ok, false);
+  });
+
+  test('the title slide must be first', () => {
+    const r = makeLesson();
+    // Move the title to ordinal 5.
+    r.lesson.slides[0].layout = 'concept';
+    r.lesson.slides[4].layout = 'title';
+    const result = assertResource(r);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => /title slide must be the first/.test(e.message)));
+  });
+
+  test('ordinals must be unique', () => {
+    const r = makeLesson();
+    r.lesson.slides[1].ordinal = 1; // collide with slide 0
+    const result = assertResource(r);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => /ordinal/.test(e.path)));
+  });
+
+  test('diagram-layout slides require a stimulusRef that resolves', () => {
+    const r = makeLesson();
+    r.lesson.slides[3].layout = 'diagram';
+    // No stimulusRef → error.
+    let result = assertResource(r);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => /stimulusRef/.test(e.path)));
+
+    // Bad stimulusRef → still error.
+    r.lesson.slides[3].stimulusRef = 'no-such-stimulus';
+    result = assertResource(r);
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => /stimulusRef/.test(e.path)));
+  });
+
+  test('schema rejects fewer than 5 slides', () => {
+    const r = makeLesson();
+    r.lesson.slides = r.lesson.slides.slice(0, 3);
+    // assertResource doesn't run the JSON-schema minItems — the Anthropic
+    // tool API does at request time. So we instead check the schema enum.
+    assert.equal(resourceSchema.$defs.lesson.properties.slides.minItems, 5);
+    assert.equal(resourceSchema.$defs.lesson.properties.slides.maxItems, 15);
   });
 });
 
@@ -267,5 +348,55 @@ describe('getPacingUnitById', () => {
 
   test('returns null for unknown id', () => {
     assert.equal(getPacingUnitById('Mathematics', 4, 'no-such-unit-id'), null);
+  });
+});
+
+describe('renderLessonPptx', () => {
+  test('renders a Lesson Resource to a PPTX base64 string', async () => {
+    const r = makeLesson();
+    const b64 = await renderLessonPptx(r);
+    assert.equal(typeof b64, 'string');
+    assert.ok(b64.length > 1000, 'expected non-trivial PPTX bytes');
+    // PPTX is a ZIP — first decoded bytes are "PK".
+    const head = Buffer.from(b64.slice(0, 8), 'base64').toString('binary').slice(0, 2);
+    assert.equal(head, 'PK', `expected ZIP magic "PK", got "${head}"`);
+  });
+
+  test('throws when the resource is not a Lesson', async () => {
+    const r = makeLesson({ meta: { ...makeLesson().meta, resourceType: 'Test' } });
+    await assert.rejects(() => renderLessonPptx(r), /not a Lesson/);
+  });
+
+  test('throws when the lesson has no slides', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [];
+    await assert.rejects(() => renderLessonPptx(r), /slides is empty/);
+  });
+
+  test('renders a diagram slide when the stimulus is renderable', async () => {
+    const r = makeLesson();
+    // Add a renderable bar-graph stimulus + a slide that references it.
+    r.stimuli = [{
+      id: 'bar-1', kind: 'diagram', altText: 'Daily rainfall by month',
+      spec: {
+        type: 'bar_graph',
+        title: 'Rainfall',
+        x_label: 'Month', y_label: 'mm',
+        bars: [
+          { label: 'Jan', value: 12 },
+          { label: 'Feb', value: 18 },
+          { label: 'Mar', value: 22 },
+        ],
+      },
+    }];
+    r.lesson.slides[3] = {
+      ordinal: 4, layout: 'diagram', heading: 'Rainfall data',
+      stimulusRef: 'bar-1',
+      speakerNotes: 'Walk through reading the bar values.',
+    };
+    const result = assertResource(r);
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+    const b64 = await renderLessonPptx(r);
+    assert.ok(b64.length > 1000);
   });
 });

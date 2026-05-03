@@ -1127,6 +1127,8 @@ const PHASE_LABELS = {
   memo_analysis:  'Writing memo analysis',
   memo_verify:    'Verifying memo',
   docx_build:     'Building Word document',
+  docx_render:    'Building Word document',
+  pptx_render:    'Building PowerPoint deck',
   rtt_passage:    'Writing reading passage',
   rtt_sections:   'Writing 4 sections',
   rtt_memo:       'Writing memo sections',
@@ -1328,6 +1330,8 @@ async function doGenerate(bypassCache){
   } else if (finalPayload){
     window._docxBase64 = finalPayload.docxBase64 || null;
     window._docxFilename = finalPayload.filename || 'resource.docx';
+    window._pptxBase64 = finalPayload.pptxBase64 || null;
+    window._pptxFilename = finalPayload.pptxFilename || null;
     window._verificationStatus = finalPayload.verificationStatus || null;
     const preview = finalPayload.preview || finalPayload.content || '';
     addHist(subj, topic, preview, null, grade, term);
@@ -1410,6 +1414,7 @@ function renderOut(subj, topic, content, diagrams, grade, term){
   <div class="brow" id="brow-view">
     <button class="abtn" onclick="doCopy(this)">Copy</button>
     <button class="abtn word" onclick="downloadDocx()">⬇ Download Word</button>
+    ${window._pptxBase64 ? '<button class="abtn word" onclick="downloadPptx()" title="PowerPoint slide deck for this lesson">⬇ Download PowerPoint</button>' : ''}
     <button class="abtn" id="edit-btn" onclick="enterEditMode()" aria-label="Edit paper text">✎ Edit</button>
     <button class="abtn pri" onclick="doGenerate(true)" title="Generate a fresh paper (bypasses cache)">Regenerate ↺</button>
   </div>
@@ -1441,6 +1446,7 @@ function renderOut(subj, topic, content, diagrams, grade, term){
   <div class="pack-foot">
     <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
     <button class="cbtn" onclick="downloadDocx()">⬇ Download Word</button>
+    ${window._pptxBase64 ? '<button class="cbtn" onclick="downloadPptx()">⬇ Download PowerPoint</button>' : ''}
   </div>
 </div>
 
@@ -1780,6 +1786,8 @@ function loadH(i){
   document.querySelectorAll('.dbtn').forEach(b => b.classList.toggle('on', b.dataset.d === h.diff));
   window._docxBase64 = null;
   window._docxFilename = null;
+  window._pptxBase64 = null;
+  window._pptxFilename = null;
   window._verificationStatus = null;
   renderOut(h.subj, h.topic, h.previewSnippet || h.content || '', null, h.grade, h.term);
 }
@@ -1797,6 +1805,18 @@ function downloadDocx(){
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
   a.download=window._docxFilename||'resource.docx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function downloadPptx(){
+  if(!window._pptxBase64){alert('No PowerPoint available — generate a Lesson first.');return;}
+  const bytes=Uint8Array.from(atob(window._pptxBase64),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=window._pptxFilename||'lesson.pptx';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);

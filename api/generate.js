@@ -31,6 +31,7 @@ import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/
 import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schema/resource.schema.js';
 import { rebalanceMarks } from '../lib/rebalance.js';
 import { renderResource } from '../lib/render.js';
+import { renderLessonPptx } from '../lib/pptx-builder.js';
 import { createEventChannel } from '../lib/sse.js';
 import { str, int, oneOf, bool, ValidationError } from '../lib/validate.js';
 import { cacheGet, cacheSet } from '../lib/cache.js';
@@ -399,7 +400,10 @@ export async function generate(req, opts = {}) {
       user,
       tool,
       model: SONNET_4_6,
-      maxTokens: 16000,
+      // Lessons emit a lesson plan + a slide deck on top of the worksheet,
+      // which roughly doubles the structured output. Other resource types
+      // keep the historical 16k budget.
+      maxTokens: ctx.isLesson ? 24000 : 16000,
       // Prompt cache the system prompt. Repeated calls for the same
       // {subject, grade, term, language, resourceType} produce identical
       // system prompts and tool schemas — within the 5-minute ephemeral
@@ -723,7 +727,30 @@ export default async function handler(req, res) {
       : 'invariants_passed';
 
     const filename = buildFilename(parsed);
+    const pptxFilename = parsed.resourceType === 'Lesson'
+      ? filename.replace(/\.docx$/i, '.pptx')
+      : null;
     const preview = buildTextPreview(resource);
+
+    // Lessons additionally render to PowerPoint. We render serially after
+    // DOCX so a PPTX-render failure (very rare — pure JS, no native deps)
+    // doesn't kill the DOCX path the teacher came for. On failure the
+    // payload still carries the DOCX; the frontend just won't show the
+    // PowerPoint button.
+    let pptxBase64 = null;
+    if (parsed.resourceType === 'Lesson') {
+      channel.sendPhase('pptx_render', 'started');
+      try {
+        pptxBase64 = await renderLessonPptx(resource);
+        channel.sendPhase('pptx_render', 'done', {
+          bytes: Math.round((pptxBase64.length * 3) / 4),
+          slides: resource.lesson?.slides?.length || 0,
+        });
+      } catch (err) {
+        log.warn({ err: err?.message || err }, 'generate: PPTX render failed; DOCX still ships');
+        channel.sendPhase('pptx_render', 'failed');
+      }
+    }
 
     const payload = {
       docxBase64: buf.toString('base64'),
@@ -735,6 +762,7 @@ export default async function handler(req, res) {
         rebalanceNudges: rebalance.adjustments.length,
         framework: ctx.frameworkName,
       },
+      ...(pptxBase64 ? { pptxBase64, pptxFilename } : {}),
     };
     channel.sendResult(payload);
     safeCacheSet(cacheKey, payload, log);
