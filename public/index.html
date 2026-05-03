@@ -123,6 +123,12 @@ select:focus{outline:none;border-color:var(--t4);}
 .abtn.pri:hover{background:var(--t6);border-color:var(--t6);}
 .abtn.word{background:var(--blue);border-color:var(--blue);color:#fff;}
 .abtn.word:hover{background:#0C447C;}
+/* PowerPoint orange — matches Office's PPT brand colour so teachers
+   recognise the file type at a glance and don't confuse it with Word. */
+.abtn.pptx{background:#D04423;border-color:#D04423;color:#fff;}
+.abtn.pptx:hover{background:#A8341A;border-color:#A8341A;}
+.cbtn.pptx{background:#FBE6DE;border-color:#E89C82;color:#7A2A12;}
+.cbtn.pptx:hover{background:#F5C9B8;}
 /* Pack */
 .pack{background:var(--sur2);border:1px solid var(--bdr);border-radius:13px;overflow:hidden;margin-bottom:16px;}
 .pack-top{background:var(--t9);padding:13px 20px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
@@ -1414,7 +1420,7 @@ function renderOut(subj, topic, content, diagrams, grade, term){
   <div class="brow" id="brow-view">
     <button class="abtn" onclick="doCopy(this)">Copy</button>
     <button class="abtn word" onclick="downloadDocx()">⬇ Download Word</button>
-    ${window._pptxBase64 ? '<button class="abtn word" onclick="downloadPptx()" title="PowerPoint slide deck for this lesson">⬇ Download PowerPoint</button>' : ''}
+    ${window._pptxBase64 ? '<button class="abtn pptx" onclick="downloadPptx()" title="PowerPoint slide deck for this lesson">⬇ Download PowerPoint</button>' : ''}
     <button class="abtn" id="edit-btn" onclick="enterEditMode()" aria-label="Edit paper text">✎ Edit</button>
     <button class="abtn pri" onclick="doGenerate(true)" title="Generate a fresh paper (bypasses cache)">Regenerate ↺</button>
   </div>
@@ -1446,7 +1452,7 @@ function renderOut(subj, topic, content, diagrams, grade, term){
   <div class="pack-foot">
     <button class="cbtn" onclick="doCopy(this)">Copy full pack</button>
     <button class="cbtn" onclick="downloadDocx()">⬇ Download Word</button>
-    ${window._pptxBase64 ? '<button class="cbtn" onclick="downloadPptx()">⬇ Download PowerPoint</button>' : ''}
+    ${window._pptxBase64 ? '<button class="cbtn pptx" onclick="downloadPptx()">⬇ Download PowerPoint</button>' : ''}
   </div>
 </div>
 
