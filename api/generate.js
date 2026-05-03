@@ -348,6 +348,39 @@ function buildUserPrompt(ctx) {
 }
 
 /**
+ * Targeted remediation strings for the recurring schema-fail patterns.
+ * Returned as a string (possibly empty) appended to the corrective-feedback
+ * retry prompt, alongside the raw error list.
+ *
+ * Live testing showed Sonnet 4.6 silently dropping the two non-schema-
+ * enforceable lesson rules (worksheetRef, title-slide layout) on every
+ * attempt unless given explicit "do X to fix Y" instructions — the bare
+ * error message wasn't enough to break the loop.
+ */
+function buildTargetedRemediation(errors, ctx) {
+  const tips = [];
+  const has = (substr) => errors.some((e) => String(e.path || '').includes(substr) || String(e.message || '').includes(substr));
+
+  if (has('worksheetRef')) {
+    const phaseName = ctx?.language === 'Afrikaans' ? 'Onafhanklike Werk' : 'Independent Work';
+    tips.push(
+      `REMEDIATION (worksheetRef): in lesson.phases, find the "${phaseName}" phase (the 4th phase) and add the field \`worksheetRef: true\` to that phase object. Do NOT add worksheetRef to any other phase — OMIT the field on phases 1, 2, 3 and 5. The validator counts phases where worksheetRef === true; that count MUST be exactly 1.`,
+    );
+  }
+  if (has('slides[*].layout') || has('layout:"title"') || has('title slide must be')) {
+    tips.push(
+      `REMEDIATION (title slide): in lesson.slides, the slide with the lowest ordinal (typically ordinal:1) MUST have \`layout: "title"\`. If your previous draft used a different layout for the first slide, change it to "title". No other slide may use layout:"title". Other slides choose from "objectives", "vocabulary", "concept", "example", "practice", "diagram", "exitTicket".`,
+    );
+  }
+  if (has('phases[*].minutes')) {
+    tips.push(
+      `REMEDIATION (phase minutes): the sum of all lesson.phases[*].minutes MUST equal lesson.lessonMinutes within ±5. Recalculate per-phase minutes so they add up to ${ctx?.lessonMinutes ?? 'the requested length'}.`,
+    );
+  }
+  return tips.length ? `\n${tips.join('\n\n')}\n` : '';
+}
+
+/**
  * Run the spike for a single request. Returns:
  *   { resource, validation, model, usage }
  * - resource: the parsed object the model passed to build_resource (always
@@ -392,7 +425,7 @@ export async function generate(req, opts = {}) {
   let lastErrors = null;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const user = lastErrors
-      ? `${baseUser}\n\nThe previous attempt failed schema validation with these errors:\n${lastErrors.slice(0, 8).map((e) => `  - ${e.path}: ${e.message}`).join('\n')}\nPlease emit a fresh, correct Resource that does not repeat these errors.`
+      ? `${baseUser}\n\nThe previous attempt failed schema validation with these errors:\n${lastErrors.slice(0, 8).map((e) => `  - ${e.path}: ${e.message}`).join('\n')}\n${buildTargetedRemediation(lastErrors, ctx)}\nPlease emit a fresh, correct Resource that does not repeat these errors.`
       : initialUser;
 
     const raw = await callAnthropicTool({
@@ -612,6 +645,7 @@ export const __internals = {
   collapseDuplicateRuns,
   levenshtein,
   buildCacheKey,
+  buildTargetedRemediation,
   // CAPS-pacing prompt formatters — pure, exposed for tests.
   formatSubtopics,
   formatPacingUnit,
