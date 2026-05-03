@@ -191,6 +191,108 @@ describe('Lesson schema invariants', () => {
   });
 });
 
+describe('unwrapStringifiedBranches — lesson branch', () => {
+  const { unwrapStringifiedBranches } = generateInternals;
+
+  test('parses a top-level stringified lesson branch', () => {
+    const lessonObj = {
+      lessonMinutes: 45,
+      capsAnchor: { unitTopic: 'Number Sentences' },
+      learningObjectives: ['Solve simple number sentences.'],
+      phases: [{ name: 'Introduction', minutes: 5, teacherActions: ['x'], learnerActions: ['y'] }],
+      slides: [{ ordinal: 1, layout: 'title', heading: 'Hello' }],
+    };
+    const out = unwrapStringifiedBranches({
+      meta: { resourceType: 'Lesson' },
+      lesson: JSON.stringify(lessonObj),
+    });
+    assert.equal(typeof out.lesson, 'object');
+    assert.equal(out.lesson.lessonMinutes, 45);
+    assert.equal(out.lesson.capsAnchor.unitTopic, 'Number Sentences');
+    assert.ok(Array.isArray(out.lesson.phases));
+  });
+
+  test('passes through an already-object lesson branch unchanged', () => {
+    const lesson = { lessonMinutes: 60, capsAnchor: { unitTopic: 'X' }, phases: [], slides: [] };
+    const out = unwrapStringifiedBranches({ lesson });
+    assert.strictEqual(out.lesson, lesson);
+  });
+
+  test('parses stringified arrays inside the lesson branch', () => {
+    const out = unwrapStringifiedBranches({
+      lesson: {
+        lessonMinutes: 45,
+        capsAnchor: { unitTopic: 'X' },
+        learningObjectives: JSON.stringify(['a', 'b']),
+        phases: JSON.stringify([
+          { name: 'Introduction', minutes: 5, teacherActions: ['x'], learnerActions: ['y'] },
+        ]),
+        slides: JSON.stringify([{ ordinal: 1, layout: 'title', heading: 'H' }]),
+      },
+    });
+    assert.deepEqual(out.lesson.learningObjectives, ['a', 'b']);
+    assert.ok(Array.isArray(out.lesson.phases));
+    assert.equal(out.lesson.phases[0].name, 'Introduction');
+    assert.ok(Array.isArray(out.lesson.slides));
+    assert.equal(out.lesson.slides[0].layout, 'title');
+  });
+
+  test('parses individual stringified phases inside an already-array phases', () => {
+    const phaseObj = { name: 'Direct Teaching', minutes: 10, teacherActions: ['x'], learnerActions: ['y'] };
+    const out = unwrapStringifiedBranches({
+      lesson: {
+        lessonMinutes: 45, capsAnchor: { unitTopic: 'X' },
+        phases: [JSON.stringify(phaseObj)],
+        slides: [],
+      },
+    });
+    assert.equal(out.lesson.phases[0].name, 'Direct Teaching');
+  });
+
+  test('parses a stringified capsAnchor object', () => {
+    const out = unwrapStringifiedBranches({
+      lesson: {
+        lessonMinutes: 45,
+        capsAnchor: JSON.stringify({ unitTopic: 'Whole numbers', capsStrand: 'Numbers' }),
+        phases: [], slides: [],
+      },
+    });
+    assert.equal(out.lesson.capsAnchor.unitTopic, 'Whole numbers');
+    assert.equal(out.lesson.capsAnchor.capsStrand, 'Numbers');
+  });
+});
+
+describe('assertResource — defensive check for stringified lesson', () => {
+  test('a stringified lesson branch (bypassing the unwrap step) fails loudly', () => {
+    // This shape can't reach the renderer in production — the api/generate.js
+    // pipeline calls unwrapStringifiedBranches before assertResource — but
+    // we want a clear validator error if a future caller skips that step.
+    const result = assertResource({
+      meta: {
+        schemaVersion: '1.0', subject: 'Mathematics', grade: 6, term: 2,
+        language: 'English', resourceType: 'Lesson', totalMarks: 10,
+        duration: { minutes: 15 }, difficulty: 'on',
+        cognitiveFramework: { name: "Bloom's", levels: [
+          { name: 'Knowledge', percent: 100, prescribedMarks: 10 },
+        ]},
+        topicScope: { coversTerms: [2], topics: ['Number sentences'] },
+      },
+      cover: { resourceTypeLabel: 'LESSON', subjectLine: 'Maths',
+        gradeLine: 'Grade 6', termLine: 'Term 2',
+        learnerInfoFields: [], instructions: { heading: 'I', items: ['x'] } },
+      stimuli: [], sections: [{ title: 'X', questions: [
+        { number: '1', type: 'ShortAnswer', topic: 'Number sentences', stem: 'X',
+          marks: 10, cognitiveLevel: 'Knowledge', answerSpace: { kind: 'lines', lines: 1 } },
+      ] }],
+      memo: { answers: [{ questionNumber: '1', answer: 'X', cognitiveLevel: 'Knowledge', marks: 10 }] },
+      lesson: '{"lessonMinutes": 45}',  // ← stringified, should flag
+    });
+    assert.equal(result.ok, false);
+    assert.ok(result.errors.some((e) => /stringified branch/.test(e.message)),
+      `expected an error about a stringified branch, got ${JSON.stringify(result.errors)}`);
+  });
+});
+
 describe('narrowSchemaForRequest — Lesson requests promote `lesson` to required', () => {
   const COG_LEVELS = ['Knowledge', 'Routine Procedures', 'Complex Procedures', 'Problem Solving'];
   const TOPICS = ['Whole numbers'];

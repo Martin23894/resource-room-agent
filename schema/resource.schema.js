@@ -825,6 +825,13 @@ export function assertResource(resource) {
     const lesson = resource.lesson;
     if (!lesson) {
       err('lesson', 'required when meta.resourceType === "Lesson"');
+    } else if (typeof lesson !== 'object' || Array.isArray(lesson)) {
+      // Defensive: Sonnet 4.6 sometimes returns the lesson branch as a
+      // JSON-encoded string. unwrapStringifiedBranches in api/generate.js
+      // parses it before validation runs, but if anything bypasses that
+      // pipeline (a unit test, a future caller) we want a clear error
+      // rather than silently passing every renderer-side check.
+      err('lesson', `must be an object (got ${typeof lesson}). The model returned a stringified branch — check the unwrap step.`);
     } else {
       const phases = Array.isArray(lesson.phases) ? lesson.phases : [];
       const phaseSum = phases.reduce((a, p) => a + (p.minutes || 0), 0);
