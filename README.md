@@ -1,17 +1,52 @@
 # The Resource Room
 
 CAPS-aligned teaching-resource generator for South African Grades 4–7.
-Teachers pick a grade, term, subject and resource type; the app returns a
-downloadable DOCX (question paper + memorandum) and an optional Teacha
-marketplace listing.
+Teachers pick a grade, term, subject, and resource type; the app returns
+downloadable artefacts grounded in the DBE Annual Teaching Plan: question
+papers + memos as DOCX, full lessons as DOCX + PowerPoint, and Teacha
+marketplace product listings.
 
-Powered by Claude Sonnet 4.6, built on Node/Express, deployed on Railway.
+Powered by Claude Sonnet 4.6 via the Anthropic tool API. Built on
+Node/Express. Deployed on Railway.
 
 ---
 
-## Quick start (local)
+## Table of contents
 
-Requirements: Node 20–22.
+1. [What it does](#what-it-does)
+2. [Quick start](#quick-start)
+3. [Environment variables](#environment-variables)
+4. [Resource types](#resource-types)
+5. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
+6. [Architecture](#architecture)
+7. [Project layout](#project-layout)
+8. [API surface](#api-surface)
+9. [Schema overview](#schema-overview)
+10. [CAPS data files](#caps-data-files)
+11. [Frontend cascade](#frontend-cascade)
+12. [Testing](#testing)
+13. [Deployment](#deployment)
+14. [Bugs we've hit + how to debug](#bugs-weve-hit--how-to-debug)
+15. [Glossary](#glossary)
+
+---
+
+## What it does
+
+A teacher signs in, picks `grade × term × subject × resource type × language × marks × difficulty`, and clicks Generate. The app:
+
+1. Looks up the relevant ATP topics + rich pacing data (concepts, prerequisites, CAPS strands, formal-assessment splits) from `data/atp.json` + `data/atp-pacing.json`.
+2. Asks Claude Sonnet 4.6 (one forced tool call) to fill a strict JSON schema (`schema/resource.schema.js`) covering meta, cover, stimuli, sections, leaf questions, matched memo, and (for Lessons) a teacher-facing `lesson` branch.
+3. Validates → rebalances marks → renders DOCX via `lib/render.js`. For Lessons, also renders PowerPoint via `lib/pptx-builder.js`.
+4. Returns a payload with base64 DOCX (always), base64 PPTX (Lessons only), text preview, and verification metadata.
+
+The frontend is a single static HTML file (`public/index.html`) with vanilla JS — no build step.
+
+---
+
+## Quick start
+
+Requirements: **Node 20–22**.
 
 ```bash
 git clone <this-repo>
@@ -21,7 +56,13 @@ npm install
 npm start
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PROVIDER=console` logs the link to stdout — copy it into your browser).
+
+Run the test suite:
+
+```bash
+npm test          # 447 tests, ~32s, all node:test — no Anthropic API calls
+```
 
 ---
 
@@ -42,55 +83,703 @@ See `.env.example` for the canonical list.
 | `EMAIL_PROVIDER` | no | `console` (logs to stdout — dev default), `resend` (Resend API), or `disabled`. |
 | `RESEND_API_KEY` | if `EMAIL_PROVIDER=resend` | API key from <https://resend.com/api-keys>. |
 | `EMAIL_FROM` | no | Sender address (e.g. `The Resource Room <no-reply@yourdomain.com>`). Defaults to Resend's sandbox sender; verify your own domain in Resend to send from it. |
+| `STRIPE_SECRET_KEY` | for billing | Stripe secret key. Required when checkout/portal endpoints are exercised. |
+| `STRIPE_WEBHOOK_SECRET` | for billing | Stripe webhook-signature secret used by `/api/stripe/webhook`. |
+
+---
+
+## Resource types
+
+The `resourceType` field on a generation request determines what the model produces and how it's rendered. All types share the same `schema/resource.schema.js` core (meta + cover + stimuli + sections + memo); Lessons additionally populate a `lesson` branch.
+
+| `resourceType` | Output | Marks (typical) | Notes |
+|---|---|---|---|
+| `Worksheet` | DOCX | 10–30 | Single-section practice instrument |
+| `Test` | DOCX | 30–75 | Term-scoped, 2–4 sections |
+| `Exam` | DOCX | 50–100 | T2/T4 cover prior term per CAPS |
+| `Final Exam` | DOCX | 80–150 | Full-year scope |
+| `Investigation` | DOCX | 30–50 | Investigative methods |
+| `Project` | DOCX | 50–80 | Multi-stage |
+| `Practical` | DOCX | 30–50 | Hands-on |
+| `Assignment` | DOCX | 30–50 | Take-home |
+| **`Lesson`** | **DOCX + PPTX** | 10–30 worksheet marks | Teacher-facing lesson plan + learner worksheet + slide deck |
+
+**Exam scope rule** (CAPS):
+- T1 / T3 assessments → that term only
+- T2 exam → T1 + T2 content
+- T4 exam → T3 + T4 content
+- Final Exam → all four terms
+
+---
+
+## The Lesson generator
+
+The Lesson generator is the most complex resource type and the most recently added. It produces three artefacts from one schema-validated Resource:
+
+1. **Lesson plan** (teacher-facing) — DOCX
+2. **Slide deck** (learner-facing) — PowerPoint
+3. **Worksheet + memo** (learner-facing, embedded inside the lesson DOCX) — DOCX
+
+Because all three come from a single Claude tool call against a single schema, the slides, lesson plan, and worksheet are **structurally guaranteed to teach and test the same concepts** — that's the unfair advantage no template-based competitor can match.
+
+### Data flow
+
+```
+Frontend                                Backend
+────────                                ───────
+ 1. Cascade fills Subject, Grade, Term
+ 2. User selects "Lesson plan + worksheet" resourceType
+ 3. Topic dropdown swaps to a CAPS Unit picker:
+      GET /api/pacing-units?subject=…&grade=…&term=…
+      → returns slim Unit list from data/atp-pacing.json
+ 4. User picks a Unit, sets lesson length (30/45/60/90 min),
+    marks (10-30), language, difficulty
+ 5. POST /api/generate with body:
+      { subject, grade, term, language,
+        resourceType: 'Lesson',
+        unitId, lessonMinutes, duration: marks }
+                                        │
+                                        ▼
+                            ┌── api/generate.js ──┐
+                            │                      │
+                            │ 1. parseRequest      │
+                            │ 2. buildContext      │  ← lib/atp.js
+                            │    (loads Unit,      │     getPacingUnitById()
+                            │     locks topics to  │
+                            │     unit.topic)      │
+                            │ 3. narrowSchema      │  ← schema/resource.schema.js
+                            │    (adds 'lesson'    │     narrowSchemaForRequest()
+                            │     to required[])   │
+                            │ 4. buildSystemPrompt │  ← lib/atp-prompt.js
+                            │    + buildLesson     │     buildLessonContextBlock()
+                            │      ContextBlock    │
+                            │ 5. callAnthropicTool │  → Claude Sonnet 4.6
+                            │    (24k maxTokens)   │
+                            │ 6. unwrapStringified │  ← see "Bugs we've hit"
+                            │      Branches        │
+                            │ 7. assertResource    │  ← schema/resource.schema.js
+                            │    (lenient on       │
+                            │     worksheetRef +   │
+                            │     title slide)     │
+                            │ 8. renderResource    │  ← lib/render.js
+                            │    → DOCX            │
+                            │ 9. renderLessonPptx  │  ← lib/pptx-builder.js
+                            │    → PPTX (Lesson    │
+                            │     only)            │
+                            │ 10. Stream SSE       │
+                            │     phases + result  │
+                            └──────────────────────┘
+```
+
+### What the lesson DOCX contains
+
+In document order:
+
+1. **Lesson plan front matter** (1–2 pages, teacher-facing)
+   - Header: "THE RESOURCE ROOM" / "LESSON PLAN" / subject / grade-term
+   - **CAPS Anchor** — unit topic, strand/sub-strand, week range, lesson length, source PDF + page citation
+   - **Learning Objectives** — 3–5 "By the end of this lesson learners will be able to…"
+   - **Prior Knowledge** — verbatim from Unit prerequisites
+   - **Key Vocabulary** — term + learner-appropriate definition
+   - **Materials** — physical resources the teacher needs
+   - **Lesson Phases** — 5 phases in CAPS-conventional order (Introduction / Direct Teaching / Guided Practice / Independent Work / Consolidation), each with minute budget, teacher actions, learner actions, optional questions to ask. The phase that triggers the worksheet shows a green cue.
+   - **Differentiation** — adaptations for below/onGrade/above learners
+   - **Homework** — short follow-up task with estimated minutes
+   - **Teacher Notes** — misconception-correction pairs and management tips
+   - "LEARNER WORKSHEET — STARTS ON THE NEXT PAGE" cue
+2. **Page break** → Worksheet (cover, instructions, sections, questions) — same renderer as a standalone Worksheet
+3. **Page break** → Memorandum (answers + cognitive-level analysis table)
+
+Phase names are localised: `Introduction / Direct Teaching / Guided Practice / Independent Work / Consolidation` (English) or `Inleiding / Direkte Onderrig / Begeleide Oefening / Onafhanklike Werk / Konsolidasie` (Afrikaans).
+
+### What the PowerPoint contains
+
+5–15 slides driven by `lesson.slides[]`. Each slide has an `ordinal`, a `layout`, a `heading`, optional `bullets` (≤ 8), optional `speakerNotes` (rendered into the Notes pane), and an optional `stimulusRef`.
+
+Layouts:
+
+| Layout | Purpose | Renderer behaviour |
+|---|---|---|
+| `title` | Lesson opener | Big tinted title slide. Auto-applied to slide #1 if no slide declares this layout. |
+| `objectives` | Learning goals | Heading bar + bullets |
+| `vocabulary` | Key terms | Term–definition list (pulls from `lesson.vocabulary` if no bullets given) |
+| `concept` | Direct teaching | Heading bar + bullets |
+| `example` | Worked example | Heading bar + bullets |
+| `practice` | "Now try the worksheet" | Heading bar + bullets |
+| `diagram` | Embedded chart | Renders `stimulusRef` via the SVG → PNG raster path used for DOCX |
+| `exitTicket` | Consolidation | Heading bar + bullets |
+
+Visual chrome (green accent bar at top, footer with subject/grade/term, "The Resource Room" caption) is applied to every slide. Diagram slides reuse `lib/diagrams/` (bar_graph / number_line / food_chain) so the SVG → PNG raster matches the DOCX output exactly.
+
+### The `lesson` schema branch
+
+Defined in `schema/resource.schema.js`:
+
+```jsonc
+"lesson": {
+  "lessonMinutes": 45,                 // 20-120
+  "capsAnchor": {                      // unit metadata
+    "unitTopic": "Number Sentences",
+    "capsStrand": "Patterns, Functions and Algebra",
+    "subStrand": "Number Sentences",
+    "weekRange": "Weeks 1-2",
+    "sourcePdf": "2026_ATP_Mathematics_Grade 6.pdf",
+    "sourcePage": 4
+  },
+  "learningObjectives": [...],         // 2-6 strings
+  "priorKnowledge": [...],             // verbatim from Unit.prerequisites
+  "vocabulary": [
+    { "term": "expanded form",
+      "definition": "Number written as the sum of its place values." }
+  ],
+  "materials": [...],
+  "phases": [
+    { "name": "Introduction",          // enum (EN + AF variants)
+      "minutes": 5,                    // 1-60
+      "teacherActions": [...],         // ≥1 string
+      "learnerActions": [...],         // ≥1 string
+      "questionsToAsk": [...],         // optional
+      "worksheetRef": false }          // optional — see "Inference behaviour"
+  ],
+  "slides": [                          // 5-15 entries
+    { "ordinal": 1,
+      "layout": "title",               // see layout table above
+      "heading": "Whole numbers",
+      "bullets": [...],                // optional, ≤8
+      "speakerNotes": "...",           // optional
+      "stimulusRef": "bar-1" }         // required when layout='diagram'
+  ],
+  "differentiation": {
+    "below":   [...],
+    "onGrade": [...],
+    "above":   [...]
+  },
+  "homework": { "description": "...", "estimatedMinutes": 10 },
+  "teacherNotes": [...]
+}
+```
+
+Required at the schema level: `lessonMinutes`, `capsAnchor`, `learningObjectives`, `phases`, `slides`. Required at runtime (assertResource):
+
+- Phase minutes must sum within ±5 of `lessonMinutes`
+- Slide ordinals must be unique
+- At most one slide may have `layout: "title"` (zero is allowed; the renderer infers)
+- Diagram slides must carry a `stimulusRef` that resolves to a `stimuli[]` entry
+
+### Inference behaviour
+
+Sonnet 4.6 reliably skips two specific fields no matter how loud the prompt shouts. Rather than failing the generation, the renderers infer:
+
+1. **`worksheetRef`** — the DOCX renderer's `pickWorksheetPhaseIndex()` decides which phase gets the *"→ Learners complete the attached worksheet"* cue. Order of preference:
+   1. Explicit `worksheetRef: true`
+   2. Phase name match on `Independent Work` / `Onafhanklike Werk`
+   3. Phase #4 (the prompt-prescribed slot)
+2. **Title slide** — the PPTX renderer treats the lowest-ordinal slide as the title slide regardless of declared layout, when no slide explicitly declares `layout: "title"`.
+
+These inferences are tested in `test/lesson.test.js`. If a future model becomes more compliant and starts emitting both fields explicitly, the renderers honour the explicit choice — the inference only kicks in as a fallback.
+
+### How to add a Lesson resource type for a new subject
+
+The frontend appends a "Lesson plan + worksheet" option to **every** subject/grade/term cascade in `loadResourceTypes()`. There is no per-subject config to maintain. Whether a given subject gets a usable Lesson depends on:
+
+1. Subject is in `SUBJECTS` (intermediate or senior) — see `data/atp.json`
+2. Subject + grade has rich pacing data in `data/atp-pacing.json` so the Unit picker has Units to choose from. Without pacing data, `/api/pacing-units` returns `{ units: [] }` and the frontend shows *"No CAPS units available"*.
+
+To add pacing data for a subject not yet covered, run `scripts/extract-atp-pacing.js` against the relevant DBE PDF (kept in repo root). See `docs/atp-pacing-schema.md` for the pacing-data shape.
+
+---
+
+## Architecture
+
+### One Claude tool call → schema-validated Resource → renderer
+
+The pipeline does **not** ask the model to produce DOCX / markdown / preview text. It asks the model to fill a strict JSON Schema. The schema is the contract; everything downstream is mechanical:
+
+```
+request → narrow schema for this request →
+  Claude tool call (forced) → unwrap stringified branches →
+  snap topics to canonical → rebalance leaf marks →
+  assertResource → render DOCX → render PPTX (Lessons) →
+  cache the payload → stream result
+```
+
+### Key design rules (don't break these without thought)
+
+1. **Every fact appears exactly once.** The model writes question stems; code derives section totals, paper totals, cog tables, breakdowns, closers, and i18n labels.
+2. **Cross-references use ids, not text.** A comprehension question points to a passage by `stimulusRef: "passage-1"`, not by re-quoting it.
+3. **Every question is leaf XOR composite.** Leaves carry `marks + cognitiveLevel + answerSpace`. Composites carry `subQuestions[]` and never `marks`. Composite totals are computed.
+4. **Cog framework levels live in meta.** Each leaf's `cognitiveLevel` must be one of `meta.cognitiveFramework.levels[*].name`. Phantom levels are structurally impossible.
+5. **Stimuli are first-class.** A passage that anchors comprehension and summary is the same stimulus referenced twice.
+6. **Language is set at meta.language.** All localised strings are derived from `lib/i18n.js` — no per-call language overrides downstream.
+
+### Schema-first vs runtime validator boundary
+
+`schema/resource.schema.js` exports two things:
+
+- `resourceSchema` — JSON Schema enforced by the **Anthropic tool API** before the tool call even returns. Use it for shape (required fields, enums, minItems, patterns).
+- `assertResource(resource)` — runtime validator that catches **cross-field invariants** JSON Schema can't express cleanly: leaf-marks-sum-to-totalMarks, memo-covers-leaves-exactly, phase-minutes-sum-to-lessonMinutes, etc.
+
+Live testing has shown Anthropic's tool API does **not** strictly enforce JSON Schema enums on string fields (the `topic` enum, for example, gets near-misses); we snap those back to canonical values in `snapTopicsToCanonical()` before validation.
+
+### Retry + corrective feedback loop
+
+When `assertResource` fails, the pipeline retries up to 2× (Final Exam: 0×, since it already eats most of the 5-min budget). Each retry includes the previous failure's error list in the user prompt, plus targeted remediation strings via `buildTargetedRemediation()` for known recurring failure patterns (mark-sum drift, phase-minute drift).
+
+### Cache layer
+
+`lib/cache.js` is a thin SQLite wrapper. The cache key is built in `api/generate.js`:
+
+```
+gen:v3:{"subject":"...","grade":4,"term":2,"language":"English","resourceType":"Lesson","totalMarks":10,"difficulty":"on","unitId":"MATH-6-2026-t2-u2","lessonMinutes":45}
+```
+
+For non-Lesson types `unitId` and `lessonMinutes` are omitted. Bumping the prefix (`v3` → `v4`) is the standard way to invalidate the entire cache when the response shape changes. Pass `{ fresh: true }` in the request body to bypass cache for one call.
 
 ---
 
 ## Project layout
 
 ```
-server.js            Express boot, CORS, rate limits, SPA fallback
-api/generate.js      Main generation pipeline (plan → write → verify → DOCX)
-api/refine.js        Single-shot edit on an already-generated resource
-api/cover.js         Teacha marketplace product-listing generator
-api/test.js          Anthropic health check (secret-gated)
-public/index.html    Single-file vanilla-JS frontend
-data/ (future)       ATP topic database (currently inline in generate.js)
+server.js                Express boot, CORS, rate limits, SPA fallback, all route mounts
+
+api/                     Express handlers (one per route)
+  generate.js              MAIN — schema-first generation pipeline (plan → write → verify → DOCX → PPTX)
+  refine.js                Single-shot edit on an already-generated resource
+  cover.js                 Teacha marketplace product-listing generator
+  rebuild-docx.js          Re-render a DOCX from edited preview text (no Claude call)
+  test.js                  Anthropic health check (secret-gated)
+  atp.js                   GET /api/atp — returns the full ATP topic database (cached, ETag'd)
+  pacing-units.js          GET /api/pacing-units?subject&grade&term — slim Unit list for the Lesson picker
+  auth-request.js          POST /api/auth/request — request a magic link
+  auth-verify.js           GET/POST /api/auth/verify — confirm a magic link
+  auth-logout.js           POST /api/auth/logout
+  auth-me.js               GET /api/auth/me — return current user
+  user-settings.js         GET/PUT /api/user/settings
+  user-history.js          GET/POST/DELETE /api/user/history[/:id]
+  billing-checkout.js      POST /api/billing/checkout — open Stripe Checkout
+  billing-portal.js        POST /api/billing/portal — open Stripe Customer Portal
+  stripe-webhook.js        POST /api/stripe/webhook — subscription state source-of-truth
+
+lib/                     Pure-ish logic (no Express dependencies)
+  anthropic.js             Anthropic SDK wrapper — retries, abort, prompt caching
+  atp.js                   ATP topic database + pacing helpers (loaded from data/*.json at boot)
+  atp-prompt.js            CAPS-pacing prompt-block builders (CAPS reference, lesson directives, …)
+  auth.js                  Magic-link tokens, signed session cookies, requireAuth middleware
+  billing.js               Stripe price/tier mapping, subscription state helpers
+  cache.js                 SQLite-backed result cache
+  clean-output.js          Legacy markdown/regex cleanup (mostly unused under v2 schema-first pipeline)
+  cognitive.js             marksToTime(), getCogLevels(), largestRemainder() — cog-framework math
+  diagrams/                SVG renderers for bar_graph / number_line / food_chain
+    index.js                 Dispatcher
+    bar_graph.js             Bar chart SVG
+    number_line.js           Number line SVG
+    food_chain.js            Trophic chain SVG
+    silhouettes.js           Reusable organism silhouettes used by food_chain
+    raster.js                SVG → PNG via @resvg/resvg-js (uses /fonts/Inter*.ttf for determinism)
+  docx-builder.js          Legacy v1 DOCX builder (still used by api/rebuild-docx.js)
+  email.js                 Email provider switch (console / Resend / disabled)
+  i18n.js                  Two-language label dictionary (English + Afrikaans)
+  logger.js                Pino logger
+  marks.js                 Mark-allocation helpers
+  moderator.js             Quality-gate moderator (post-generation review)
+  pptx-builder.js          Lesson PowerPoint renderer (pptxgenjs)
+  rebalance.js             Distributes leaf marks to hit prescribed cog-level percentages exactly
+  render.js                MAIN DOCX renderer for the schema-first pipeline (cover, sections, memo, lesson plan)
+  sse.js                   Server-Sent Events channel helper for /api/generate streaming
+  tools.js                 Tool definitions for Claude calls
+  user-state.js            User settings + history persistence
+  validate.js              str() / int() / oneOf() / bool() request-input helpers
+
+schema/                  JSON Schema + runtime validator
+  resource.schema.js       resourceSchema (JSON Schema) + assertResource() + narrowSchemaForRequest()
+  fixtures/                Sample valid Resources for tests/scripts
+  flag-outputs.js          Tagged-output classification helpers
+  render-spike.js          Day-3 render spike runner
+  spike-runner.js          Day-2 generation spike runner
+  test-matrix.js           Coverage matrix for spike configurations
+
+scripts/                 Ops + analysis (not run in production)
+  extract-atp-pacing.js    Sonnet-driven extractor: PDF → data/atp-pacing.json entry
+  bundle-grade-review.js   Bundles a grade's outputs for human review
+  cost-quality-bench.js    Per-call cost vs quality benchmark
+  cost-quality-diff.js     Diff two benchmark runs
+  moderate-sweep.js        Run the moderator across many cached resources
+  render-fixture.js        Render a fixture Resource → DOCX file
+  simulate-prompt-budget.js  Estimate tokens for prompt + tool schema
+  smoke-gate.js            CI smoke test against a curated request matrix
+  spot-check-haiku.js      Cheap Haiku-based sanity checks
+  targeted-resweep.js      Re-run specific failing slots after a fix
+
+test/                    node:test suites (run with `npm test`)
+  ...                      One file per concern. lesson.test.js covers the entire Lesson generator.
+
+data/                    Loaded at boot
+  atp.json                 ATP topic database — subjects, examScope, ATP[subject][grade][term].topics
+  atp-pacing.json          Rich CAPS pacing data — units, prerequisites, formal-assessment splits, source citations
+  cache.db                 SQLite cache (not in git; created on first request)
+  samples/                 Reference outputs
+
+docs/
+  atp-pacing-schema.md     Schema doc for data/atp-pacing.json — start here when modifying pacing extraction
+
+fonts/                   TTFs vendored for deterministic SVG rasterisation
+  Inter-*.ttf
+  SourceSerif4-*.ttf
+
+mockups/                 Design references
+public/
+  index.html               Entire frontend — single file, no build step
+*.pdf                    DBE Annual Teaching Plan PDFs (source of truth for atp-pacing.json)
+ResourceRoom_MASTER_v2_7.xlsx  Internal pacing spreadsheet (deprecated by atp-pacing.json)
 ```
 
 ---
 
 ## API surface
 
-All endpoints return JSON. Rate-limited per IP: 5/minute, 20/hour, 100/day.
+All `/api/*` endpoints return JSON. Non-auth endpoints under `/api/auth/*` are limited to 3/min and 10/hr per IP. All other Claude-backed endpoints are auth-gated and limited per **user** (10/min, 50/hr, 200/day).
+
+### Generation
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/api/generate` | Generate a CAPS-aligned resource pack (DOCX + preview). |
+| POST | `/api/generate` | Generate a CAPS-aligned resource pack. Streams SSE phases when client sends `Accept: text/event-stream`, otherwise returns plain JSON. |
 | POST | `/api/refine` | Apply one refinement instruction to an existing resource. |
-| POST | `/api/cover` | Generate a Teacha product listing. |
-| GET  | `/api/test`  | Secret-gated Anthropic connectivity check. |
-| GET  | `/health`    | Unauthenticated 200 for Railway health checks. |
+| POST | `/api/cover` | Generate a Teacha marketplace product listing. |
+| POST | `/api/rebuild-docx` | Re-render a DOCX from edited preview text (no Claude call). |
+| GET  | `/api/atp` | Full ATP topic database (subjects, examScope, ATP, ATP_TASKS). Cached + ETag'd. |
+| GET  | `/api/pacing-units` | Slim Unit list for Lesson Unit picker. Query params: `subject`, `grade` (4–7), `term` (1–4). |
+| GET  | `/api/test` | Secret-gated Anthropic connectivity check. |
+
+### Auth
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/auth/request` | Request a magic-link sign-in email. |
+| GET  | `/api/auth/verify` | Magic-link landing page (renders confirm UI). |
+| POST | `/api/auth/verify` | Consume the magic-link token, set the session cookie. |
+| POST | `/api/auth/logout` | Clear the session cookie. |
+| GET  | `/api/auth/me` | Return the current authenticated user (or null). |
+
+### User state
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET / PUT | `/api/user/settings` | Per-user JSON settings blob. |
+| GET / POST / DELETE | `/api/user/history` | Recent generation history (capped per user). |
+| DELETE | `/api/user/history/:id` | Delete one history entry. |
+
+### Billing
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/billing/checkout` | Open Stripe Checkout for a subscription tier. |
+| POST | `/api/billing/portal` | Open Stripe Customer Portal. |
+| POST | `/api/stripe/webhook` | Subscription-state source of truth. Uses **raw body** for signature verification — mounted before `express.json()`. |
+
+### Health / fallback
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/health` | Unauthenticated 200 for Railway health checks. |
+| ALL | `/api/*` | 404 for unknown API routes (before SPA catch-all). |
+| GET | `*` | SPA fallback — serves `public/index.html`. |
+
+### Generate request body
+
+```jsonc
+{
+  "subject": "Mathematics",
+  "grade": 6,                        // 4-7
+  "term": 2,                         // 1-4
+  "language": "English",             // English | Afrikaans
+  "resourceType": "Lesson",          // Worksheet|Test|Exam|Final Exam|Investigation|Project|Practical|Assignment|Lesson
+  "duration": 10,                    // total marks (5-200; the field is named "duration" for legacy reasons)
+  "difficulty": "on",                // below | on | above
+  "topic": "Number Sentences",       // optional — pin to a single topic; ignored for Lesson (replaced by unitId)
+  "unitId": "MATH-6-2026-t2-u2",     // Lesson only — from /api/pacing-units
+  "lessonMinutes": 45,               // Lesson only — 20-120
+  "fresh": false                     // optional — bypass result cache
+}
+```
+
+### Generate response payload
+
+```jsonc
+{
+  "docxBase64": "...",               // always present
+  "preview": "plain-text preview",
+  "filename": "Mathematics-Lesson-Grade6-Term2.docx",
+  "verificationStatus": "invariants_passed" | "mark_sum_drift",
+  "_meta": {
+    "pipeline": "v2",
+    "rebalanceNudges": 0,
+    "framework": "Bloom's"
+  },
+  // Lesson-only:
+  "pptxBase64": "...",
+  "pptxFilename": "Mathematics-Lesson-Grade6-Term2.pptx"
+}
+```
+
+When the request is SSE, phases stream as named events: `cache`, `generate`, `generate-retry-1`, `generate-retry-2`, `docx_render`, `pptx_render`, plus a final `result` event.
 
 ---
 
-## Deployment (Railway)
+## Schema overview
+
+`schema/resource.schema.js` defines the entire Resource shape. Key top-level branches:
+
+- `meta` — request echoes (subject/grade/term/language/resourceType/totalMarks/duration/difficulty), cognitive framework spec, topic scope
+- `cover` — pure presentation: resourceTypeLabel, subjectLine, gradeLine, termLine, learnerInfoFields, instructions
+- `stimuli[]` — shared content (passage / visualText / dataSet / diagram / scenario), each with an id
+- `sections[]` — ordered question groups (each with title, optional letter A/B/C, optional stimulusRefs, questions[])
+- `memo` — answers (one per leaf question, matched by `questionNumber`), optional rubric, optional extension
+- `lesson` (optional, required when resourceType === 'Lesson') — see [The Lesson generator](#the-lesson-generator)
+
+### `narrowSchemaForRequest(ctx)`
+
+Per-request narrowing tightens the base schema for one specific generation. Critical: this is what gets sent to Anthropic as the tool's `input_schema`, so anything narrowed here is enforced by the API at the response level.
+
+It narrows:
+
+- `meta.subject`, `meta.language`, `meta.resourceType` → single-value enums
+- `meta.cognitiveFramework.levels[*].name` → enum of the framework's level names
+- `sections[*].questions[*].cognitiveLevel` (recursive via $ref) → same
+- `sections[*].questions[*].topic` (recursive via $ref) → enum of `meta.topicScope.topics`
+- `memo.answers[*].cognitiveLevel` → same
+- **`required[]` adds `'lesson'` when resourceType === `'Lesson'`** — without this, Sonnet skips the entire lesson branch (it's optional in the base schema, since most resource types don't have one)
+
+### `assertResource(resource)`
+
+Runtime cross-field invariants:
+
+1. Every leaf question's `marks` contributes to `meta.totalMarks`
+2. Every question is leaf XOR composite
+3. `cognitiveLevel ∈ meta.cognitiveFramework.levels[*].name`
+4. `topic ∈ meta.topicScope.topics`
+5. `stimulusRef` points to an existing `stimulus.id`
+6. `memo.answers` covers exactly the leaf questions, no more, no less
+7. `cognitiveFramework.levels[*].percent` sums to 100
+8. `cognitiveFramework.levels[*].prescribedMarks` sums to `meta.totalMarks`
+9. `memo.answers[*].marks` matches the question's marks
+10. MCQ has exactly one correct option
+11. **Lesson invariants** (when `meta.resourceType === 'Lesson'`):
+    - `lesson` is present and is an object (not a stringified branch — see [Bugs we've hit](#bugs-weve-hit--how-to-debug))
+    - `lesson.phases[*].minutes` sums within ±5 of `lesson.lessonMinutes`
+    - `lesson.slides[*].ordinal` values are unique
+    - At most one slide may have `layout: "title"` (zero is allowed; the renderer infers)
+    - Diagram-layout slides must carry a `stimulusRef` that resolves
+
+---
+
+## CAPS data files
+
+Two JSON files in `data/` carry all CAPS data. Both are loaded once at boot in `lib/atp.js` and exposed via helpers used by both backend and frontend.
+
+### `data/atp.json`
+
+Lightweight topic database. Shape:
+
+```jsonc
+{
+  "subjects": {
+    "intermediate": [...subject names for Gr 4-6...],
+    "senior":       [...subject names for Gr 7...]
+  },
+  "examScope": { "1": [1], "2": [1, 2], "3": [3], "4": [3, 4] },
+  "atp": {
+    "Mathematics": {
+      "4": {
+        "1": { "topics": [...string list...], "tasks": [{ label, resourceType, minMarks, maxMarks }] },
+        "2": { ... }, "3": { ... }, "4": { ... }
+      },
+      "5": { ... }, "6": { ... }, "7": { ... }
+    },
+    ...
+  }
+}
+```
+
+The `tasks[]` field per slot drives the **Resource type cascade** in the frontend — for any subject/grade/term combo, the dropdown shows the CAPS-prescribed tasks (e.g. *"Test (50 marks)"*, *"Investigation (30 marks)"*) plus a synthetic *"Lesson plan + worksheet"* option appended in the frontend.
+
+### `data/atp-pacing.json`
+
+Rich pacing extracted from the DBE PDFs (in repo root). Shape (full schema in `docs/atp-pacing-schema.md`):
+
+```
+subjects[<Subject>][<grade>][<year>] → PacingDoc {
+  capsStrands: [...],
+  terms: {
+    "1": TermPlan {
+      totalWeeks, totalHours,
+      units: [Unit { id, weeks, hours, topic, capsStrand,
+                     subtopics, prerequisites, resources,
+                     informalAssessment, notes,
+                     source: { pdf, page } }],
+      formalAssessment: [...]
+    },
+    ...
+  },
+  yearOverview, notes
+}
+```
+
+Used by:
+
+- `getPacingUnits(subject, grade, term, isExamType)` — full Units for the system prompt's *"## CAPS reference"* block
+- `getPacingFormalAssessments(...)` — drives the *"## CAPS assessment structure"* prompt block (mainly for Languages)
+- `getPacingUnitsSlim(subject, grade, term)` — slim list for the frontend Unit picker (`/api/pacing-units`)
+- `getPacingUnitById(subject, grade, unitId)` — looks up the chosen Unit when generating a Lesson
+
+To **add pacing data for a new subject**: drop the DBE PDF into the repo root, then run `node scripts/extract-atp-pacing.js --only "<filename>"`. The extractor uses Sonnet to parse the PDF and emits a PacingDoc into `data/atp-pacing.json`. The schema-doc decision is *"use the latest available year"*, so 2026 PDFs win over 2023-24 wherever both exist.
+
+---
+
+## Frontend cascade
+
+`public/index.html` is one file (~2,200 lines). The cascade is wired by these handlers:
+
+- `onGradeChange()` → `loadSubjects()` → `loadResourceTypes()` → `loadTopics()`
+- `onTermChange()` → same chain
+- `onSubjChange()` → `loadResourceTypes()` + `loadTopics()`
+- `onResTypeChange()` → reads `data-rtype` off the selected option, sets `rtype`, swaps the topic dropdown for a Unit picker if `rtype === 'Lesson'`, shows/hides the Lesson length field, retunes the marks dropdown
+
+### Lesson-specific UI
+
+When the user selects "Lesson plan + worksheet":
+
+1. Topic dropdown label flips to **"CAPS Unit"**
+2. `loadTopics()` async-fetches `GET /api/pacing-units?subject=…&grade=…&term=…` and populates the dropdown with `<option value="<topic>" data-unit-id="...">…</option>`
+3. **Lesson length** field appears below the Unit picker (30 / 45 / 60 / 90 min, default 45)
+4. Marks dropdown re-tunes to **10–30 marks** (worksheet-sized)
+
+`doGenerate()` reads `unitId` from the selected option's `data-unit-id` and `lessonMinutes` from the new field, and includes both in the POST body.
+
+The output card includes a **PowerPoint download button** (orange `#D04423`, distinguishable from the blue Word button) when the result payload contains `pptxBase64`.
+
+---
+
+## Testing
+
+```bash
+npm test          # runs all node:test suites — 447 tests, ~32s, no Anthropic calls
+```
+
+Test files live in `test/`. Conventions:
+
+- One file per concern (`api.test.js` would cover one route; `lesson.test.js` covers the whole Lesson generator including schema, prompt, renderers, and inference helpers)
+- Pure functions only — no Anthropic API key needed (all Anthropic calls are mocked or stubbed)
+- `node:test` reporter `spec` for readable output
+
+Key test files:
+
+- `test/lesson.test.js` — schema invariants, prompt builder, renderers, inference, stringified-branch unwrapping
+- `test/atp.test.js` — ATP database integrity, pacing helpers
+- `test/atp-prompt.test.js` — prompt-block builders
+- `test/generate-cache.test.js` — cache key shape + handler short-circuit
+- `test/anthropic*.test.js` — SDK wrapper retry / abort / caching behaviour
+- `test/diagrams.test.js` — bar_graph / number_line / food_chain SVG output
+- `test/cognitive.test.js` — `marksToTime`, `largestRemainder`, framework selection
+
+A CI smoke gate (`scripts/smoke-gate.js`) runs a curated request matrix against the real Anthropic API for end-to-end coverage. Not run on every push (cost) — manual / nightly only.
+
+---
+
+## Deployment
+
+**Railway** — the only currently supported deploy target.
 
 1. New project → deploy from this repo.
-2. Add the variables from `.env.example` in Railway → Variables.
-3. `ANTHROPIC_API_KEY` is the only one that must be set; the rest are optional.
-4. The health check path is `/health` (already configured in `railway.json`).
+2. Add the variables from `.env.example` in Railway → Variables. Only `ANTHROPIC_API_KEY` is strictly required; auth + email + Stripe vars are needed for prod.
+3. The health check path is `/health` (already configured in `railway.json`).
+4. **Mount a persistent volume for `data/cache.db`** if you want the result cache to survive deploys. Set `CACHE_DB_PATH` to a path inside the volume.
+5. **Trust proxy** is set to `1` in `server.js` so Railway's TLS-terminating proxy passes through the real client IP for rate limits.
+
+Cold starts are ~3s (no native build step, no deps to compile beyond `better-sqlite3`'s prebuilt binaries). `npm ci` in production, `npm install` for local dev.
+
+### What's NOT in the deploy
+
+- LibreOffice / headless PDF conversion — explicitly not added. Teachers convert DOCX/PPTX to PDF in their own Office app (one-click, no server cost, keeps the deploy small).
 
 ---
 
-## Development notes
+## Bugs we've hit + how to debug
 
-- Node 20–22 required (`engines` field).
-- No build step — the frontend is static HTML.
-- `package-lock.json` is committed; reproducible builds via `npm ci`.
-- No test suite yet (planned for Phase 1).
-- The ATP topic database currently lives inline in `api/generate.js` and is
-  duplicated in `public/index.html`; consolidating to a single JSON file is
-  a Phase 1 task.
+The most useful section in this README. If something looks weird in production, the answer is usually one of these.
+
+### "The lesson DOCX has only the title and 'CAPS Anchor' header — everything else is empty, and the PowerPoint button doesn't appear"
+
+**Cause:** Sonnet 4.6 returned the `lesson` branch as a JSON-encoded **string** instead of an object. The DOCX renderer's headers run unconditionally (so the title block + CAPS Anchor heading appear), but every conditional body section (objectives, vocabulary, phases, …) checks `resource.lesson?.<field> || []`, gets `undefined` because string properties don't exist, and renders nothing. assertResource passes spuriously because `!lesson` is false for a non-empty string. PPTX renderer hits *"slides is empty"* and we catch silently → no button.
+
+**Fix already in place:** `unwrapStringifiedBranches()` in `api/generate.js` includes `'lesson'` in `TOP_KEYS` and recurses one level into the lesson branch's array properties + `capsAnchor`. `assertResource` defensively checks `typeof lesson === 'object'` so any future bypass fails loudly.
+
+**Debugging hint:** if this comes back for a different branch, look for the exact same symptom — partial render with all conditional sections empty — and add the branch to `TOP_KEYS`. The original Day-2 spike comment in `api/generate.js` documents this pattern.
+
+### "Lesson generation fails on every retry with `worksheetRef` and `title slide` errors"
+
+**Cause:** Sonnet reliably skips both fields. We **do not** require them anymore — the renderers infer them. If you see this error class, it means someone re-tightened `assertResource`. Don't.
+
+**Fix already in place:** `assertResource` no longer requires `worksheetRef === true` on any phase, and allows zero `layout: "title"` slides. The DOCX renderer's `pickWorksheetPhaseIndex()` falls back to phase-name match then phase #4. The PPTX renderer treats slide #1 as the title when no slide declares it.
+
+### "Lesson generation produces a worksheet-shaped DOCX, no lesson plan, no PowerPoint"
+
+**Cause:** The base `resourceSchema.required` array does NOT include `'lesson'`. Without `narrowSchemaForRequest()` adding it for Lesson requests, Anthropic's tool API treats the entire lesson branch as optional, and Sonnet skips it. assertResource then fails with *"lesson required when meta.resourceType === 'Lesson'"* and we hit the retry loop until exhaustion.
+
+**Fix already in place:** `narrowSchemaForRequest()` appends `'lesson'` to the cloned schema's top-level `required[]` when `resourceType === 'Lesson'`.
+
+### "Cached results from the old Lesson shape come back as a worksheet"
+
+**Cause:** Cache key prefix doesn't change when schema changes.
+
+**Fix:** Bump the prefix in `buildCacheKey()` (currently `gen:v3:`). Old entries become unreachable.
+
+### "I added a new resource type and the cache is serving stale results from a different type"
+
+**Cause:** Same as above — cache key didn't change for resource-type-specific shape changes. Bump the prefix.
+
+### "Phase minutes don't add up — assertResource fails with `phases[*].minutes`"
+
+**Cause:** Sonnet's per-phase budget allocation drifts. The retry loop's `buildTargetedRemediation()` injects an explicit *"recalculate per-phase minutes so they add up to N"* hint on retry.
+
+**If this fires often:** bump the `±5` tolerance in `assertResource` lesson invariants, or tighten the prescribed budget formula in `buildLessonContextBlock()`.
+
+### "Generation hangs / times out at 5 min on Final Exam"
+
+**Cause:** Final Exam is the worst-case prompt — all four terms in scope, max marks, longest output. A single Anthropic call can take 90–150s, and we set retries to 0 for Final Exam to fit inside the 5-min wall clock. If it still hangs, the per-call timeout (`240s` in `lib/anthropic.js`) is the next thing to check.
+
+**Friendly error:** the handler reshapes the abort into *"Generation took longer than 5 minutes…"* and surfaces it via SSE.
+
+### "Diagram doesn't render in the DOCX/PPTX"
+
+**Cause:** Sonnet emitted a `kind: "diagram"` stimulus without a `spec`, or the spec doesn't match one of the three supported diagram types (`bar_graph`, `number_line`, `food_chain`).
+
+**Fix:** the prompt explicitly forbids this in the system-prompt structural rules (5a–5g). If the model still does it, the renderer falls back to the verbal `description`. Adding new diagram types means adding a renderer in `lib/diagrams/` AND updating the schema's `diagramSpec` `oneOf`.
+
+### "ATP topic mismatch — `assertResource` rejects a question whose topic is almost-but-not-quite right"
+
+**Cause:** Sonnet emits a near-miss like `"X — Y — Y"` instead of canonical `"X — Y"`. We snap to canonical via `snapTopicsToCanonical()` (collapse-duplicates pass + Levenshtein within a 10% budget). If a real near-miss is being rejected, widen the budget — but check first that the canonical topic isn't itself wrong.
+
+---
+
+## Glossary
+
+- **ATP** — Annual Teaching Plan. The DBE document that prescribes what every CAPS subject covers each week of each term.
+- **CAPS** — Curriculum and Assessment Policy Statement. The South African national curriculum.
+- **Cognitive framework** — Bloom's (Knowledge / Routine / Complex / Problem Solving for Maths; Low / Middle / High Order for everything else) or Barrett's (Literal / Reorganisation / Inferential / Evaluation+Appreciation for English/Afrikaans Home Language and FAL). Selected per subject in `lib/cognitive.js`.
+- **Composite question** — a parent question with `subQuestions[]`. Carries no `marks`; its total is the sum of its leaves.
+- **DBE** — Department of Basic Education (the SA government department).
+- **FAL** — First Additional Language.
+- **HL** — Home Language.
+- **Leaf question** — a question with `marks + cognitiveLevel + answerSpace`. Has exactly one matching `memo.answer`.
+- **NST** — Natural Sciences and Technology (Intermediate Phase combined subject).
+- **Pacing data** — the rich week-by-week, concept-tree CAPS data extracted from DBE PDFs into `data/atp-pacing.json`.
+- **Phase** (Lesson) — one of Introduction / Direct Teaching / Guided Practice / Independent Work / Consolidation. Five phases per Lesson, prescribed by CAPS.
+- **Resource type** — Worksheet / Test / Exam / Final Exam / Investigation / Project / Practical / Assignment / Lesson. Drives the entire generation shape.
+- **RTT** — Response-to-Text. The CAPS HL/FAL paper format with a passage + comprehension + summary + visual-text sections.
+- **Stimulus** — shared content (passage / visualText / dataSet / diagram / scenario) referenced by questions via `stimulusRef`.
+- **Tool call** — Claude's structured-output mechanism. We use **forced** tool use (`tool_choice: { type: "tool", name: "build_resource" }`) so the model must call our tool with a schema-conforming object.
+- **Unit** (Lesson) — one teaching block from the ATP pacing data, identified by a stable id like `MATH-6-2026-t2-u2`.
 
 ---
 
