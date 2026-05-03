@@ -369,11 +369,23 @@ select:focus{outline:none;border-color:var(--t4);}
           </select>
         </div>
       </div>
-      <!-- Topic -->
+      <!-- Topic / Lesson Unit -->
       <div style="margin-bottom:10px;">
-        <div class="flabel">Topic</div>
+        <div class="flabel" id="topic-label">Topic</div>
         <div class="sw">
           <select id="topic"><option value="">— Select subject first —</option></select>
+        </div>
+      </div>
+      <!-- Lesson length — only visible when resource type is Lesson -->
+      <div id="lesson-len-row" style="margin-bottom:10px;display:none;">
+        <div class="flabel">Lesson length</div>
+        <div class="sw">
+          <select id="lesson-len">
+            <option value="30">30 minutes</option>
+            <option value="45" selected>45 minutes</option>
+            <option value="60">60 minutes</option>
+            <option value="90">90 minutes</option>
+          </select>
         </div>
       </div>
       <!-- Resource type — dynamic per subject/grade/term -->
@@ -473,6 +485,7 @@ select:focus{outline:none;border-color:var(--t4);}
           <button class="qpill" onclick="qf(5,1,'Natural Sciences and Technology','Test','English','on')">Gr5 NST Test</button>
           <button class="qpill" onclick="qf(7,3,'Economic and Management Sciences','Test','English','on')">Gr7 EMS Test</button>
           <button class="qpill" onclick="qf(4,2,'Mathematics','Test','Afrikaans','on')">Gr4 Wiskunde Toets</button>
+          <button class="qpill" onclick="qf(4,1,'Mathematics','Lesson','English','on')">Gr4 Maths Lesson</button>
         </div>
       </div>
       <div class="loading" id="ls" style="display:none;">
@@ -760,6 +773,22 @@ function onResTypeChange(){
     noteEl.style.display = 'none';
   }
 
+  // Lesson uses a different sidebar layout: a CAPS Unit picker (in the
+  // topic slot), a lesson-length picker, and a smaller marks range for
+  // the embedded worksheet.
+  const lessonRow = document.getElementById('lesson-len-row');
+  const topicLabel = document.getElementById('topic-label');
+  if (rtype === 'Lesson') {
+    if (lessonRow) lessonRow.style.display = '';
+    if (topicLabel) topicLabel.textContent = 'CAPS Unit';
+    updateMarksDropdown(10, 30);
+    updateCogDisplay();
+    loadTopics();
+    return;
+  }
+  if (lessonRow) lessonRow.style.display = 'none';
+  if (topicLabel) topicLabel.textContent = 'Topic';
+
   // Update marks dropdown from ATP
   const minMarks = parseInt(opt.dataset.min) || 25;
   const maxMarks = parseInt(opt.dataset.max) || 100;
@@ -802,7 +831,9 @@ function loadResourceTypes(){
 
   const tasks = getAtpTasks(subj, g, t);
   if(!tasks.length){
-    sel.innerHTML = `<option value="Test" data-rtype="Test" data-min="30" data-max="75">Test (30 marks)</option>`;
+    sel.innerHTML =
+      `<option value="Test" data-rtype="Test" data-min="30" data-max="75">Test (30 marks)</option>` +
+      `<option value="Lesson" data-rtype="Lesson" data-min="10" data-max="30">Lesson plan + worksheet</option>`;
     rtype = 'Test';
     updateMarksDropdown(30, 75);
     noteEl.style.display = 'none';
@@ -810,11 +841,15 @@ function loadResourceTypes(){
     return;
   }
 
+  // The Lesson option is appended after the CAPS-prescribed tasks. It's a
+  // teacher-authored artifact rather than a CAPS formal-assessment row, so
+  // marks (10–30 worksheet marks) are decided per-lesson, not by the ATP.
+  const lessonOpt = `<option value="Lesson" data-rtype="Lesson" data-min="10" data-max="30">Lesson plan + worksheet</option>`;
   sel.innerHTML = tasks.map((task, i) => {
     const note = task.note ? ` data-note="${escAttr(task.note)}"` : '';
     return `<option value="${escAttr(task.label)}" data-rtype="${escAttr(task.resourceType)}" data-min="${task.minMarks}" data-max="${task.maxMarks}"${note}${i===0?' selected':''}>` +
       `${escAttr(task.label)} (min. ${task.minMarks} marks)</option>`;
-  }).join('');
+  }).join('') + lessonOpt;
 
   // Trigger selection of first option
   const firstOpt = sel.options[0];
@@ -862,6 +897,33 @@ function loadTopics(){
   const topicEl = document.getElementById('topic');
 
   if(!subj){ topicEl.innerHTML = '<option value="">— Select subject first —</option>'; return; }
+
+  // Lesson: fetch CAPS pacing units for the slot. Each option carries a
+  // data-unit-id so doGenerate can post the unitId to /api/generate.
+  if (rtype === 'Lesson') {
+    topicEl.disabled = true;
+    topicEl.innerHTML = '<option value="">Loading CAPS units…</option>';
+    fetch(`/api/pacing-units?subject=${encodeURIComponent(subj)}&grade=${g}&term=${t}`)
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error('Pacing-units fetch failed')))
+      .then((data) => {
+        const units = data?.units || [];
+        if (units.length === 0) {
+          topicEl.innerHTML = '<option value="">No CAPS units available — try another subject/term</option>';
+          return;
+        }
+        topicEl.disabled = false;
+        topicEl.innerHTML = units.map((u, i) => {
+          const weeks = (u.weeks || []).length ? `Week ${u.weeks[0]}${u.weeks.length>1?'–'+u.weeks[u.weeks.length-1]:''}` : '';
+          const hours = u.hours ? `, ${u.hours}h` : '';
+          const meta = (weeks || hours) ? ` (${[weeks, hours].filter(Boolean).join('').replace(/^, /, '')})` : '';
+          return `<option value="${escAttr(u.topic)}" data-unit-id="${escAttr(u.id)}"${i===0?' selected':''}>${escAttr(u.topic)}${escAttr(meta)}</option>`;
+        }).join('');
+      })
+      .catch(() => {
+        topicEl.innerHTML = '<option value="">Could not load CAPS units</option>';
+      });
+    return;
+  }
 
   // For Final Exam: collect all 4 terms
   if(rtype === 'Final Exam'){
@@ -1043,7 +1105,9 @@ function qf(g, t, s, tp, l, d){
       });
       lang = lockedL;
       document.querySelectorAll('.dbtn').forEach(b=>b.classList.toggle('on',b.dataset.d===d)); diff=d;
-      setTimeout(doGenerate, 200);
+      // Lessons need the user to pick a CAPS Unit — skip auto-generate so
+      // the async pacing-units fetch can resolve before they choose.
+      if (tp !== 'Lesson') setTimeout(doGenerate, 200);
     }, 100);
   }, 50);
 }
@@ -1159,7 +1223,8 @@ function updatePhase(phase, status, detail){
 
 async function doGenerate(bypassCache){
   const subj = decodeSubj(document.getElementById('subj').value);
-  const topicRaw = document.getElementById('topic').value;
+  const topicEl = document.getElementById('topic');
+  const topicRaw = topicEl.value;
   // If ALL_TERM or ALL_YEAR selected, send empty string so generate.js uses ATP db
   const topic = (topicRaw === 'ALL_TERM' || topicRaw === 'ALL_YEAR') ? '' : topicRaw;
   const dur = document.getElementById('dur').value;
@@ -1167,7 +1232,14 @@ async function doGenerate(bypassCache){
   const term = document.getElementById('term').value;
   const includeRubric = document.getElementById('rubric').checked;
 
+  // Lesson-only extras: read the unitId off the selected option and the
+  // lesson length off the dedicated dropdown.
+  const isLesson = rtype === 'Lesson';
+  const unitId = isLesson ? (topicEl.options[topicEl.selectedIndex]?.dataset?.unitId || '') : null;
+  const lessonMinutes = isLesson ? parseInt(document.getElementById('lesson-len').value, 10) || 45 : null;
+
   if(!subj){ alert('Please select a subject.'); return; }
+  if (isLesson && !unitId) { alert('Please select a CAPS Unit for the lesson.'); return; }
 
   showGen('l');
   document.getElementById('gbtn').disabled = true;
@@ -1203,6 +1275,7 @@ async function doGenerate(bypassCache){
         grade,
         term,
         teacherGuidance: currentGuidance(),
+        ...(isLesson ? { unitId, lessonMinutes } : {}),
         _bypassCache: bypassCache === true
       })
     });
