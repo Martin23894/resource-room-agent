@@ -12,7 +12,19 @@ import { Packer } from 'docx';
 
 import { callAnthropicTool } from '../lib/anthropic.js';
 import { getCogLevels, isBarretts, marksToTime, largestRemainder } from '../lib/cognitive.js';
-import { ATP, EXAM_SCOPE } from '../lib/atp.js';
+import {
+  ATP,
+  EXAM_SCOPE,
+  getPacingUnits,
+  getPacingFormalAssessments,
+} from '../lib/atp.js';
+import {
+  buildCapsReferenceBlock,
+  buildAssessmentStructureBlock,
+  formatSubtopics,
+  formatPacingUnit,
+  formatFormalAssessmentStructure,
+} from '../lib/atp-prompt.js';
 import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
 import { narrowSchemaForRequest, assertResource, tallyCogLevels } from '../schema/resource.schema.js';
 import { rebalanceMarks } from '../lib/rebalance.js';
@@ -70,6 +82,16 @@ function buildContext(req) {
     throw new Error(`No ATP topics for subject="${subject}" grade=${grade} term=${term}`);
   }
 
+  // Rich CAPS detail (subtopics, prerequisites, per-strand mark splits)
+  // pulled from data/atp-pacing.json. Empty arrays when no pacing data is
+  // available — the prompt builder treats them as optional and skips
+  // those sections, so this is safe to add for every request.
+  const isExamType = resourceType === 'Exam' || resourceType === 'Final Exam';
+  const pacingUnits = coversTerms.flatMap((t) =>
+    getPacingUnits(subject, grade, t, false));
+  const pacingFormalAssessments = getPacingFormalAssessments(
+    subject, grade, term, isExamType);
+
   const durationMin = parseDurationMinutes(marksToTime(totalMarks));
   const localisedDurationLabel = localiseDuration(marksToTime(totalMarks), language);
   const subjectDisplay = subjectDisplayName(subject, language);
@@ -80,9 +102,13 @@ function buildContext(req) {
     frameworkName, cogLevels,
     cognitiveLevelNames: cogLevels.map((l) => l.name),
     coversTerms, topics,
+    pacingUnits, pacingFormalAssessments,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
   };
 }
+
+// CAPS-pacing prompt builders live in lib/atp-prompt.js (imported above)
+// so they can be unit-tested without loading the full generation pipeline.
 
 function parseDurationMinutes(label) {
   // marksToTime returns strings like "45 minutes", "1 hour", "1 hour 30 minutes".
@@ -98,6 +124,7 @@ function buildSystemPrompt(ctx) {
   const {
     subject, grade, term, language, resourceType, totalMarks, difficulty,
     frameworkName, cogLevels, coversTerms, topics,
+    pacingUnits, pacingFormalAssessments,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
   } = ctx;
 
@@ -136,6 +163,8 @@ function buildSystemPrompt(ctx) {
     `Every question.topic MUST be one of these ATP topics:`,
     topicList,
     ``,
+    ...buildCapsReferenceBlock(pacingUnits),
+    ...buildAssessmentStructureBlock(pacingFormalAssessments, resourceType, totalMarks),
     `## Cognitive framework: ${frameworkName}`,
     `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,
     cogTable,
@@ -530,7 +559,23 @@ function levenshtein(a, b) {
 }
 
 // Exposed for the spike runner.
-export const __internals = { buildContext, topicScopeFor, parseDurationMinutes, unwrapStringifiedBranches, snapTopicsToCanonical, collapseDuplicateRuns, levenshtein, buildCacheKey };
+export const __internals = {
+  buildContext,
+  topicScopeFor,
+  parseDurationMinutes,
+  unwrapStringifiedBranches,
+  snapTopicsToCanonical,
+  collapseDuplicateRuns,
+  levenshtein,
+  buildCacheKey,
+  // CAPS-pacing prompt formatters — pure, exposed for tests.
+  formatSubtopics,
+  formatPacingUnit,
+  formatFormalAssessmentStructure,
+  buildCapsReferenceBlock,
+  buildAssessmentStructureBlock,
+  buildSystemPrompt,
+};
 
 // ─────────────────────────────────────────────────────────────────────
 // EXPRESS HANDLER
