@@ -1,6 +1,6 @@
 {
   "$schemaVersion": "1.0.0",
-  "extractedAt": "2026-05-03T01:49:41.860Z",
+  "extractedAt": "2026-05-03T10:45:43.858Z",
   "extractor": {
     "model": "claude-sonnet-4-6",
     "promptVersion": 1
@@ -28937,6 +28937,4297 @@
       }
     },
     "English First Additional Language": {
+      "4": {
+        "2023-24": {
+          "subject": "English First Additional Language",
+          "grade": 4,
+          "year": "2023-24",
+          "phase": "intermediate",
+          "language": "English",
+          "source": {
+            "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+            "totalPages": 23,
+            "publishedBy": "DBE",
+            "documentTitle": "2023/24 ANNUAL TEACHING PLANS: ENGLISH FIRST ADDITIONAL LANGUAGE: GRADE 4"
+          },
+          "capsStrands": [
+            "Listening and Speaking",
+            "Reading and Viewing",
+            "Writing and Presenting",
+            "Language Structures and Conventions"
+          ],
+          "terms": {
+            "1": {
+              "term": 1,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [
+                "Baseline Assessment (set internally by the school) and Orientation to be conducted during the first 3 days of the term in Week 1 – Day 1 to 3. Data is captured so that competency is determined and learning gaps identified. This information should be used to inform subsequent teaching and learning activities."
+              ],
+              "units": [
+                {
+                  "id": "EFAL-4-2023-24-t1-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Information text (poster advertising an event) / Information text with visuals / Advertisement",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to information text of a poster advertising an event",
+                      "concepts": [
+                        "•    Identifies specific details",
+                        "•    Interprets the information given",
+                        "•    Relates to personal experience"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads information text with visuals (charts/tables/diagrams/mind maps/maps/pictures)",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads information text with visuals, e.g., charts/ tables/ diagrams/ mind maps/ maps/ pictures",
+                      "concepts": [
+                        "•    Pre-reading: Predicting from title and pictures/visuals",
+                        "•    Use reading strategies, e.g., skimming",
+                        "•    Asks and answers questions",
+                        "•    Discusses main idea and specific details",
+                        "•    Interprets the information in the visuals"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "• Pre-reading: Discusses pictures",
+                        "•    Interprets the information",
+                        "•    Discusses the purpose of the text",
+                        "•    Discusses some of the language used",
+                        "•    Identifies and discusses design features such as colour and different sizes or kinds of print (font)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes an advertisement",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes an advertisement",
+                      "concepts": [
+                        "•    Uses content appropriate for purpose and audience",
+                        "•    Uses appropriate visuals and layout for the purpose",
+                        "•    Uses appropriate grammar and vocabulary",
+                        "•    Uses language creatively",
+                        "•    Uses the dictionary to check spelling and meanings of words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "•    Brainstorms ideas using mind maps",
+                        "•    Produces first draft",
+                        "•    Revises",
+                        "•    Proofreads",
+                        "•    Writes final draft",
+                        "•    Presents neat, legible final draft"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning / Spelling and punctuation (Weeks 1-2)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Articles, plurals (noun prefixes), common nouns, abstract nouns, adjectives, verbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple sentences, statements, questions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Similes, metaphors, idioms"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Question mark, exclamation mark, dictionary use"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 1
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to and responds to an extract from the novelette",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to and responds to an extract from the novelette",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Makes predictions",
+                        "•    Listens to extracts from the novel",
+                        "•    Listens for main message and specific details",
+                        "•    Describes events",
+                        "•    Discusses the main ideas and specific details",
+                        "•    Explains events clearly and in sequence",
+                        "•    Expresses feelings in relation to events",
+                        "•    Relates to own life",
+                        "•    Discusses the social, moral and cultural values in the text",
+                        "•    Participates in group discussions",
+                        "•    Takes turns",
+                        "•    Stays on topic",
+                        "•    Asks relevant questions",
+                        "•    Maintains discussions",
+                        "•    Responds to others' ideas with empathy and respect"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads an extract from a novelette",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads an extract from a novelette",
+                      "concepts": [
+                        "•    Pre-reading strategies: Skims, scans, predicts from title and discusses related themes/ content",
+                        "•    Identifies and explains the central events",
+                        "•    Discusses the characters",
+                        "•    Identifies and discusses feelings expressed",
+                        "•    Relates events and characters to own life"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses summary writing frame",
+                      "concepts": [
+                        "✓ Who?",
+                        "✓ What?",
+                        "✓ When?",
+                        "✓ Where?",
+                        "✓ Why?",
+                        "✓ How?"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Literature study",
+                      "concepts": [
+                        "•    Discusses the structure, language use, purpose and audience",
+                        "•    Identifies the difference/s between biographies/ diaries and stories",
+                        "•    Uses a dictionary for vocabulary development"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired /independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Write a character sketch of the main/compelling central character",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Write a character sketch of the main/compelling central character",
+                      "concepts": [
+                        "•    Uses a frame",
+                        "•    Pre-writing: Listens to extracts from a novelette",
+                        "•    Selects content appropriate for the purpose",
+                        "•    Uses appropriate language and text structure",
+                        "•    Uses the correct format",
+                        "•    Organises content logically – uses chronology",
+                        "•    Uses appropriate grammar, spelling and punctuation, including subject-verb concord"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "•    Planning/ pre-writing",
+                        "•    Drafting",
+                        "•    Revising",
+                        "•    Editing",
+                        "•    Proofreading",
+                        "•    Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning / Spelling and punctuation (Weeks 3-4)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Relative pronouns, reflexive pronouns, adverbs, connections, interjections"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple present tense, simple past tense, concord"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Antonyms, synonyms"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Full stop, comma, dictionary use, word division"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 2
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to a short story",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to a short story",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Makes predictions",
+                        "•    Identifies characters",
+                        "•    Recalls main idea",
+                        "•    Answers oral questions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Retells a story",
+                      "concepts": [
+                        "Retells events in correct sequence",
+                        "Names the characters correctly"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a short story",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads a short story",
+                      "concepts": [
+                        "Pre-reading: Predicting from title and pictures",
+                        "•    Uses reading strategies: Making predictions, uses phonic and contextual clues",
+                        "•    Discusses new vocabulary from the read text"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "Uses a dictionary",
+                        "Uses reading strategies",
+                        "- Skimming for main ideas",
+                        "- Scanning for supporting details",
+                        "- Making predictions",
+                        "- Inferring the meaning of unfamiliar words and images",
+                        "- Reviewing to promote understanding"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses reading comprehension strategies",
+                      "concepts": [
+                        "- Visualisation",
+                        "- Making connections",
+                        "- Predictions",
+                        "- Inferences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Literature study",
+                      "concepts": [
+                        "•    Identifies and comments on the characters",
+                        "•    Gives and explains own feelings about the text"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes a story based on a personal experience/ event",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes a story based on a personal experience/ event",
+                      "concepts": [
+                        "•   Chooses appropriate content for the topic",
+                        "•   Uses the story structure as a frame",
+                        "•   Includes characters",
+                        "•   Uses appropriate grammar, spelling and punctuation",
+                        "•   Uses a range of vocabulary related to topic",
+                        "•   Creates a personal dictionary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓ Planning/ pre-writing",
+                        "✓ Drafting",
+                        "✓ Revising",
+                        "✓ Editing",
+                        "✓ Proofreading",
+                        "✓ Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Spelling and punctuation (Weeks 5-6)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Countable and uncountable nouns"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Full stop, capital and lower case (small) letters"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to and discusses a recipe",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to and discusses a recipe",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Makes predictions",
+                        "•    Recalls procedure",
+                        "•    Identifies the features of instructional text",
+                        "•    Gives clear instructions on how to make a cup of tea",
+                        "•    Makes notes and applies instructions read",
+                        "•    Asks questions to clarify comments on clarity of instructions"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a recipe",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads a recipe",
+                      "concepts": [
+                        "•    Pre-reading: Predicting from title and pictures",
+                        "•    Uses reading strategies, e.g., prediction and contextual clues",
+                        "•    Discusses specific details of the text",
+                        "•    Discusses sequence of instructions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "Uses reading strategies below",
+                        " • Skimming for main ideas",
+                        " • Scanning for supporting details",
+                        " • Making predictions",
+                        " • Inferring the meaning of unfamiliar words and images"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Use reading comprehension strategies",
+                      "concepts": [
+                        " • Visualisation",
+                        " • Making connections"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u15",
+                  "ordinal": 15,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes instructions: How to make a cup of tea",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes instructions: How to make a cup of tea",
+                      "concepts": [
+                        "•    Lists materials and ingredients",
+                        "•    Uses correct specific details",
+                        "•    Uses correct sequence",
+                        "•    Uses the command form of the verb",
+                        "•    Uses correct structure and format",
+                        "•    Records words and their meanings in a personal dictionary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "•    Planning/ pre-writing",
+                        "•    Drafting",
+                        "•    Revising",
+                        "•    Editing",
+                        "•    Proofreading",
+                        "•    Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u16",
+                  "ordinal": 16,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning (Weeks 7-8)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Personal pronouns, possessive pronouns, demonstrative pronouns, conjunctions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Subject, object, simple sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Borrowed words"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u17",
+                  "ordinal": 17,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Participates in short conversation on a familiar topic",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Participates in short conversation on a familiar topic",
+                      "concepts": [
+                        "•    Takes turns",
+                        "•    Stays on topic",
+                        "•    Asks relevant questions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Practises listening and speaking (Chooses one for daily practise)",
+                      "concepts": [
+                        "•    Performs a simple rhyme, poem or song",
+                        "•    Plays a simple language game",
+                        "•    Gives and follows simple instructions/ directions",
+                        "•    Tells own news"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Retells a story heard or read",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u18",
+                  "ordinal": 18,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads poster or notices",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads poster or notices",
+                      "concepts": [
+                        "•    Pre-reading: Discusses pictures",
+                        "•    Discusses what the text is about",
+                        "•    Identifies specific information",
+                        "•    Interprets the information",
+                        "•    Discusses the purpose of the text",
+                        "•    Discusses some of the language use",
+                        "•    Identifies and discusses design features such as colour and different sizes or kinds of print (font)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Practises reading",
+                      "concepts": [
+                        "•    Reads aloud with appropriate pronunciation, expression and tempo"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ Group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u19",
+                  "ordinal": 19,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Designs a poster advertising an event",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Designs a poster advertising an event",
+                      "concepts": [
+                        "•    Selects appropriate information",
+                        "•    Uses the correct format",
+                        "•    Uses design features such as colour and different sizes or kinds of print (font)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "•    Planning/ pre-writing",
+                        "•    Drafting",
+                        "•    Revising",
+                        "•    Editing",
+                        "•    Proofreading",
+                        "•    Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 5
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t1-u20",
+                  "ordinal": 20,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning (Weeks 9-10)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Adverbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Complex sentences, metaphors, similes"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "One word for a phrase"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 5
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task 1: Oral – Read Aloud (20 marks)",
+                  "type": "Oral",
+                  "term": 1,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Read Aloud",
+                      "marks": 20,
+                      "capsStrand": "Listening and Speaking",
+                      "notes": "Commence with this task in Term 1 and conclude in Term 2 when the mark will be recorded."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Read Aloud"
+                  ],
+                  "conditions": "Commence with this task in Term 1 and conclude in Term 2 when the mark will be recorded.",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 3
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 2: Writing – Essay (20 marks)",
+                  "type": "Assignment",
+                  "term": 1,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Essay",
+                      "marks": 20,
+                      "capsStrand": "Writing and Presenting",
+                      "notes": "Narrative or descriptive. Three (3) paragraphs. Done during the term."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Essay – Narrative or descriptive",
+                    "Three (3) paragraphs"
+                  ],
+                  "conditions": "Done during the term",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 4
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 3: Response to Texts (40 marks)",
+                  "type": "Test",
+                  "term": 1,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Literary/ non-literary text",
+                      "marks": 15,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": null
+                    },
+                    {
+                      "label": "Visual text",
+                      "marks": 10,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": null
+                    },
+                    {
+                      "label": "Language structures and conventions",
+                      "marks": 15,
+                      "capsStrand": "Language Structures and Conventions",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Literary/ non-literary text",
+                    "Visual text",
+                    "Language structures and conventions"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 5
+                  }
+                }
+              ]
+            },
+            "2": {
+              "term": 2,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "EFAL-4-2023-24-t2-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to a poem/ song",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to a poem/ song",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Makes predictions",
+                        "•    Recalls main idea",
+                        "•    Discusses central idea",
+                        "•    Relates to own experience",
+                        "•    Identifies rhyme and rhythm",
+                        "•    Expresses feelings stimulated by the poem",
+                        "•    Performs song/ selected lines"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a poem/ song/ limerick",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads a poem/ song/ limerick",
+                      "concepts": [
+                        "Literature study",
+                        "•    Discusses main idea/s",
+                        "•    Expresses feelings stimulated by the song",
+                        "•    Identifies rhythm and rhyme and their effects",
+                        "•    Breaks up words into syllables to understand rhythm"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "Uses reading strategies below",
+                        " • Skimming for main ideas",
+                        " • Scanning for supporting details",
+                        " • Making predictions",
+                        " • Inferring the meaning of unfamiliar words and images"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses reading comprehension strategies",
+                      "concepts": [
+                        " • Visualisation",
+                        " • Making connections",
+                        " • Predictions",
+                        " • Inferences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes a poem/ song/ limerick",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes a poem/ song/ limerick",
+                      "concepts": [
+                        "•    Selects appropriate content",
+                        "•    Uses the relevant structure and format",
+                        "•    Plans, drafts and revises a song",
+                        "•    Uses appropriate rhythm and rhyme",
+                        "•    Uses knowledge of syllables to develop rhythm of the text",
+                        "•    Records words and their meanings in a personal dictionary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓         Planning/ pre-writing",
+                        "✓         Drafting",
+                        "✓         Revising",
+                        "✓         Editing",
+                        "✓         Proofreading",
+                        "✓         Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses drawings or sentences using the words or explanations to show the meaning, etc..",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning / Spelling and punctuation (Weeks 1-2)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Abstract and concrete nouns, compound nouns"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Rhymes, borrowed words, personification, alliteration"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Full stop, comma"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 7
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to weather reports",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to weather reports",
+                      "concepts": [
+                        "Introductory activity",
+                        "•    Makes predictions",
+                        "•    Listens for specific details",
+                        "•    Participates in class (teacher-led discussions)",
+                        "•    Discusses usefulness of the information",
+                        "•    Links information to own life",
+                        "•    Discusses possible effects on people",
+                        "•    Compares conditions in different places",
+                        "•    Indicates preferred destinations with reasons",
+                        "•    Justifies own opinion",
+                        "•    Identifies features of weather",
+                        "•    Reports register and the nature of language used",
+                        "•    Uses interaction strategies to communicate effectively in group situations"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Listens to a description and describes an object",
+                      "concepts": [
+                        "•    Identifies the object described correctly",
+                        "•    Uses words that correctly describe the object",
+                        "•    Uses some new words",
+                        "•    Uses adjectives"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads weather report / chart/ table / map",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads weather report / chart/ table / map",
+                      "concepts": [
+                        "•    Pre-reading: Predicts from title and pictures/ visuals",
+                        "•    Uses reading strategies: Skims to get the general idea and scans for specific details",
+                        "•    Identifies the way the text is organised",
+                        "•    Compares differences and similarities in different places",
+                        "•    Reads an information text with visuals, e.g., a map",
+                        "•    Uses dictionary to check meaning of new vocabulary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes information text, e.g., weather chart",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes information text, e.g., weather chart",
+                      "concepts": [
+                        "•    Organises information logically",
+                        "•    Includes specific details",
+                        "•    Uses topic and supporting sentences to develop coherent paragraphs",
+                        "•    Designs appropriate visuals, e.g., charts/ tables/ maps",
+                        "•    Uses appropriate grammar, spelling and punctuation",
+                        "•    Uses appropriate vocabulary",
+                        "•    Records words and their meanings in a personal dictionary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓ Planning/ pre-writing",
+                        "✓ Drafting",
+                        "✓ Revising",
+                        "✓ Editing",
+                        "✓ Proofreading",
+                        "✓ Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses drawings or sentences using the words or explanations to show the meaning, etc.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning (Weeks 3-4)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Regular and irregular verbs, finite and infinite verbs, transitive verbs, adjectives"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Subject-verb agreement, past tense, future tense"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Idioms and proverbs"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to a dialogue",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to a dialogue",
+                      "concepts": [
+                        "Introductory activities",
+                        "• Makes predictions",
+                        "• Listens and relates to own experience",
+                        "• Identifies specific details",
+                        "• Participates in group discussions",
+                        "• Takes turns to speak",
+                        "• Stays on topic",
+                        "• Asks relevant questions",
+                        "• Maintains discussion",
+                        "• Responds to others' ideas with empathy and respect",
+                        "• Gives balanced and constructive feedback"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Role-play a scenario related to the chosen novelette in Term 1",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a dialogue",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads a dialogue",
+                      "concepts": [
+                        "•    Pre-reading: Predicts from title and pictures",
+                        "•    Uses reading strategies: Skimming, scanning, making predictions, inferring the meaning of unfamiliar words and images",
+                        "•    Reviews to promote understanding",
+                        "•    Understands the vocabulary",
+                        "•    Identifies main and supporting ideas",
+                        "•    Discusses new vocabulary from the read text",
+                        "•    Uses a dictionary",
+                        "•    Reflects on texts read independently",
+                        "•    Retells story or main ideas in 3 to 5 sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Literature study",
+                      "concepts": [
+                        "•    Identifies and comments on the plot",
+                        "•    Gives reasons for action",
+                        "•    Identifies and discusses values in the text",
+                        "•    Expresses emotional response to texts read"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "Uses the reading comprehension strategies below",
+                        " • Visualisation",
+                        " • Making connections",
+                        " • Predictions",
+                        " • Inferences",
+                        "Asking questions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment for Learning – in preparation for Read Aloud"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes an interview",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes an interview",
+                      "concepts": [
+                        "•   Selects appropriate content",
+                        "•   Uses the frame",
+                        "•   Uses direct speech for dialogue",
+                        "•   Extends sentences by adding adjectives and adverbs",
+                        "•   Uses extended vocabulary, including pronouns, connecting words and phrases",
+                        "•   Uses appropriate grammar, spelling and punctuation",
+                        "•   Uses the dictionary to check spelling and meanings of words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓ Planning/ pre-writing",
+                        "✓ Drafting",
+                        "✓ Revising",
+                        "✓ Editing",
+                        "✓ Proofreading",
+                        "✓ Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Writes a book review of the chosen novelette in Term 1",
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning / Spelling and punctuation (Weeks 5-6)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Infinitive verbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Direct speech, quotation marks for direct speech main clause, dependent clause (simple)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Similes, metaphor, idioms and proverbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Comma, colon, semi colon, inverted commas, question mark, exclamation mark, full stop"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 9
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to and carries out instructions",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to and carries out instructions, e.g., directions/ rules/ safety rules when crossing the road/ how to wash your hands/ instructions for making something",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Makes predictions",
+                        "•    Recalls procedure",
+                        "•    Identifies the features of instructional texts",
+                        "•    Notes key headings",
+                        "•    Gives clear instructions and examples",
+                        "•    Makes notes and applies instructions read",
+                        "•    Asks questions for clarity",
+                        "•    Comments on clarity of instructions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Listens to and gives directions",
+                      "concepts": [
+                        "•    Listens for specific details",
+                        "•    Uses details accurately",
+                        "•    Uses the correct language form"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Practises Listening and Speaking (Choose one for daily practise)",
+                      "concepts": [
+                        "•    Responds physically to instructions",
+                        "•    Gives and follows simple instructions/directions"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads an instructional text, e.g., directions/ rules/ safety rules",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads an instructional text, e.g., directions/ rules/ safety rules when crossing the road/ how to wash your hands/ instructions for making something",
+                      "concepts": [
+                        "•    Pre-reading: Predicting from title and pictures",
+                        "•    Uses reading strategies: Prediction and contextual clues",
+                        "•    Discusses specific details of text",
+                        "•    Discusses sequence of instructions",
+                        "•    Uses the dictionary to check spelling and meanings of words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette",
+                        "Assessment of Read Aloud"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u15",
+                  "ordinal": 15,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes an essay explaining why it is important to follow instructions",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes an essay explaining why it is important to follow instructions",
+                      "concepts": [
+                        "•    Selects appropriate content for the topic",
+                        "•    Uses the appropriate structure as a frame",
+                        "•    Orders information logically",
+                        "•    Uses topic and supporting sentences to develop coherent paragraphs",
+                        "•    Uses appropriate grammar, spelling and punctuation",
+                        "•    Presents work neatly using headings and spacing for paragraphs",
+                        "•    Records words and their meanings in a personal dictionary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "•    Planning/ pre-writing",
+                        "•    Drafting",
+                        "•    Revising",
+                        "•    Editing",
+                        "•    Proofreading",
+                        "•    Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u16",
+                  "ordinal": 16,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Spelling and punctuation (Weeks 7-8)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Auxiliary verbs, modal verbs, moods"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Future tense"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Word division, dictionary use"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t2-u17",
+                  "ordinal": 17,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Task 5: June controlled test: Response to text (40 marks)",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [
+                    {
+                      "heading": "Task 5: June controlled test: Response to text (40 marks)",
+                      "concepts": [
+                        "Question 1: Literary/ non-literary text (15 marks)",
+                        "Question 2: Visual text (10 marks)",
+                        "Question 3: Summary writing (5 marks)",
+                        "Question 4: Language structures and conventions (10 marks)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 11
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task 1: Oral – Read Aloud (20 marks) [continuation from Term 1]",
+                  "type": "Oral",
+                  "term": 2,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Read Aloud",
+                      "marks": 20,
+                      "capsStrand": "Listening and Speaking",
+                      "notes": "This task is a continuation from Term 1. It will be completed and recorded in Term 2."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Read Aloud"
+                  ],
+                  "conditions": "This task is a continuation from Term 1. It will be completed and recorded in Term 2.",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 8
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 4: Writing – Transactional writing (10 marks)",
+                  "type": "Assignment",
+                  "term": 2,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 10,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Transactional writing",
+                      "marks": 10,
+                      "capsStrand": "Writing and Presenting",
+                      "notes": "Written before the June controlled test"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Transactional writing"
+                  ],
+                  "conditions": "Written before the June controlled test",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 10
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 5: June Controlled Test – Response to Texts (40 marks)",
+                  "type": "Examination",
+                  "term": 2,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Question 1: Literary / non-literary text comprehension",
+                      "marks": 15,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": null
+                    },
+                    {
+                      "label": "Question 2: Visual text comprehension",
+                      "marks": 10,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": null
+                    },
+                    {
+                      "label": "Question 3: Summary writing",
+                      "marks": 5,
+                      "capsStrand": "Writing and Presenting",
+                      "notes": null
+                    },
+                    {
+                      "label": "Question 4: Language structures and conventions in context",
+                      "marks": 10,
+                      "capsStrand": "Language Structures and Conventions",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Literary / non-literary text comprehension",
+                    "Visual text comprehension",
+                    "Summary writing",
+                    "Language structures and conventions in context"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 11
+                  }
+                }
+              ]
+            },
+            "3": {
+              "term": 3,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [
+                "INFORMAL OR FORMATIVE ASSESSMENT: Informal assessments should be used to guide instruction and opportunities for remediation and strengthening",
+                "Through the use of questioning, discussions and observation, informal assessments can provide a teacher with quick feedback",
+                "Assessment for Learning should be ongoing",
+                "Ongoing Assessment for Learning to prepare for the oral presentation in Term 4"
+              ],
+              "units": [
+                {
+                  "id": "EFAL-4-2023-24-t3-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to folklore, e.g., myth/ legend",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to folklore, e.g., myth/ legend",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Predicts what the text could be about",
+                        "•    Identifies the plot, characters and setting",
+                        "•    Discusses the main message",
+                        "•    Answers oral questions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners to retell the story (Folklore: Myth or legend)",
+                      "concepts": [
+                        "•    Retells events in the text in the correct sequence",
+                        "•    Names the characters correctly",
+                        "•    Expresses thoughts and feelings about the storyline/ characters/ setting/ message / theme of the text, etc."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads folklore, e.g., myth/ legend",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads folklore, e.g., myth/ legend",
+                      "concepts": [
+                        "Reading for meaning/ Reading comprehension",
+                        "Introductory activities",
+                        "•    Pre-reading: Makes predictions from the title and pictures in the text"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•    Use reading strategies to make predictions",
+                        "•    Use contextual clues to make meaning",
+                        "•    Discuss plot, main characters and setting",
+                        "•    Discuss the message/ moral of the story",
+                        "•    Express opinions and own feelings about the text",
+                        "•    Distinguish between realistic and unrealistic events in the story"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "•    Novel/ reader to be read daily for a minimum of 30 minutes",
+                        "•    Reflects on texts read independently",
+                        "•    Relates to own context"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes a recount of the folklore genre read, e.g., myth/ legend, using a writing frame",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes a recount of the folklore genre read, e.g., myth/ legend, using a writing frame",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Introduces the characters, place and time of the text read"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•    Describe a series of events that took place",
+                        "•    Express an opinion of the text read",
+                        "•    Use a writing frame or sentence starters (where necessary)",
+                        "•    Retell events in sequential order",
+                        "•    Use varied vocabulary",
+                        "•    Write recounts in the past tense"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Personal dictionary",
+                      "concepts": [
+                        "•    Records words and their meanings in a personal dictionary",
+                        "•    Uses drawings or sentences using the words or explanations to show the meaning, etc.",
+                        "•    Place new vocabulary on a word wall"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning / Punctuation (Weeks 1-2)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Prefix, roots and suffix, past tense"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple sentences, complex sentences, paragraphs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Proverbs, idioms, moral (of the story)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Punctuation",
+                      "concepts": [
+                        "Full stop, comma, colon, semi-colon, capital letters"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "CWP Stage 1 Research – Listens to and participates in a brief conversation on the creative writing project based on the selected genre",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": "CWP STAGE 1 RESEARCH",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•   Discusses the research process and timeline",
+                        "•   Discusses the development of a driving question/ topic",
+                        "•   Talks about the use of research sources and resources",
+                        "•   Focuses on note-taking",
+                        "•   Explains referencing and the importance of a bibliography",
+                        "•   Explains the assessment criteria and descriptors in the rubric/ checklist"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Divide into groups or work individually",
+                        "•   Gather information for research",
+                        "•   Share ideas, opinions and participate in the discussion",
+                        "•   Compile a bibliography",
+                        "•   Keep a record of the research process (Portfolio of Evidence)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "NOTE TO THE TEACHER: ✓ The research process continues over the two-week cycle",
+                    "✓ Evidence of activities and the process to be kept in learner workbook/ file/ portfolio of evidence",
+                    "✓ Demonstrate how to do research – \"I do, We do, You do\"",
+                    "✓ Findings in the research should respond to the driving question/ topic",
+                    "✓ Pay special attention to referencing and the format of the bibliography",
+                    "✓ Assess Stage 1: Research, using a rubric/ checklist and providing feedback to learners",
+                    "✓ All activities must be done in class with the guidance of the teacher",
+                    "✓ Assessment for Learning should be ongoing"
+                  ],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "CWP Stage 1 Research – Reads for information based on the genre selected, e.g., poetry/ drama/ short story",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": "CWP STAGE 1 RESEARCH",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•   Provides research material",
+                        "•   Encourages learners to add to research material provided",
+                        "•   Reviews the text to promote understanding",
+                        "•   Discusses the effects of the features/ elements of poetry/ folklore/ drama/ short story",
+                        "•   Discusses the impact of visual techniques evident in literature (poetry/ folklore/ drama/ short story)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Use reading strategies for comprehension",
+                        "•   Skim for main ideas",
+                        "•   Scan for supporting details",
+                        "•   Make predictions",
+                        "•   Infer the meaning of unfamiliar words and images",
+                        "•   Synthesise selected information into a graphic organiser, e.g., a mind map, sequence chart, Venn diagram, etc.",
+                        "•   Take notes in preparation for Stage 2: Writing"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 12
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "CWP Stage 1 Research – Uses different types of graphic organisers to collate research findings",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": "CWP STAGE 1 RESEARCH",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•   Demonstrates appropriate frames/ tools to support the type of product to be produced, e.g., mind map, sequence chart, Venn diagram, etc.",
+                        "•   Iterates referencing and the importance of a bibliography",
+                        "•   Reiterates the assessment criteria and descriptors in the rubric/ checklist",
+                        "•   Reminds learners to pay attention to responding to the driving question/ topic"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Focus on the research process",
+                        "•   Respond to the driving question/ topic of research by selecting relevant information from the sources used during research",
+                        "•   Do note-taking in own words and in preparation for Stage 2: Writing",
+                        "•   Follow a writing frame (if provided)",
+                        "•   Use suitable language conventions related to literary analysis"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning (Weeks 3-4 – Research)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": "CWP STAGE 1 RESEARCH",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Adverbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Complex sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "One word for a phrase"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Strengthening of language structures and conventions that are related to research of the literary genre focused on, e.g., poetry/ folklore/ drama/ short story",
+                      "concepts": [
+                        "•    Organisation of research findings, e.g., mind map, sequence chart, Venn diagram, etc.",
+                        "•    Clarity of information",
+                        "•    Use of vocabulary related to research",
+                        "•    Referencing conventions"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "CWP Stage 3 Oral Presentation / Stage 2 Writing – Listening and Speaking strategies focused on relevant literature genre",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": "CWP STAGE 3 ORAL PRESENTATION",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•   Iterates the driving question/ topic focused on during research",
+                        "•   Discusses literary features and elements relevant to the genre researched",
+                        "•   Ensures that all learners are prepared to commence with Stage 2: Writing",
+                        "•   Discusses with learners how to plan their writing using their research findings",
+                        "•   Discusses the writing process",
+                        "•   Gives instructions based on the writing activity",
+                        "•   Discusses the format of the writing activity to be produced (essay/ report/ poster, etc.)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Contribute to the discussion",
+                        "•   Understand expectations related to the driving question/ topic"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "NOTE TO THE TEACHER: ✓ The writing process continues over the two-week cycle",
+                    "✓ Evidence of writing process to be kept in learner workbook/ file/ portfolio of evidence",
+                    "✓ Manage the writing process",
+                    "✓ Findings in the research should respond to the driving question/ topicPay special attention to referencing and the format of the bibliography",
+                    "✓ Assess Stage 2: Writing, using a rubric and providing feedback to learners",
+                    "✓ All activities must be done in class with the guidance of the teacher",
+                    "✓ Each learner to write his/ her own work that will be marked individually, using a rubric",
+                    "NOTES: All activities must be done in class with the guidance of the teacher.",
+                    "The oral presentation may be done in the following ways: Independent, pairs or groups but marked individually with a separate rubric.",
+                    "It should be relevant to the genre chosen, e.g., poetry/ folklore/ drama/ short story.",
+                    "For example: Drama can do role-play, Poetry: Slam Poetry, etc. Preparation for the oral presentation should commence in Term 3 and executed during Term 4 for recording and reporting purposes.",
+                    "Assessment for Learning should be ongoing."
+                  ],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "CWP Stage 3 Oral Presentation / Stage 2 Writing – Guides learners to understand the creative writing project rubric/s and assessment requirements",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": "CWP STAGE 3 ORAL PRESENTATION",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•   Provides clarity regarding timelines",
+                        "•   Guides learners to read and use the research notes",
+                        "•   Reads and discusses the rubric",
+                        "•   Unpacks the criteria and descriptors in the rubric"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Read the selected genre",
+                        "•   Read and understand the rubric",
+                        "•   Read and understand the writing frame",
+                        "•   Identify the conventions specific to the genre being researched"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 13
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "CWP Stage 2 Writing – Writes/ draws/ creates the written aspect of the selected topic",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": "CWP STAGE 3 ORAL PRESENTATION",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•    Gives the learners a frame to use when writing",
+                        "•    Guides the learners on how to complete the writing frame",
+                        "•    Discusses the writing process:",
+                        "    ✓ Planning/ pre-writing",
+                        "    ✓ Drafting",
+                        "    ✓ Revising",
+                        "    ✓ Editing",
+                        "    ✓ Proofreading",
+                        "    ✓ Presenting",
+                        "•    Discusses the literary elements/ features specific to the selected genre"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Use a writing frame (if required)",
+                        "•   Edit the first draft",
+                        "•   Proofread after editing the first draft",
+                        "•   Write and present the final draft"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 14
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Reinforcement (Weeks 5-6)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": "CWP STAGE 3 ORAL PRESENTATION",
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Stems"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Simple sentences, complex sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Verb clause"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Colon"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reinforcement of language structures and conventions covered in previous weeks",
+                      "concepts": [
+                        "•   Punctuation and spelling",
+                        "•   Vocabulary in context",
+                        "•   Correct format and features",
+                        "•   Main and supporting ideas",
+                        "•   Paragraph/ visual conventions",
+                        "•   Logical progression of paragraphs/ ideas to ensure coherence",
+                        "•   Language conventions as required by the selected topics"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 14
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to a poem/s and completes a listening comprehension activity",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•    Discusses what the poem is about",
+                        "•    Relates to own experience",
+                        "•    Identifies rhyme and rhythm",
+                        "•    Identifies words which begin with the same sound",
+                        "•    Expresses feelings stimulated by the poem",
+                        "•    Performs poem/ selected stanzas"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•    Practise various listening and speaking activities",
+                        "•    Relate poem to own experience",
+                        "•    Identify rhythm and rhyme in the poem",
+                        "•    Express feelings stimulated by the poem",
+                        "•    Identify words which begin with the same sound",
+                        "•    Practise, using words that imitate their sounds, e.g., bees buzz, glass tinkles, etc. (onomatopoeia)",
+                        "•    Perform a poem/ selected stanzas"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "NOTE: Ongoing Assessment for Learning"
+                  ],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a poem/s and completes a reading comprehension",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•     Pre-reading: Predicts from title and pictures",
+                        "•     Uses reading strategies, e.g., prediction",
+                        "•     Looks at pictures carefully",
+                        "•     Uses contextual clues"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•     Identify rhythm and rhyme",
+                        "•     Break up words into syllables",
+                        "•     Express feelings stimulated by the poem read"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "• Poetry/ novelette to be read daily for a minimum of 30 minutes",
+                        "• Reflects on texts read independently",
+                        "• Relates to own context"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u15",
+                  "ordinal": 15,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes sentences that rhyme",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•    Identifies and demonstrates how words rhyme by manipulating, adding, deleting or substituting sounds in words",
+                        "•    Uses descriptive language to explain or to ask questions",
+                        "•    Recognises letters and letter-sound matches"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•    Write pairs of sentences of the same length that rhyme",
+                        "•    Use appropriate rhythm and rhyme",
+                        "•    Use knowledge of syllables to develop the rhythm and rhyme"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Personal dictionary",
+                      "concepts": [
+                        "•    Record words and their meanings in a personal dictionary",
+                        "•    Use drawings or sentences using the words or explanations to show the meaning, etc.",
+                        "•    Place new vocabulary on a word wall"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u16",
+                  "ordinal": 16,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Word meaning / Spelling and punctuation (Weeks 7-8)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Conjunctions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Statements, simple sentences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Word meaning",
+                      "concepts": [
+                        "Personification, alliteration, similes, metaphors, rhythm and rhyme"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Dictionary use, abbreviations: acronyms, truncation, initialisation"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u17",
+                  "ordinal": 17,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to an advertisement read aloud or from radio or TV",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "• Makes predictions",
+                        "• Interprets and discusses message, including the values in the text",
+                        "• Discusses the structure, language use, purpose and audience of the text"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to participate in group discussions on a social issue related to the advertisement",
+                      "concepts": [
+                        "•    Discuss social values",
+                        "•    Ask relevant questions using appropriate question forms, e.g. who, which, what, when, how, why"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [
+                    "NOTE: Ongoing Assessment for Learning"
+                  ],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 15
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u18",
+                  "ordinal": 18,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads an advertisement and completes a reading comprehension",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•    Interprets and discusses the message, including the values in the text",
+                        "•    Discusses the structure, purpose and audience of the text"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Discuss language use, including persuasive and emotive language and the economical use of language",
+                        "•   Ask relevant, critical questions using appropriate question forms, e.g., who, which, what, when, how, why",
+                        "•   Identify and discuss stereotypes",
+                        "•   Identify and discuss graphical techniques such as colour, design, choice of images, etc. and how they affect the message conveyed"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "•   Reads aloud (Drop All and Read)",
+                        "•   Group-guided reading",
+                        "•   Shared reading",
+                        "•   Paired reading",
+                        "•   Independent reading of the novelette",
+                        "•   Reads aloud with appropriate pronunciation, expression and tempo",
+                        "•   Reflects on texts read during independent/ paired reading",
+                        "•   Completes a short oral book review, using an appropriate frame"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "• Poetry/ reader to be read daily for a minimum of 30 minutes",
+                        "• Reflects on texts read independently",
+                        "• Relates to own context"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 16
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u19",
+                  "ordinal": 19,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes an advertisement",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•    Interprets and discusses the message, including the values in the text",
+                        "•    Discusses the structure, purpose and audience of the text"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Learners are to:",
+                      "concepts": [
+                        "•   Use content appropriate for the purpose and audience",
+                        "•   Use appropriate visuals and layout for the purpose",
+                        "•   Use appropriate grammar and vocabulary",
+                        "•   Use language creatively",
+                        "•   Use the dictionary to check spelling and meanings of words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Use the writing process",
+                      "concepts": [
+                        "✓ Brainstorms ideas using mind maps",
+                        "✓ Produces a first draft",
+                        "✓ Revises",
+                        "✓ Proofreads",
+                        "✓ Writes final draft",
+                        "✓ Presents neat, legible final draft"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Personal dictionary",
+                      "concepts": [
+                        "•   Records words and their meanings in a personal dictionary",
+                        "•   Uses drawings or sentences, using the words or explanations to show the meaning, etc.",
+                        "•   Places new vocabulary on a word wall"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 16
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t3-u20",
+                  "ordinal": 20,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Spelling and punctuation (Weeks 9-10)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Collective nouns, reflexive pronouns, stems, conjunctions"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Subject-verb agreement, adjectives, adverbs, verbs, similes, metaphors, idioms"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Full stop, commas, colon, semi-colon, question mark, exclamation mark, capital letters"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 16
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task 6: Creative Writing Project",
+                  "type": "Project",
+                  "term": 3,
+                  "weeks": [
+                    3,
+                    4,
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Stage 1: Research",
+                      "marks": 10,
+                      "capsStrand": null,
+                      "notes": "Creative writing project will be based on any ONE of the literature genres studied: Poetry/ folklore/ drama/ short story"
+                    },
+                    {
+                      "label": "Stage 2: Writing",
+                      "marks": 30,
+                      "capsStrand": "Writing and Presenting",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Creative writing project based on any ONE of the literature genres studied: Poetry/ folklore/ drama/ short story"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [
+                    "Creative writing project will be based on any ONE of the literature genres studied: Poetry/ folklore/ drama/ short story",
+                    "Grades 4-6 proposed amendments of weightings of 80% (SBA) and 20% (exams)"
+                  ],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 17
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 7: Oral – Oral presentation of creative writing project (20 marks)",
+                  "type": "Oral",
+                  "term": 3,
+                  "weeks": [
+                    5,
+                    6,
+                    7,
+                    8,
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Oral presentation of creative writing project",
+                      "marks": 20,
+                      "capsStrand": "Listening and Speaking",
+                      "notes": "Commence with the oral task in Term 3 and conclude in Term 4 when the marks will be recorded"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Oral presentation of creative writing project"
+                  ],
+                  "conditions": "Commence with the oral task in Term 3 and conclude in Term 4 when the marks will be recorded. There must be a variation of genres across the grades.",
+                  "rubricNotes": [
+                    "▪ Commence with the oral task in Term 3 and conclude in Term 4 when the marks will be recorded",
+                    "▪ There must be a variation of genres across the grades",
+                    "▪ Ongoing Assessment for Learning to prepare for the oral presentation in Term 4",
+                    "▪ Grades 4-6 proposed amendments of weightings of 80% (SBA) and 20% (exams)"
+                  ],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 17
+                  }
+                }
+              ]
+            },
+            "4": {
+              "term": 4,
+              "totalWeeks": 10,
+              "totalHours": null,
+              "termNotes": [],
+              "units": [
+                {
+                  "id": "EFAL-4-2023-24-t4-u1",
+                  "ordinal": 1,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to a short story",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to a short story",
+                      "concepts": [
+                        "Introductory activities",
+                        "•    Makes predictions",
+                        "•    Listens and relates to own experience",
+                        "•    Identifies specific details",
+                        "•    Keeps to the topic",
+                        "•    Identifies plot, setting and characters",
+                        "•    Answers oral questions based on the story",
+                        "•    Retells the story"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Participates in group discussions",
+                      "concepts": [
+                        "•    Takes turns to speak",
+                        "•    Stays on topic",
+                        "•    Asks relevant questions",
+                        "•    Maintains discussion",
+                        "•    Discusses the literary devices",
+                        "•    Responds to others' ideas with empathy and respect",
+                        "•    Gives balanced and constructive feedback"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Assessment for Learning – in preparation for oral presentation",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 18
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u2",
+                  "ordinal": 2,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a short story",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads a short story",
+                      "concepts": [
+                        "•    Pre-reading: Predicts from title and pictures"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "•    Uses reading strategies",
+                        "     – Skimming for main ideas and scanning for supporting details",
+                        "     – Making predictions",
+                        "     – Inferring the meaning of unfamiliar words and images",
+                        "     – Reviewing to promote understanding",
+                        "•    Understands the impact of figurative and rhetorical devises",
+                        "•    Determines the impact on visual techniques"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Literature study",
+                      "concepts": [
+                        "•    Identifies and comments on the plot, setting and characters",
+                        "•    Gives reasons for action of the characters",
+                        "•    Understands the vocabulary",
+                        "•    Identifies main and supporting ideas",
+                        "•    Identifies and discusses values in the text",
+                        "•    Discusses new vocabulary from the read text",
+                        "•    Uses a dictionary",
+                        "•    Reflects on texts read independently",
+                        "•    Retells story or main ideas in 3 to 5 sentences",
+                        "•    Expresses emotional response to texts read"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 18
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u3",
+                  "ordinal": 3,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes a short story",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes a short story",
+                      "concepts": [
+                        "•    Uses the correct format",
+                        "•    Selects appropriate content for the topic",
+                        "•    Uses topic and supporting sentences to develop coherent paragraphs",
+                        "•    Links paragraphs using connecting words and phrases",
+                        "•    Uses a variety of vocabulary",
+                        "•    Uses appropriate grammar, spelling, punctuation and spaces between paragraphs",
+                        "•    Uses the dictionary to check spelling and meanings of words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓ Brainstorms ideas using mind maps",
+                        "✓ Produces first draft",
+                        "✓ Revises",
+                        "✓ Proofreads",
+                        "✓ Writes final draft",
+                        "✓ Presents neat, legible final draft with correct spacing between paragraphs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 18
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u4",
+                  "ordinal": 4,
+                  "weeks": [
+                    1,
+                    2
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Spelling and punctuation (Weeks 1-2)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Adverbs of place and degree, tenses, conjunctions, pronouns (focus on concepts that have been covered)"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Noun phrase, noun clause"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Capital letters, full stop, comma, word division"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 18
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u5",
+                  "ordinal": 5,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to a play/ drama read aloud or from radio or TV",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Listens to a play/ drama read aloud or from radio or TV",
+                      "concepts": [
+                        "•    Predicts from the title",
+                        "•    Retells the drama in sequence",
+                        "•    Names characters correctly",
+                        "•    Role-plays a character or a familiar situation",
+                        "•    Selects appropriate content",
+                        "•    Uses details accurately",
+                        "•    Expresses thoughts and feelings",
+                        "•    Stays on topic",
+                        "•    Shows awareness of social differences"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Assessment for Learning – in preparation for oral presentation",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u6",
+                  "ordinal": 6,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads a play or drama and completes a reading comprehension",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads a play or drama and completes a reading comprehension",
+                      "concepts": [
+                        "•   Pre-reading: Predicting from title",
+                        "•   Uses reading strategies",
+                        "•   Identifies the storyline",
+                        "•   Discusses characters and setting",
+                        "•   Expresses feelings stimulated by the text",
+                        "•   Discusses features of the text, especially punctuation and format",
+                        "•   Acts out the play or a short section of the play"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading methodologies",
+                      "concepts": [
+                        "Read aloud/ Drop all and read/ group guided/ shared/ paired/ independent reading of novelette"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u7",
+                  "ordinal": 7,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes a dialogue",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes a dialogue",
+                      "concepts": [
+                        "•    Selects appropriate characters",
+                        "•    Organises the conversation logically",
+                        "•    Uses the frame correctly",
+                        "•    Uses direct speech appropriately",
+                        "•    Uses a variety of vocabulary",
+                        "•    Uses appropriate grammar, spelling, punctuation and spacing",
+                        "•    Records words and their meanings in a personal dictionary"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓ Brainstorms ideas, using mind maps",
+                        "✓ Produces a first draft",
+                        "✓ Revises",
+                        "✓ Proofreads",
+                        "✓ Writes the final draft",
+                        "✓ Presents neat, legible final draft"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses a dictionary for spelling and vocabulary development.",
+                        "Uses reading log/ card to manage reading progress"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u8",
+                  "ordinal": 8,
+                  "weeks": [
+                    3,
+                    4
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Spelling and punctuation (Weeks 3-4)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Collective nouns, reflexive pronouns, stems"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Subject-verb agreement, direct and indirect speech"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Full stop, comma, colon, semi-colon, question mark"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u9",
+                  "ordinal": 9,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Listens to and discusses current issues based on newspaper or magazine article",
+                  "capsStrand": "Listening and Speaking",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Introductory activities",
+                      "concepts": [
+                        "•     Makes predictions",
+                        "•     Listens for specific details",
+                        "•     Identifies the main message",
+                        "•     Relates to own life",
+                        "•     Discusses the main ideas and specific detail",
+                        "•     Uses information from the text in response to the questions",
+                        "•     Discusses the social, moral and cultural values in the text",
+                        "•     Participates in a class / teacher-led discussion"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Presents a prepared speech",
+                      "concepts": [
+                        "•     Selects relevant content",
+                        "•     Uses beginning, middle and ending",
+                        "•     Stays on topic",
+                        "•     Uses logical organisation of ideas",
+                        "•     Uses presentation skills, e.g., volume, pause, posture"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Assessment for Learning – in preparation for oral presentation",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u10",
+                  "ordinal": 10,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Reads newspaper or magazine article",
+                  "capsStrand": "Reading and Viewing",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Reads newspaper or magazine article",
+                      "concepts": [
+                        "•    Pre-reading: Predicting from title and pictures"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for meaning",
+                      "concepts": [
+                        "•    Uses reading strategies, e.g., makes predictions, uses contextual clues to find meaning, skims for general idea",
+                        "•    Uses headline, by-line, lead paragraph, answers to who, what, where, when, why and how",
+                        "•    Discusses headlines",
+                        "•    Discusses central idea and specific details",
+                        "•    Comments on choice of pictures in text",
+                        "•    Explains meaning of unfamiliar words"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reflects on texts read during independent/ pair reading",
+                      "concepts": [
+                        "• Retells story or explains main ideas",
+                        "• Expresses emotional response to texts read"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Reading for enjoyment",
+                      "concepts": [
+                        "Novel/ reader to be read daily for at least 30 minutes"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u11",
+                  "ordinal": 11,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Writes a summary of a newspaper report",
+                  "capsStrand": "Writing and Presenting",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Writes a summary of a newspaper report",
+                      "concepts": [
+                        "•    Uses headline, by-line, lead paragraph, answers to who, what, where, when, why and how",
+                        "•    Selects appropriate content",
+                        "•    Uses an appropriate frame",
+                        "•    Writes a headline/title",
+                        "•    Sequences events correctly",
+                        "•    Uses appropriate vocabulary",
+                        "•    Uses appropriate grammar, spelling and punctuation",
+                        "•    Corrects spelling using a dictionary."
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Uses the writing process",
+                      "concepts": [
+                        "✓ Planning/ pre-writing,",
+                        "✓ Drafting,",
+                        "✓ Revising,",
+                        "✓ Editing,",
+                        "✓ Proofreading, and",
+                        "✓ Presenting"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Additional",
+                      "concepts": [
+                        "Records words and their meanings in a personal dictionary or word wall.",
+                        "Uses drawings or sentences using the words or explanations to show the meaning, etc.",
+                        "Uses reading log/ card to manage reading progress."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u12",
+                  "ordinal": 12,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Language Structures and Conventions: Word level / Sentence level / Spelling and punctuation (Weeks 5-6)",
+                  "capsStrand": "Language Structures and Conventions",
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Word level work",
+                      "concepts": [
+                        "Adjectives, verbs: main verbs, regular verbs, transitive and intransitive verbs"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Sentence level work",
+                      "concepts": [
+                        "Subject, object, subject-verb agreement, present tense"
+                      ],
+                      "children": []
+                    },
+                    {
+                      "heading": "Spelling and punctuation",
+                      "concepts": [
+                        "Full stop, comma, question mark, exclamation mark, etc."
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u13",
+                  "ordinal": 13,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "Revision / Formal assessment of the oral presentation",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": true,
+                  "isAssessmentSlot": false,
+                  "subtopics": [
+                    {
+                      "heading": "Revision",
+                      "concepts": [],
+                      "children": []
+                    },
+                    {
+                      "heading": "Formal assessment of the oral presentation",
+                      "concepts": [],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "id": "EFAL-4-2023-24-t4-u14",
+                  "ordinal": 14,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "hours": null,
+                  "durationLabel": null,
+                  "topic": "FORMAL ASSESSMENT TASK 9: END-OF-THE-YEAR CONTROLLED TEST – RESPONSE TO TEXTS (40 marks)",
+                  "capsStrand": null,
+                  "subStrand": null,
+                  "isRevision": false,
+                  "isAssessmentSlot": true,
+                  "subtopics": [
+                    {
+                      "heading": "FORMAL ASSESSMENT TASK 9: END-OF-THE-YEAR CONTROLLED TEST RESPONSE TO TEXTS (40 marks)",
+                      "concepts": [
+                        "Question 1: Literary / non-literary text comprehension (15 marks)",
+                        "Question 2: Visual text comprehension (10 marks)",
+                        "Question 3: Summary writing (5 marks)",
+                        "Question 4: Language structures and conventions (10 marks)"
+                      ],
+                      "children": []
+                    }
+                  ],
+                  "prerequisites": [],
+                  "resources": [],
+                  "informalAssessment": [],
+                  "notes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 21
+                  }
+                }
+              ],
+              "formalAssessment": [
+                {
+                  "label": "Formal Assessment Task 7: Oral – Oral presentation (20 marks) [continuation from Term 3]",
+                  "type": "Oral",
+                  "term": 4,
+                  "weeks": [
+                    7,
+                    8
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 20,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Oral presentation",
+                      "marks": 20,
+                      "capsStrand": "Listening and Speaking",
+                      "notes": "This task is a continuation from Term 3. It will be completed and recorded in Term 4."
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Oral presentation of creative writing project"
+                  ],
+                  "conditions": "This task is a continuation from Term 3. It will be completed and recorded in Term 4.",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 19
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 8: Writing – Transactional writing (10 marks)",
+                  "type": "Assignment",
+                  "term": 4,
+                  "weeks": [
+                    5,
+                    6
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 10,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Transactional writing",
+                      "marks": 10,
+                      "capsStrand": "Writing and Presenting",
+                      "notes": "Written before the controlled test"
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Transactional writing"
+                  ],
+                  "conditions": "Written before the end-of-the-year controlled test",
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 20
+                  }
+                },
+                {
+                  "label": "Formal Assessment Task 9: End-of-the-Year Controlled Test – Response to Texts (40 marks)",
+                  "type": "Examination",
+                  "term": 4,
+                  "weeks": [
+                    9,
+                    10
+                  ],
+                  "minMarks": null,
+                  "maxMarks": null,
+                  "totalMarks": 40,
+                  "weightingPercent": null,
+                  "sections": [
+                    {
+                      "label": "Question 1: Literary / non-literary text comprehension",
+                      "marks": 15,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": null
+                    },
+                    {
+                      "label": "Question 2: Visual text comprehension",
+                      "marks": 10,
+                      "capsStrand": "Reading and Viewing",
+                      "notes": null
+                    },
+                    {
+                      "label": "Question 3: Summary writing",
+                      "marks": 5,
+                      "capsStrand": "Writing and Presenting",
+                      "notes": null
+                    },
+                    {
+                      "label": "Question 4: Language structures and conventions",
+                      "marks": 10,
+                      "capsStrand": "Language Structures and Conventions",
+                      "notes": null
+                    }
+                  ],
+                  "topicsCovered": [
+                    "Literary / non-literary text comprehension",
+                    "Visual text comprehension",
+                    "Summary writing",
+                    "Language structures and conventions"
+                  ],
+                  "conditions": null,
+                  "rubricNotes": [],
+                  "source": {
+                    "pdf": "1.040 ATP 2023-24 Gr 4 English FAL final.pdf",
+                    "page": 21
+                  }
+                }
+              ]
+            }
+          },
+          "yearOverview": null,
+          "notes": [
+            "CAPS: FORMAL ASSESSMENT TASKS: FIRST ADDITIONAL LANGUAGES (FAL): GRADE 4 – During the year: Six (6) formal assessment tasks; 1 oral task (Read Aloud across Semester 1); 3 writing tasks; 1 response to texts; 1 June controlled test. Examination: 1 oral task: Presentation on the creative writing project (Semester 2); 1 transactional writing task; 1 end-of-the-year controlled test.",
+            "Grades 4-6 proposed amendments of weightings of 80% (SBA) and 20% (exams)"
+          ]
+        }
+      },
       "5": {
         "2023-24": {
           "subject": "English First Additional Language",
