@@ -11,6 +11,7 @@ import { resourceSchema, assertResource } from '../schema/resource.schema.js';
 import { buildLessonContextBlock } from '../lib/atp-prompt.js';
 import { getPacingUnitsSlim, getPacingUnitById } from '../lib/atp.js';
 import { renderLessonPptx } from '../lib/pptx-builder.js';
+import { __internals as generateInternals } from '../api/generate.js';
 
 // ─── A minimal valid Lesson resource for invariant testing. ───────────────
 function makeLesson(overrides = {}) {
@@ -282,8 +283,23 @@ describe('buildLessonContextBlock', () => {
     for (const phase of ['Introduction', 'Direct Teaching', 'Guided Practice', 'Independent Work', 'Consolidation']) {
       assert.ok(text.includes(phase), `expected phase "${phase}" in prompt`);
     }
-    assert.match(text, /worksheetRef:true/);
+    assert.match(text, /worksheetRef: true/);
     assert.match(text, /sections\+memo/);
+  });
+
+  test('hoists the two non-schema-enforceable rules to a HARD RULES block', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English').join('\n');
+    // Hard-rules header appears before the field list — the model needs to
+    // see these rules first, not buried inside the slides bullet list.
+    const hardRulesIdx = text.indexOf('HARD RULES');
+    const requiredFieldsIdx = text.indexOf('Required fields');
+    assert.ok(hardRulesIdx > 0 && requiredFieldsIdx > hardRulesIdx,
+      'HARD RULES must come before "Required fields"');
+    assert.match(text, /HARD RULE 1.*worksheetRef/i);
+    assert.match(text, /HARD RULE 2.*layout:"title"/i);
+    // Self-check checklist tells the model to count before emitting.
+    assert.match(text, /count phases with worksheetRef:true/);
+    assert.match(text, /count slides with layout:"title"/);
   });
 
   test('localises phase names in Afrikaans', () => {
@@ -348,6 +364,57 @@ describe('getPacingUnitById', () => {
 
   test('returns null for unknown id', () => {
     assert.equal(getPacingUnitById('Mathematics', 4, 'no-such-unit-id'), null);
+  });
+});
+
+describe('buildTargetedRemediation', () => {
+  const { buildTargetedRemediation } = generateInternals;
+
+  test('returns empty string when no targetable errors are present', () => {
+    const out = buildTargetedRemediation(
+      [{ path: 'sections[0].questions[0].topic', message: 'unknown topic' }],
+      { language: 'English', lessonMinutes: 45 },
+    );
+    assert.equal(out, '');
+  });
+
+  test('emits worksheetRef remediation when that error is present', () => {
+    const out = buildTargetedRemediation(
+      [{ path: 'lesson.phases[*].worksheetRef', message: 'exactly one phase must have worksheetRef:true (found 0)' }],
+      { language: 'English', lessonMinutes: 45 },
+    );
+    assert.match(out, /REMEDIATION \(worksheetRef\)/);
+    assert.match(out, /Independent Work/);
+    assert.match(out, /worksheetRef: true/);
+  });
+
+  test('emits title-slide remediation when that error is present', () => {
+    const out = buildTargetedRemediation(
+      [{ path: 'lesson.slides[*].layout', message: 'exactly one slide must be layout:"title" (found 0)' }],
+      { language: 'English', lessonMinutes: 45 },
+    );
+    assert.match(out, /REMEDIATION \(title slide\)/);
+    assert.match(out, /layout: "title"/);
+  });
+
+  test('localises the worksheetRef remediation phase name in Afrikaans', () => {
+    const out = buildTargetedRemediation(
+      [{ path: 'lesson.phases[*].worksheetRef', message: 'exactly one phase must have worksheetRef:true (found 0)' }],
+      { language: 'Afrikaans', lessonMinutes: 45 },
+    );
+    assert.match(out, /Onafhanklike Werk/);
+  });
+
+  test('emits multiple remediations when multiple targetable errors are present', () => {
+    const out = buildTargetedRemediation(
+      [
+        { path: 'lesson.phases[*].worksheetRef', message: 'exactly one phase must have worksheetRef:true (found 0)' },
+        { path: 'lesson.slides[*].layout', message: 'exactly one slide must be layout:"title" (found 0)' },
+      ],
+      { language: 'English', lessonMinutes: 60 },
+    );
+    assert.match(out, /REMEDIATION \(worksheetRef\)/);
+    assert.match(out, /REMEDIATION \(title slide\)/);
   });
 });
 
