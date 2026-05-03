@@ -352,29 +352,23 @@ function buildUserPrompt(ctx) {
  * Returned as a string (possibly empty) appended to the corrective-feedback
  * retry prompt, alongside the raw error list.
  *
- * Live testing showed Sonnet 4.6 silently dropping the two non-schema-
- * enforceable lesson rules (worksheetRef, title-slide layout) on every
- * attempt unless given explicit "do X to fix Y" instructions — the bare
- * error message wasn't enough to break the loop.
+ * The two original Lesson rules (worksheetRef, title-slide layout) are now
+ * inferred by the renderers when missing, so they no longer surface here.
+ * Only retained tips are for genuinely non-recoverable errors the model
+ * needs to fix — phase-minute drift, mark-sum drift, etc.
  */
 function buildTargetedRemediation(errors, ctx) {
   const tips = [];
   const has = (substr) => errors.some((e) => String(e.path || '').includes(substr) || String(e.message || '').includes(substr));
 
-  if (has('worksheetRef')) {
-    const phaseName = ctx?.language === 'Afrikaans' ? 'Onafhanklike Werk' : 'Independent Work';
-    tips.push(
-      `REMEDIATION (worksheetRef): in lesson.phases, find the "${phaseName}" phase (the 4th phase) and add the field \`worksheetRef: true\` to that phase object. Do NOT add worksheetRef to any other phase — OMIT the field on phases 1, 2, 3 and 5. The validator counts phases where worksheetRef === true; that count MUST be exactly 1.`,
-    );
-  }
-  if (has('slides[*].layout') || has('layout:"title"') || has('title slide must be')) {
-    tips.push(
-      `REMEDIATION (title slide): in lesson.slides, the slide with the lowest ordinal (typically ordinal:1) MUST have \`layout: "title"\`. If your previous draft used a different layout for the first slide, change it to "title". No other slide may use layout:"title". Other slides choose from "objectives", "vocabulary", "concept", "example", "practice", "diagram", "exitTicket".`,
-    );
-  }
   if (has('phases[*].minutes')) {
     tips.push(
       `REMEDIATION (phase minutes): the sum of all lesson.phases[*].minutes MUST equal lesson.lessonMinutes within ±5. Recalculate per-phase minutes so they add up to ${ctx?.lessonMinutes ?? 'the requested length'}.`,
+    );
+  }
+  if (has('sum(leaf.marks)')) {
+    tips.push(
+      `REMEDIATION (mark sum): the sum of leaf marks across all sections MUST equal meta.totalMarks=${ctx?.totalMarks ?? 'the requested total'}. Adjust mark allocations on individual leaves so the sum is exact.`,
     );
   }
   return tips.length ? `\n${tips.join('\n\n')}\n` : '';
