@@ -810,7 +810,17 @@ export function assertResource(resource) {
   // (11) Lesson invariants — only checked when resourceType is 'Lesson'.
   //   • lesson branch must be present
   //   • sum(phases[*].minutes) within ±5 of lesson.lessonMinutes
-  //   • exactly one phase has worksheetRef:true (the in-class worksheet slot)
+  //
+  // We DO NOT enforce "exactly one phase has worksheetRef:true" or
+  // "exactly one slide has layout:'title'" any more. Live testing showed
+  // Sonnet 4.6 dropping both fields on every retry, so the renderer now
+  // infers them: lib/render.js treats any phase whose name matches the
+  // 'Independent Work' / 'Onafhanklike Werk' label as the worksheet
+  // phase when no phase explicitly carries worksheetRef:true, and
+  // lib/pptx-builder.js renders the lowest-ordinal slide as the title
+  // when no slide explicitly declares layout:"title". The schema still
+  // allows the explicit fields, so a future model that complies works
+  // unchanged — we just don't fail validation when they're omitted.
   if (meta.resourceType === 'Lesson') {
     const lesson = resource.lesson;
     if (!lesson) {
@@ -822,26 +832,20 @@ export function assertResource(resource) {
       if (Math.abs(phaseSum - target) > 5) {
         err('lesson.phases[*].minutes', `sum=${phaseSum}, expected within ±5 of lesson.lessonMinutes=${target}`);
       }
-      const worksheetPhases = phases.filter((p) => p.worksheetRef === true).length;
-      if (worksheetPhases !== 1) {
-        err('lesson.phases[*].worksheetRef', `exactly one phase must have worksheetRef:true (found ${worksheetPhases})`);
-      }
 
       // (12) Slide invariants:
-      //   • slides exist (schema enforces minItems:5)
       //   • ordinals are unique
-      //   • exactly one title-layout slide, and it is first (ordinal 1)
       //   • diagram-layout slides must carry a stimulusRef that resolves
+      //   • at most ONE slide may have layout:"title" (never enforce that
+      //     one exists — the renderer infers from ordinal when absent)
       const slides = Array.isArray(lesson.slides) ? lesson.slides : [];
       const ordinals = slides.map((s) => s.ordinal);
       if (new Set(ordinals).size !== ordinals.length) {
         err('lesson.slides[*].ordinal', 'ordinals must be unique');
       }
-      const titleSlides = slides.filter((s) => s.layout === 'title');
-      if (titleSlides.length !== 1) {
-        err('lesson.slides[*].layout', `exactly one slide must be layout:"title" (found ${titleSlides.length})`);
-      } else if (titleSlides[0].ordinal !== Math.min(...ordinals)) {
-        err('lesson.slides[*]', 'the title slide must be the first slide (lowest ordinal)');
+      const titleSlides = slides.filter((s) => s.layout === 'title').length;
+      if (titleSlides > 1) {
+        err('lesson.slides[*].layout', `at most one slide may be layout:"title" (found ${titleSlides})`);
       }
       slides.forEach((s, i) => {
         if (s.layout === 'diagram') {

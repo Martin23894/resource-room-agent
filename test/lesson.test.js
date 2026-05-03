@@ -12,6 +12,7 @@ import { buildLessonContextBlock } from '../lib/atp-prompt.js';
 import { getPacingUnitsSlim, getPacingUnitById } from '../lib/atp.js';
 import { renderLessonPptx } from '../lib/pptx-builder.js';
 import { __internals as generateInternals } from '../api/generate.js';
+import { __internals as renderInternals } from '../lib/render.js';
 
 // ─── A minimal valid Lesson resource for invariant testing. ───────────────
 function makeLesson(overrides = {}) {
@@ -172,22 +173,14 @@ describe('Lesson schema invariants', () => {
     assert.ok(result.errors.some((e) => e.path.includes('phases[*].minutes')));
   });
 
-  test('exactly one phase must have worksheetRef:true', () => {
+  test('zero phases with worksheetRef is FINE — the renderer infers', () => {
+    // The renderer falls back to phase-name match (then phase #4) when no
+    // phase explicitly carries worksheetRef:true. Lenient validator must
+    // not fail in that case.
     const r = makeLesson();
-    // Two worksheet phases — invalid.
-    r.lesson.phases[3].worksheetRef = true;
-    r.lesson.phases[2].worksheetRef = true;
+    delete r.lesson.phases[3].worksheetRef;
     const result = assertResource(r);
-    assert.equal(result.ok, false);
-    assert.ok(result.errors.some((e) => e.path.includes('worksheetRef')));
-  });
-
-  test('zero worksheet phases is invalid', () => {
-    const r = makeLesson();
-    r.lesson.phases[3].worksheetRef = false;
-    const result = assertResource(r);
-    assert.equal(result.ok, false);
-    assert.ok(result.errors.some((e) => e.path.includes('worksheetRef')));
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
   });
 
   test('non-Lesson resources do not require the lesson branch', () => {
@@ -199,30 +192,19 @@ describe('Lesson schema invariants', () => {
 });
 
 describe('Lesson slides invariants', () => {
-  test('exactly one title slide is required', () => {
+  test('zero title slides is FINE — the renderer treats slide 1 as title', () => {
     const r = makeLesson();
-    // Drop the title layout — make slide 1 a 'concept' instead.
-    r.lesson.slides[0].layout = 'concept';
+    r.lesson.slides[0].layout = 'concept'; // no slide carries layout:"title"
     const result = assertResource(r);
-    assert.equal(result.ok, false);
-    assert.ok(result.errors.some((e) => /slides\[\*\]\.layout/.test(e.path)));
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
   });
 
-  test('two title slides is invalid', () => {
+  test('two title slides is invalid (at most one is allowed)', () => {
     const r = makeLesson();
     r.lesson.slides[2].layout = 'title';
     const result = assertResource(r);
     assert.equal(result.ok, false);
-  });
-
-  test('the title slide must be first', () => {
-    const r = makeLesson();
-    // Move the title to ordinal 5.
-    r.lesson.slides[0].layout = 'concept';
-    r.lesson.slides[4].layout = 'title';
-    const result = assertResource(r);
-    assert.equal(result.ok, false);
-    assert.ok(result.errors.some((e) => /title slide must be the first/.test(e.message)));
+    assert.ok(result.errors.some((e) => /at most one slide may be layout:"title"/.test(e.message)));
   });
 
   test('ordinals must be unique', () => {
@@ -283,23 +265,18 @@ describe('buildLessonContextBlock', () => {
     for (const phase of ['Introduction', 'Direct Teaching', 'Guided Practice', 'Independent Work', 'Consolidation']) {
       assert.ok(text.includes(phase), `expected phase "${phase}" in prompt`);
     }
-    assert.match(text, /worksheetRef: true/);
     assert.match(text, /sections\+memo/);
   });
 
-  test('hoists the two non-schema-enforceable rules to a HARD RULES block', () => {
+  test('mentions worksheetRef and title-slide as soft conventions, not hard rules', () => {
     const text = buildLessonContextBlock(UNIT, 45, 'English').join('\n');
-    // Hard-rules header appears before the field list — the model needs to
-    // see these rules first, not buried inside the slides bullet list.
-    const hardRulesIdx = text.indexOf('HARD RULES');
-    const requiredFieldsIdx = text.indexOf('Required fields');
-    assert.ok(hardRulesIdx > 0 && requiredFieldsIdx > hardRulesIdx,
-      'HARD RULES must come before "Required fields"');
-    assert.match(text, /HARD RULE 1.*worksheetRef/i);
-    assert.match(text, /HARD RULE 2.*layout:"title"/i);
-    // Self-check checklist tells the model to count before emitting.
-    assert.match(text, /count phases with worksheetRef:true/);
-    assert.match(text, /count slides with layout:"title"/);
+    // Both fields are mentioned (so a compliant model still gets credit)…
+    assert.match(text, /worksheetRef/);
+    assert.match(text, /layout: "title"|layout:"title"/);
+    // …but the prompt frames them as conventions, not rejection-causing rules.
+    assert.match(text, /auto-inferred when omitted/);
+    // No HARD RULES block any more (the renderers infer instead).
+    assert.ok(!/HARD RULE/.test(text), 'HARD RULE language should be gone');
   });
 
   test('localises phase names in Afrikaans', () => {
@@ -367,6 +344,52 @@ describe('getPacingUnitById', () => {
   });
 });
 
+describe('pickWorksheetPhaseIndex (DOCX renderer fallback)', () => {
+  const { pickWorksheetPhaseIndex } = renderInternals;
+  const phases = (names) => names.map((n) => ({ name: n, minutes: 5,
+    teacherActions: ['x'], learnerActions: ['y'] }));
+
+  test('prefers an explicit worksheetRef:true phase', () => {
+    const ps = phases(['Introduction', 'Direct Teaching', 'Guided Practice', 'Independent Work', 'Consolidation']);
+    ps[1].worksheetRef = true;
+    assert.equal(pickWorksheetPhaseIndex(ps), 1);
+  });
+
+  test('falls back to the "Independent Work" phase by name', () => {
+    const ps = phases(['Introduction', 'Direct Teaching', 'Guided Practice', 'Independent Work', 'Consolidation']);
+    assert.equal(pickWorksheetPhaseIndex(ps), 3);
+  });
+
+  test('falls back to the Afrikaans label "Onafhanklike Werk"', () => {
+    const ps = phases(['Inleiding', 'Direkte Onderrig', 'Begeleide Oefening', 'Onafhanklike Werk', 'Konsolidasie']);
+    assert.equal(pickWorksheetPhaseIndex(ps), 3);
+  });
+
+  test('falls back to phase #4 when no explicit + no name match', () => {
+    const ps = phases(['One', 'Two', 'Three', 'Four', 'Five']);
+    assert.equal(pickWorksheetPhaseIndex(ps), 3);
+  });
+
+  test('returns -1 for empty / missing input', () => {
+    assert.equal(pickWorksheetPhaseIndex([]), -1);
+    assert.equal(pickWorksheetPhaseIndex(undefined), -1);
+  });
+});
+
+describe('PPTX renderer infers a title slide when none is declared', () => {
+  test('renders a Lesson with no layout:"title" slide', async () => {
+    const r = makeLesson();
+    // Strip the explicit title — give slide #1 a different layout.
+    r.lesson.slides[0].layout = 'concept';
+    // Validator must still pass under the lenient rules.
+    const validation = assertResource(r);
+    assert.equal(validation.ok, true, JSON.stringify(validation.errors));
+    // PPTX render must succeed and produce a non-trivial deck.
+    const b64 = await renderLessonPptx(r);
+    assert.ok(b64.length > 1000, 'expected non-trivial PPTX bytes');
+  });
+});
+
 describe('buildTargetedRemediation', () => {
   const { buildTargetedRemediation } = generateInternals;
 
@@ -378,43 +401,23 @@ describe('buildTargetedRemediation', () => {
     assert.equal(out, '');
   });
 
-  test('emits worksheetRef remediation when that error is present', () => {
+  test('emits phase-minutes remediation when that error is present', () => {
     const out = buildTargetedRemediation(
-      [{ path: 'lesson.phases[*].worksheetRef', message: 'exactly one phase must have worksheetRef:true (found 0)' }],
+      [{ path: 'lesson.phases[*].minutes', message: 'sum=20, expected within ±5 of lesson.lessonMinutes=45' }],
       { language: 'English', lessonMinutes: 45 },
     );
-    assert.match(out, /REMEDIATION \(worksheetRef\)/);
-    assert.match(out, /Independent Work/);
-    assert.match(out, /worksheetRef: true/);
+    assert.match(out, /REMEDIATION \(phase minutes\)/);
+    assert.match(out, /MUST equal lesson\.lessonMinutes within \xB15/);
+    assert.match(out, /add up to 45/);
   });
 
-  test('emits title-slide remediation when that error is present', () => {
+  test('emits mark-sum remediation when that error is present', () => {
     const out = buildTargetedRemediation(
-      [{ path: 'lesson.slides[*].layout', message: 'exactly one slide must be layout:"title" (found 0)' }],
-      { language: 'English', lessonMinutes: 45 },
+      [{ path: 'sum(leaf.marks)', message: '12, expected meta.totalMarks=10' }],
+      { language: 'English', lessonMinutes: 45, totalMarks: 10 },
     );
-    assert.match(out, /REMEDIATION \(title slide\)/);
-    assert.match(out, /layout: "title"/);
-  });
-
-  test('localises the worksheetRef remediation phase name in Afrikaans', () => {
-    const out = buildTargetedRemediation(
-      [{ path: 'lesson.phases[*].worksheetRef', message: 'exactly one phase must have worksheetRef:true (found 0)' }],
-      { language: 'Afrikaans', lessonMinutes: 45 },
-    );
-    assert.match(out, /Onafhanklike Werk/);
-  });
-
-  test('emits multiple remediations when multiple targetable errors are present', () => {
-    const out = buildTargetedRemediation(
-      [
-        { path: 'lesson.phases[*].worksheetRef', message: 'exactly one phase must have worksheetRef:true (found 0)' },
-        { path: 'lesson.slides[*].layout', message: 'exactly one slide must be layout:"title" (found 0)' },
-      ],
-      { language: 'English', lessonMinutes: 60 },
-    );
-    assert.match(out, /REMEDIATION \(worksheetRef\)/);
-    assert.match(out, /REMEDIATION \(title slide\)/);
+    assert.match(out, /REMEDIATION \(mark sum\)/);
+    assert.match(out, /meta.totalMarks=10/);
   });
 });
 
