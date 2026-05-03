@@ -926,5 +926,15 @@ export function narrowSchemaForRequest(ctx) {
   const ans = s.$defs.memo.properties.answers.items.properties;
   ans.cognitiveLevel = { ...ans.cognitiveLevel, enum: cognitiveLevels };
 
+  // For Lesson requests, the `lesson` branch becomes top-level REQUIRED.
+  // Without this, Anthropic's tool API treats lesson as optional (it's
+  // only listed in `properties`, not the base `required` array) and the
+  // model has been omitting the entire lesson branch — producing a paper
+  // that looks identical to a Worksheet/Test. Promoting `lesson` to the
+  // schema's required list rejects any tool call that skips it.
+  if (resourceType === 'Lesson') {
+    s.required = [...s.required, 'lesson'];
+  }
+
   return s;
 }
