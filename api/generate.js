@@ -18,10 +18,12 @@ import {
   getPacingUnits,
   getPacingFormalAssessments,
   getPacingUnitById,
+  getOutOfScopePacingUnits,
 } from '../lib/atp.js';
 import {
   buildCapsReferenceBlock,
   buildAssessmentStructureBlock,
+  buildOutOfScopeBlock,
   formatSubtopics,
   formatPacingUnit,
   formatFormalAssessmentStructure,
@@ -117,6 +119,11 @@ function buildContext(req) {
   const pacingFormalAssessments = isLesson
     ? []
     : getPacingFormalAssessments(subject, grade, term, isExamType);
+  // Units in OTHER terms — used to tell the model what NOT to test. Empty
+  // for Lessons (single-unit scope) and for Final Exams (cover all 4 terms).
+  const outOfScopePacingUnits = isLesson
+    ? []
+    : getOutOfScopePacingUnits(subject, grade, term, isExamType);
 
   // For a Lesson, the "duration" tracked by meta is still in marks — the
   // worksheet's marks. The lesson's classroom length lives in lesson.lessonMinutes.
@@ -131,7 +138,7 @@ function buildContext(req) {
     frameworkName, cogLevels,
     cognitiveLevelNames: cogLevels.map((l) => l.name),
     coversTerms, topics,
-    pacingUnits, pacingFormalAssessments,
+    pacingUnits, pacingFormalAssessments, outOfScopePacingUnits,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonMinutes,
   };
@@ -154,7 +161,7 @@ function buildSystemPrompt(ctx) {
   const {
     subject, grade, term, language, resourceType, totalMarks, difficulty,
     frameworkName, cogLevels, coversTerms, topics,
-    pacingUnits, pacingFormalAssessments,
+    pacingUnits, pacingFormalAssessments, outOfScopePacingUnits,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonMinutes,
   } = ctx;
@@ -196,6 +203,7 @@ function buildSystemPrompt(ctx) {
     ``,
     ...buildCapsReferenceBlock(pacingUnits),
     ...buildAssessmentStructureBlock(pacingFormalAssessments, resourceType, totalMarks),
+    ...(isLesson ? [] : buildOutOfScopeBlock(outOfScopePacingUnits || [])),
     ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language) : []),
     `## Cognitive framework: ${frameworkName}`,
     `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,

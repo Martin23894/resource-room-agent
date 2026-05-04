@@ -157,19 +157,61 @@ describe('formatFormalAssessmentStructure', () => {
     assert.match(out, /Conditions: Completed in class within 90 minutes/);
   });
 
-  test('skips assessments whose total is far from the requested totalMarks', () => {
+  test('returns null when no assessment is within the mark-tolerance band', () => {
+    // The 2026-05 matcher rewrite (lib/atp-prompt.js) disqualifies any
+    // assessment whose totalMarks is more than 40% off from the request,
+    // because the previous fallback-to-first-assessment behaviour was
+    // emitting a 20-mark Oral structure as the canonical shape for a
+    // 60-mark Test — misleading the model. Correct behaviour: when
+    // nothing qualifies, return null and let the prompt skip the
+    // structure block rather than over-prescribe.
     const oral = {
       label: 'Oral',
       totalMarks: 20,
+      type: 'Oral',
       sections: [{ label: 'Read Aloud', marks: 20, capsStrand: 'Listening and Speaking' }],
     };
-    // Asking for a 60-mark Test should not match a 20-mark Oral (>40% off).
+    // 60-mark Test vs 20-mark Oral: ratio = 0.667 > 0.4 → disqualified.
     const out = formatFormalAssessmentStructure([oral], 'Test', 60);
-    // First-pass tolerant match fails, fallback returns assessments[0],
-    // which still has sections — so we DO emit the structure (the
-    // fallback is intentional so we never silently emit nothing when
-    // some structure is available).
-    assert.ok(out, 'fallback should return the only available assessment');
+    assert.equal(out, null);
+  });
+
+  test('prefers comprehensive Examination shape over narrower Test when both fit', () => {
+    // Reproduces the wife's English HL Gr6 T2 scenario from
+    // docs/teacher-feedback-2026-05.md: TWO 50-mark formal assessments
+    // exist (a 3-section "Test: Response to Texts" and a 4-section
+    // "Examination: June Controlled Test"). The wife wanted the 4-section
+    // structure (20+10+5+15) for her Term 2 Test paper. Pre-fix the
+    // matcher picked the first-listed candidate (Task 3); post-fix it
+    // prefers Examination type + more sections.
+    const responseToTexts = {
+      label: 'Task 3: Response to Texts',
+      type: 'Test',
+      totalMarks: 50,
+      sections: [
+        { label: 'Literary text', marks: 20, capsStrand: 'Reading and Viewing' },
+        { label: 'Visual text', marks: 10, capsStrand: 'Reading and Viewing' },
+        { label: 'Language structures', marks: 20, capsStrand: 'Language Structures and Conventions' },
+      ],
+    };
+    const juneControlledTest = {
+      label: 'Task 5: June Controlled Test',
+      type: 'Examination',
+      totalMarks: 50,
+      sections: [
+        { label: 'Literary text', marks: 20, capsStrand: 'Reading and Viewing' },
+        { label: 'Visual text', marks: 10, capsStrand: 'Reading and Viewing' },
+        { label: 'Summary writing', marks: 5, capsStrand: 'Writing and Presenting' },
+        { label: 'Language structures', marks: 15, capsStrand: 'Language Structures and Conventions' },
+      ],
+    };
+    const out = formatFormalAssessmentStructure(
+      [responseToTexts, juneControlledTest],
+      'Test', 50,
+    );
+    assert.match(out, /June Controlled Test/);
+    assert.match(out, /Summary writing.*5 marks/);
+    assert.match(out, /Language structures.*15 marks/);
   });
 });
 
