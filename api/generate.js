@@ -555,7 +555,16 @@ export async function generate(req, opts = {}) {
 
     const resource = unwrapStringifiedBranches(raw);
     snapTopicsToCanonical(resource);
-    const rebalance = rebalanceMarks(resource, { prescribedSectionMarks: ctx.prescribedSectionMarks });
+    // Languages (Barrett's framework) require EXACT section + cog targets
+    // per the 2026-05 teacher review: "for languages they have to be exact".
+    // Other subjects keep the ±1 default (cog drift stops well short of
+    // teacher-noticeable, and Phase 4 is a no-op without prescription anyway).
+    const isLanguages = ctx.frameworkName === "Barrett's";
+    const rebalance = rebalanceMarks(resource, {
+      prescribedSectionMarks: ctx.prescribedSectionMarks,
+      cogTolerance: isLanguages ? 0 : 1,
+      sectionTolerance: isLanguages ? 0 : 1,
+    });
     const validation = assertResource(resource);
 
     lastResult = { resource, validation, rebalance, model: SONNET_4_6, ctx, attempts: attempt + 1 };

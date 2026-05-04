@@ -130,6 +130,27 @@ test('Phase 4 is a no-op when section count differs from prescription', () => {
   assert.deepEqual(r.sections.map(leafSum), [6, 6, 6, 4]);
 });
 
+test('Phase 4 with sectionTolerance=0 hits the prescribed split exactly (Languages)', () => {
+  // The 2026-05 teacher review made Languages section marks a "must be
+  // exact" criterion (no ±1 tolerance). Reproduces the live-failing
+  // 24/10/3/13 vs CAPS 20/10/5/15 case.
+  const r = fixture([
+    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], // A: 24
+    [2, 2, 2, 2, 2],                       // B: 10
+    [1, 1, 1],                             // C: 3
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], // D: 13
+  ]);
+  rebalanceMarks(r, {
+    prescribedSectionMarks: [
+      { label: 'A', marks: 20 }, { label: 'B', marks: 10 },
+      { label: 'C', marks: 5 },  { label: 'D', marks: 15 },
+    ],
+    sectionTolerance: 0,
+  });
+  // EXACT match — no ±1 wiggle.
+  assert.deepEqual(r.sections.map(leafSum), [20, 10, 5, 15]);
+});
+
 test('Phase 4 preserves cog distribution when same-cog swaps available', () => {
   // Two sections, both single-cog; swap should preserve cog totals.
   const r = fixture([
