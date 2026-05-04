@@ -27,6 +27,7 @@ import {
   formatSubtopics,
   formatPacingUnit,
   formatFormalAssessmentStructure,
+  prescribedSectionMarksFor,
   buildLessonContextBlock,
 } from '../lib/atp-prompt.js';
 import { resourceTypeLabel, subjectDisplayName, localiseDuration } from '../lib/i18n.js';
@@ -136,6 +137,15 @@ function buildContext(req) {
     ? []
     : getOutOfScopePacingUnits(subject, grade, term, isExamType);
 
+  // CAPS-prescribed section marks (Phase F). For Languages papers where
+  // CAPS specifies a per-section mark split, compute the targets up-front
+  // so the rebalancer can enforce them after fixing total + cog. Returns
+  // null when the subject has no section structure (e.g. Maths assessments
+  // are mark-range only with no per-section split).
+  const prescribedSectionMarks = isLesson
+    ? null
+    : prescribedSectionMarksFor(pacingFormalAssessments, resourceType, totalMarks);
+
   // Creative Arts: pull the term's art form (Visual Arts / Performing Arts)
   // from the pacing units' capsStrand. CAPS strictly alternates these by
   // term, and the 2026-05 teacher review made it a hard rule that papers
@@ -175,6 +185,7 @@ function buildContext(req) {
     coversTerms, topics,
     pacingUnits, pacingFormalAssessments, outOfScopePacingUnits,
     isCreativeArts, creativeArtsFocus,
+    prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonMinutes,
   };
@@ -245,6 +256,7 @@ function buildSystemPrompt(ctx) {
     frameworkName, cogLevels, coversTerms, topics,
     pacingUnits, pacingFormalAssessments, outOfScopePacingUnits,
     isCreativeArts, creativeArtsFocus,
+    prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonMinutes,
   } = ctx;
@@ -543,7 +555,7 @@ export async function generate(req, opts = {}) {
 
     const resource = unwrapStringifiedBranches(raw);
     snapTopicsToCanonical(resource);
-    const rebalance = rebalanceMarks(resource);
+    const rebalance = rebalanceMarks(resource, { prescribedSectionMarks: ctx.prescribedSectionMarks });
     const validation = assertResource(resource);
 
     lastResult = { resource, validation, rebalance, model: SONNET_4_6, ctx, attempts: attempt + 1 };
