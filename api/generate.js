@@ -72,7 +72,18 @@ function topicScopeFor(subject, grade, term, resourceType) {
  * cognitive framework, prescribed marks, topic scope, derived labels.
  */
 function buildContext(req) {
-  const { subject, grade, term, language, resourceType, totalMarks, difficulty = 'on' } = req;
+  const { subject, grade, term, language, resourceType, difficulty = 'on' } = req;
+  let { totalMarks } = req;
+
+  // Creative Arts is a Practical Task with a CAPS-fixed 40-mark rubric, not
+  // a Q&A paper. The 2026-05 teacher review (docs/teacher-feedback-2026-05.md
+  // §3.5) made this explicit: "Art is always out of 40 marks", "It is not a
+  // question paper, but instead an instruction of art that needs to be
+  // created or a performance that must be prepared". Override totalMarks
+  // so the rest of the pipeline (rebalance, render) operates on the right
+  // canonical figure regardless of what the request asked for.
+  const isCreativeArts = /Life Skills.*Creative Arts/i.test(subject);
+  if (isCreativeArts) totalMarks = 40;
 
   const cog = getCogLevels(subject);
   const frameworkName = isBarretts(cog) ? "Barrett's" : "Bloom's";
@@ -125,6 +136,30 @@ function buildContext(req) {
     ? []
     : getOutOfScopePacingUnits(subject, grade, term, isExamType);
 
+  // Creative Arts: pull the term's art form (Visual Arts / Performing Arts)
+  // from the pacing units' capsStrand. CAPS strictly alternates these by
+  // term, and the 2026-05 teacher review made it a hard rule that papers
+  // never combine both. Pin the prompt to whichever the term schedules.
+  let creativeArtsFocus = null;
+  if (isCreativeArts) {
+    const focusCounts = {};
+    for (const u of pacingUnits) {
+      if (u.isAssessmentSlot && u.capsStrand) {
+        focusCounts[u.capsStrand] = (focusCounts[u.capsStrand] || 0) + 1;
+      }
+    }
+    // Prefer the strand the term's formal-assessment slot uses; fall back
+    // to the most-frequent strand among the term's units; default to
+    // Visual Arts when neither yields a verdict.
+    creativeArtsFocus = Object.entries(focusCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (!creativeArtsFocus) {
+      const allStrands = pacingUnits.map((u) => u.capsStrand).filter(Boolean);
+      const counts = {};
+      for (const s of allStrands) counts[s] = (counts[s] || 0) + 1;
+      creativeArtsFocus = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'Visual Arts';
+    }
+  }
+
   // For a Lesson, the "duration" tracked by meta is still in marks — the
   // worksheet's marks. The lesson's classroom length lives in lesson.lessonMinutes.
   const durationMin = parseDurationMinutes(marksToTime(totalMarks));
@@ -139,6 +174,7 @@ function buildContext(req) {
     cognitiveLevelNames: cogLevels.map((l) => l.name),
     coversTerms, topics,
     pacingUnits, pacingFormalAssessments, outOfScopePacingUnits,
+    isCreativeArts, creativeArtsFocus,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonMinutes,
   };
@@ -146,6 +182,52 @@ function buildContext(req) {
 
 // CAPS-pacing prompt builders live in lib/atp-prompt.js (imported above)
 // so they can be unit-tested without loading the full generation pipeline.
+
+/**
+ * Creative Arts task-brief block. The 2026-05 teacher review
+ * (docs/teacher-feedback-2026-05.md §3.5) made four hard rules explicit:
+ *   1. Visual + Performing arts alternate by term, NEVER combined
+ *   2. Output is a TASK BRIEF (instructions to make/perform), not a Q&A paper
+ *   3. Total = 40 marks (CAPS-prescribed)
+ *   4. No Bloom's / cog-level analysis — practical rubric only
+ *
+ * The CAPS pacing data confirms #1 and #3 verbatim; #2 + #4 are pedagogical
+ * conventions the wife asserted from her own experience.
+ *
+ * The block tells the model to populate the schema with phases-as-questions
+ * (Planning / Creating / Presenting / Reflecting) plus a real rubric in
+ * memo. This satisfies the schema (which can't be fundamentally restructured
+ * here) while still emitting content that READS as a task brief, not a Q&A.
+ */
+function buildCreativeArtsTaskBriefBlock(focus, term, language) {
+  const isVisual = /Visual/i.test(focus || '');
+  const af = language === 'Afrikaans';
+  const phases = isVisual
+    ? af
+      ? ['Beplanning en navorsing', 'Skep van die kunswerk', 'Aanbieding en refleksie']
+      : ['Planning and research', 'Creating the artwork', 'Presentation and reflection']
+    : af
+      ? ['Beplanning en oefening', 'Repetisie', 'Opvoering en refleksie']
+      : ['Planning and rehearsal', 'Rehearsal practice', 'Performance and reflection'];
+
+  return [
+    `## Creative Arts task brief (HARD RULES)`,
+    `This is a CAPS Creative Arts ${focus} Practical Task for Term ${term}, NOT a written Q&A paper. Treat it as a task brief that instructs learners to ${isVisual ? 'create an artwork' : 'prepare and perform'}, not as a comprehension test. CAPS prescribes 40 marks total, assessed against a rubric.`,
+    ``,
+    `Hard rules (from the CAPS ATP and teacher-moderator review):`,
+    `  1. ART FORM: This paper is ${focus} ONLY. Do NOT include any ${isVisual ? 'performing-arts (drama / dance / music)' : 'visual-arts (drawing / painting / 3D)'} content. CAPS rotates Visual Arts and Performing Arts by term — they are NEVER combined in a single assessment.`,
+    `  2. NOT A Q&A PAPER: Do NOT write "Define the term…", "Name three…", "Identify the…" questions. Each section is a phase of the task with INSTRUCTIONS to the learner, not a comprehension question.`,
+    `  3. 40 MARKS: meta.totalMarks MUST be 40. The four-criterion rubric splits typically allocate roughly: ${isVisual ? 'Planning/Idea (8m), Composition/Technique (16m), Use of Materials (8m), Reflection/Presentation (8m)' : 'Planning/Concept (8m), Performance Technique (16m), Creative Interpretation (8m), Reflection (8m)'}. Adjust to fit but keep the total at 40.`,
+    `  4. STRUCTURE: emit ${phases.length} sections, one per phase, IN ORDER:`,
+    ...phases.map((p, i) => `       ${String.fromCharCode(65 + i)}. ${p}`),
+    `     Each section's "questions" are PHASE INSTRUCTIONS. Each leaf's stem is a step the learner takes (e.g. "Sketch three rough designs for your relief mandala on A4 paper"), and each leaf's marks contribute to the relevant rubric criterion. answerSpace.kind should be "lines" with a generous \`lines\` count (5-15) so the learner has room to record planning notes / reflection.`,
+    `  5. RUBRIC: memo.rubric is REQUIRED. List 4 criteria each with 3-4 mark-band descriptors (e.g. "0-2 marks: limited", "3-5: developing", "6-7: proficient", "8: excellent"). The rubric criteria mark totals MUST sum to 40.`,
+    `  6. MEMO ANSWERS: memo.answers entries describe what the teacher should LOOK FOR when marking each phase, not "the correct answer". E.g. "Strong responses identify a clear theme, sketch ≥3 design variations, and explain colour/material choices in 2-3 sentences."`,
+    `  7. COGNITIVE FRAMEWORK: keep the cog framework as Bloom's per schema requirements but the cognitive analysis table will NOT be rendered for Creative Arts (per CAPS — Practical Tasks are rubric-marked, not cog-analysed). Map each leaf's cognitiveLevel loosely: planning items → "Low Order"; creating/performing → "Middle Order"; reflection/critique → "High Order".`,
+    `  8. NO MCQ, NO TRUE/FALSE, NO FILL-BLANK: every "leaf" is a ShortAnswer or ExtendedResponse "step in the task" — never a forced-choice question.`,
+    ``,
+  ];
+}
 
 function parseDurationMinutes(label) {
   // marksToTime returns strings like "45 minutes", "1 hour", "1 hour 30 minutes".
@@ -162,6 +244,7 @@ function buildSystemPrompt(ctx) {
     subject, grade, term, language, resourceType, totalMarks, difficulty,
     frameworkName, cogLevels, coversTerms, topics,
     pacingUnits, pacingFormalAssessments, outOfScopePacingUnits,
+    isCreativeArts, creativeArtsFocus,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonMinutes,
   } = ctx;
@@ -205,6 +288,7 @@ function buildSystemPrompt(ctx) {
     ...buildAssessmentStructureBlock(pacingFormalAssessments, resourceType, totalMarks),
     ...(isLesson ? [] : buildOutOfScopeBlock(outOfScopePacingUnits || [])),
     ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language) : []),
+    ...(isCreativeArts ? buildCreativeArtsTaskBriefBlock(creativeArtsFocus, term, language) : []),
     `## Cognitive framework: ${frameworkName}`,
     `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,
     cogTable,
