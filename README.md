@@ -21,6 +21,7 @@ Node/Express. Deployed on Railway.
 5. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
    1. [Single lesson + Subtopic picker](#single-lesson--subtopic-picker)
    2. [Lesson series generator](#lesson-series-generator)
+   3. [Visual identity (kid-mode)](#visual-identity-kid-mode)
 6. [Architecture](#architecture)
 7. [Project layout](#project-layout)
 8. [API surface](#api-surface)
@@ -64,7 +65,7 @@ Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PR
 Run the test suite:
 
 ```bash
-npm test          # 491 tests, ~32s, all node:test — no Anthropic API calls
+npm test          # 508 tests, ~32s, all node:test — no Anthropic API calls
 ```
 
 ---
@@ -290,6 +291,36 @@ In document order:
 
 Phase names are localised: `Introduction / Direct Teaching / Guided Practice / Independent Work / Consolidation` (English) or `Inleiding / Direkte Onderrig / Begeleide Oefening / Onafhanklike Werk / Konsolidasie` (Afrikaans).
 
+### Visual identity (kid-mode)
+
+The Lesson worksheet (the learner-facing portion of the lesson DOCX) and the lesson PPTX use a softer, more playful visual language than the formal assessment renderer. This is a **Lesson-only** style — Tests, Exams, and standalone Worksheets keep the formal palette unchanged.
+
+`lib/palette.js` exports `pickLessonStyle({ resourceType, grade })` which returns:
+
+- `null` for non-Lesson resources (assessments stay on the legacy formal path),
+- a **junior tier** (`gradeBand: 'junior'`) for Grade 4–5 — brighter accent rotation, rounder corners (radius 0.18), more decoration, mascot enabled,
+- a **senior tier** (`gradeBand: 'senior'`) for Grade 6–7 — same warm palette, cleaner geometry (radius 0.10), less decoration, no mascot.
+
+Both bands share a friendly display-font chain `Fredoka, Nunito, Calibri` for headings (body text stays Calibri). Machines without Fredoka degrade gracefully through the fallback chain.
+
+**Worksheet kid-mode** (DOCX, `lib/render.js → buildLessonWorksheetContent`):
+
+- Friendly cover headline — *"Time to practice"* / *"Tyd om te oefen"* — replaces the formal `WORKSHEET` block.
+- Single-line `Name: ___ Date: ___` strip; no learner-info table; no instructions block.
+- `SECTION A: PRACTICE` headings dropped — Lesson worksheets are usually one section anyway.
+- Question numbers render as accent-coloured badges (run-level shading) cycling through the grade-band's accent rotation (`sun → coral → sky → mint` for junior).
+- Answer lines are dotted bottom borders (`BorderStyle.DOTTED`) instead of solid underscore strings.
+- Mark indicator becomes a soft *"5 pts"* pill (right-aligned shaded cell) instead of `[5]`.
+- Self-assessment row at the end — three labelled face cells (Easy / OK / Tricky), accent-coloured, tied to `i18n.lesson.selfAssessFaces`.
+
+**PPTX kid-mode** (`lib/pptx-builder.js`):
+
+- Title slide: tinted background + rounded "hero card" with the lesson topic in big friendly type, accent strip, subtitle.
+- `objectives` layout: each objective in its own card row with an accent-coloured ✓ badge — replaces the bullet list.
+- `vocabulary` layout: 2-column grid of term cards with accent-coloured top bands and definitions in the body — replaces the term/definition bullet list.
+- Top accent bar uses `roundRect` on junior, `rect` on senior.
+- Junior gets a thicker accent bar and more rounded chrome; senior is cleaner.
+
 ### What the PowerPoint contains
 
 5–15 slides driven by `lesson.slides[]`. Each slide has an `ordinal`, a `layout`, a `heading`, optional `bullets` (≤ 8), optional `speakerNotes` (rendered into the Notes pane), and an optional `stimulusRef`.
@@ -488,6 +519,7 @@ lib/                     Pure-ish logic (no Express dependencies)
   logger.js                Pino logger
   marks.js                 Mark-allocation helpers
   moderator.js             Quality-gate moderator (post-generation review)
+  palette.js               Lesson visual-style picker (per-grade-band palette + accent rotation)
   pptx-builder.js          Lesson PowerPoint renderer (pptxgenjs)
   rebalance.js             Distributes leaf marks to hit prescribed cog-level percentages exactly
   render.js                MAIN DOCX renderer for the schema-first pipeline (cover, sections, memo, lesson plan)
@@ -792,7 +824,7 @@ The output card includes a **PowerPoint download button** (orange `#D04423`, dis
 ## Testing
 
 ```bash
-npm test          # runs all node:test suites — 491 tests, ~32s, no Anthropic calls
+npm test          # runs all node:test suites — 508 tests, ~32s, no Anthropic calls
 ```
 
 Test files live in `test/`. Conventions:

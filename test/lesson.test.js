@@ -7,12 +7,23 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
+import { Packer } from 'docx';
+import JSZip from 'jszip';
+
 import { resourceSchema, assertResource, narrowSchemaForRequest } from '../schema/resource.schema.js';
 import { buildLessonContextBlock } from '../lib/atp-prompt.js';
 import { getPacingUnitsSlim, getPacingUnitById, getUnitSubtopicHeadings, findUnitSubtopic } from '../lib/atp.js';
 import { renderLessonPptx } from '../lib/pptx-builder.js';
+import { renderResource } from '../lib/render.js';
+import { pickLessonStyle, nthAccent } from '../lib/palette.js';
 import { __internals as generateInternals } from '../api/generate.js';
 import { __internals as renderInternals } from '../lib/render.js';
+
+async function readDocumentXml(doc) {
+  const buf = await Packer.toBuffer(doc);
+  const zip = await JSZip.loadAsync(buf);
+  return zip.file('word/document.xml').async('string');
+}
 
 // ─── A minimal valid Lesson resource for invariant testing. ───────────────
 function makeLesson(overrides = {}) {
@@ -842,5 +853,173 @@ describe('parseSeriesContext (validator)', () => {
   test('non-Lesson requests ignore seriesContext entirely', () => {
     const k = buildCacheKey({ ...base, resourceType: 'Test', seriesContext: { position: 1, total: 5, priorSubtopics: ['x'] } });
     assert.ok(!/seriesPosition|seriesTotal|seriesPrior/.test(k));
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Phase A — Lesson visual identity + worksheet kid-mode
+// ─────────────────────────────────────────────────────────────────
+
+describe('pickLessonStyle', () => {
+  test('returns null for non-Lesson resource types', () => {
+    assert.equal(pickLessonStyle({ resourceType: 'Test',      grade: 4 }), null);
+    assert.equal(pickLessonStyle({ resourceType: 'Worksheet', grade: 6 }), null);
+    assert.equal(pickLessonStyle({}), null);
+  });
+
+  test('picks the junior tier for Grade 4 and 5', () => {
+    for (const grade of [4, 5]) {
+      const s = pickLessonStyle({ resourceType: 'Lesson', grade });
+      assert.equal(s.gradeBand, 'junior');
+      assert.equal(s.mascotEnabled, true);
+      assert.equal(s.decorationLevel, 'high');
+      assert.ok(s.cornerRadius >= 0.15, 'junior should be more rounded');
+      assert.ok(Array.isArray(s.accentRotation) && s.accentRotation.length >= 3);
+    }
+  });
+
+  test('picks the senior tier for Grade 6 and 7', () => {
+    for (const grade of [6, 7]) {
+      const s = pickLessonStyle({ resourceType: 'Lesson', grade });
+      assert.equal(s.gradeBand, 'senior');
+      assert.equal(s.mascotEnabled, false);
+      assert.equal(s.decorationLevel, 'low');
+      assert.ok(s.cornerRadius < 0.15, 'senior should be less rounded');
+    }
+  });
+
+  test('exposes a friendly font chain that falls back to Calibri', () => {
+    const s = pickLessonStyle({ resourceType: 'Lesson', grade: 4 });
+    assert.match(s.fontHead, /Fredoka/);
+    assert.match(s.fontHead, /Calibri$/);   // last fallback is universal
+    assert.equal(s.fontBody, 'Calibri');
+  });
+
+  test('nthAccent cycles through the rotation deterministically', () => {
+    const s = pickLessonStyle({ resourceType: 'Lesson', grade: 4 });
+    const rotation = s.accentRotation;
+    for (let i = 0; i < rotation.length * 3; i++) {
+      const colour = nthAccent(s, i);
+      const expected = s.palette.accents[rotation[i % rotation.length]];
+      assert.equal(colour, expected);
+    }
+  });
+
+  test('nthAccent returns null when no style is supplied', () => {
+    assert.equal(nthAccent(null, 0), null);
+    assert.equal(nthAccent({}, 0), null);
+  });
+});
+
+describe('Lesson worksheet (kid-mode) DOCX rendering', () => {
+  test('Lesson DOCX uses the friendly "Time to practice" headline, not "WORKSHEET"', async () => {
+    const doc = renderResource(makeLesson());
+    const xml = await readDocumentXml(doc);
+    assert.ok(xml.includes('Time to practice'), 'expected friendly worksheet title');
+    // The cover.resourceTypeLabel is still "WORKSHEET" but the lesson
+    // worksheet branch should NOT print that token on its cover.
+    const lessonWorksheetSection = xml.split('Time to practice')[1] || '';
+    assert.ok(!/[\s>]WORKSHEET[\s<]/.test(lessonWorksheetSection.slice(0, 500)),
+      'formal "WORKSHEET" token must not appear on the lesson worksheet cover');
+  });
+
+  test('Afrikaans Lesson uses the Afrikaans friendly headline', async () => {
+    const r = makeLesson();
+    r.meta.language = 'Afrikaans';
+    const doc = renderResource(r);
+    const xml = await readDocumentXml(doc);
+    assert.ok(xml.includes('Tyd om te oefen'), 'expected Afrikaans friendly title');
+  });
+
+  test('Lesson worksheet drops the "SECTION A:" heading style', async () => {
+    const r = makeLesson();
+    r.sections = [{
+      letter: 'A', title: 'PRACTICE',
+      questions: r.sections[0].questions,
+    }];
+    const doc = renderResource(r);
+    const xml = await readDocumentXml(doc);
+    // The lesson worksheet renderer skips SECTION headers entirely. The
+    // teacher-facing lesson-plan portion never had them either, so they
+    // should not appear anywhere in the document.
+    assert.ok(!/SECTION\s+A:/.test(xml), 'lesson worksheet should not print SECTION A:');
+  });
+
+  test('Lesson worksheet carries the localised mark-pill unit ("pts")', async () => {
+    const doc = renderResource(makeLesson());
+    const xml = await readDocumentXml(doc);
+    // At least one mark pill should appear — pull from the i18n unit.
+    assert.ok(/\d+\s+pts/.test(xml), 'expected a "5 pts"-style mark pill');
+  });
+
+  test('Lesson worksheet includes the self-assessment row', async () => {
+    const doc = renderResource(makeLesson());
+    const xml = await readDocumentXml(doc);
+    assert.ok(xml.includes('How did you find this?'), 'expected self-assess prompt');
+    for (const label of ['Easy', 'OK', 'Tricky']) {
+      assert.ok(xml.includes(label), `expected self-assess label "${label}"`);
+    }
+  });
+
+  test('non-Lesson resources keep the formal cover (Test/Worksheet unchanged)', async () => {
+    const r = makeLesson();
+    r.meta.resourceType = 'Test';
+    delete r.lesson;
+    r.cover.resourceTypeLabel = 'TEST';
+    const doc = renderResource(r);
+    const xml = await readDocumentXml(doc);
+    assert.ok(!xml.includes('Time to practice'),
+      'Tests must not pick up the lesson kid-mode cover');
+    assert.ok(!xml.includes('How did you find this?'),
+      'Tests must not pick up the self-assessment row');
+    assert.ok(xml.includes('TEST'), 'Tests should still print their formal label');
+  });
+
+  test('Lesson DOCX still embeds the lesson-plan teacher portion', async () => {
+    const doc = renderResource(makeLesson());
+    const xml = await readDocumentXml(doc);
+    assert.ok(xml.includes('LESSON PLAN'),  'lesson-plan front matter should still render');
+    assert.ok(xml.includes('CAPS Anchor'),  'CAPS anchor heading should still render');
+  });
+});
+
+describe('Lesson worksheet helpers (unit-level)', () => {
+  test('dottedAnswerLine produces a paragraph with a dotted bottom border', () => {
+    const p = renderInternals.dottedAnswerLine();
+    // docx Paragraph internals — `border` lives under `properties` after
+    // construction; we sniff it by serialising the raw object instead.
+    const raw = JSON.stringify(p);
+    assert.match(raw, /dotted/i);
+  });
+
+  test('renderSelfAssessRow uses three accent-coloured face cells', () => {
+    const style = pickLessonStyle({ resourceType: 'Lesson', grade: 4 });
+    const L = { lesson: { selfAssess: 'How did you find this?', selfAssessFaces: ['Easy', 'OK', 'Tricky'] } };
+    const els = renderInternals.renderSelfAssessRow(L, style);
+    assert.ok(els.length >= 2, 'expected at least a heading paragraph + table');
+    const hasTable = els.some((el) => el?.constructor?.name === 'Table');
+    assert.ok(hasTable, 'expected a Table element holding the three faces');
+  });
+});
+
+describe('PPTX renderer applies the per-grade-band style', () => {
+  test('junior-band Lesson renders without error and includes the friendly font chain', async () => {
+    const r = makeLesson();
+    r.meta.grade = 4;
+    const b64 = await renderLessonPptx(r);
+    const xml = Buffer.from(b64, 'base64');
+    const zip = await JSZip.loadAsync(xml);
+    const slide1 = await zip.file('ppt/slides/slide1.xml').async('string');
+    assert.ok(/Fredoka/.test(slide1), 'expected the Fredoka font face on a junior slide');
+  });
+
+  test('senior-band Lesson also uses the friendly font chain', async () => {
+    const r = makeLesson();
+    r.meta.grade = 7;
+    const b64 = await renderLessonPptx(r);
+    const xml = Buffer.from(b64, 'base64');
+    const zip = await JSZip.loadAsync(xml);
+    const slide1 = await zip.file('ppt/slides/slide1.xml').async('string');
+    assert.ok(/Fredoka/.test(slide1), 'expected the Fredoka font face on a senior slide too');
   });
 });
