@@ -1023,3 +1023,178 @@ describe('PPTX renderer applies the per-grade-band style', () => {
     assert.ok(/Fredoka/.test(slide1), 'expected the Fredoka font face on a senior slide too');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────
+// Phase B — Slide layout variety
+// ─────────────────────────────────────────────────────────────────
+
+import { __internals as pptxInternals } from '../lib/pptx-builder.js';
+
+describe('Phase B — schema accepts the new layout enum values', () => {
+  const PHASE_B_LAYOUTS = [
+    'warmUp', 'wordWall', 'thinkPairShare', 'workedExample',
+    'yourTurn', 'celebrate',
+  ];
+
+  test('all six new layouts are in the lessonSlide.layout enum', () => {
+    const enumValues = resourceSchema.$defs.lessonSlide.properties.layout.enum;
+    for (const layout of PHASE_B_LAYOUTS) {
+      assert.ok(enumValues.includes(layout), `layout enum missing: ${layout}`);
+    }
+  });
+
+  test('original Phase A layouts are still in the enum', () => {
+    const enumValues = resourceSchema.$defs.lessonSlide.properties.layout.enum;
+    for (const layout of ['title', 'objectives', 'vocabulary', 'concept',
+                          'example', 'practice', 'diagram', 'exitTicket']) {
+      assert.ok(enumValues.includes(layout), `Phase A layout missing: ${layout}`);
+    }
+  });
+
+  test('a Lesson using new variety layouts passes assertResource', () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',          heading: 'Whole numbers', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'warmUp',         heading: 'How many beads here?',
+        bullets: ['Hint: count in groups of 10.'], speakerNotes: 'Show the bead string.' },
+      { ordinal: 3, layout: 'objectives',     heading: 'Today’s goals',
+        bullets: ['Count to 1000.', 'Order whole numbers.'], speakerNotes: 'Read aloud.' },
+      { ordinal: 4, layout: 'wordWall',       heading: 'Key words',
+        speakerNotes: 'Pull definitions from vocabulary.' },
+      { ordinal: 5, layout: 'workedExample',  heading: 'Solving 234 + 156',
+        bullets: ['Add the units.', 'Add the tens.', 'Add the hundreds.'],
+        speakerNotes: 'Walk through each step.' },
+      { ordinal: 6, layout: 'thinkPairShare', heading: 'Why is place value useful?',
+        bullets: ['Compare your answers.'], speakerNotes: 'Pair learners up.' },
+      { ordinal: 7, layout: 'yourTurn',       heading: 'Your turn',
+        bullets: ['Try questions 1–4.'], speakerNotes: 'Hand out worksheets.' },
+      { ordinal: 8, layout: 'celebrate',      heading: 'Well done!',
+        bullets: ['You can write numbers in expanded form.'], speakerNotes: 'Congratulate the class.' },
+    ];
+    const result = assertResource(r);
+    assert.equal(result.ok, true, JSON.stringify(result.errors));
+  });
+});
+
+describe('Phase B — PPTX renderer dispatches the new layouts', () => {
+  test('LAYOUT_RENDERERS registers all six new layouts', () => {
+    const r = pptxInternals.LAYOUT_RENDERERS;
+    assert.equal(typeof r.warmUp,         'function');
+    assert.equal(typeof r.wordWall,       'function');
+    assert.equal(typeof r.thinkPairShare, 'function');
+    assert.equal(typeof r.workedExample,  'function');
+    assert.equal(typeof r.yourTurn,       'function');
+    assert.equal(typeof r.celebrate,      'function');
+  });
+
+  test('a deck using all six new layouts renders to a valid PPTX', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',          heading: 'Whole numbers', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'warmUp',         heading: 'How many beads here?',
+        bullets: ['Hint: count in groups of 10.'], speakerNotes: 'Show the bead string.' },
+      { ordinal: 3, layout: 'wordWall',       heading: 'Key words',
+        speakerNotes: 'Pull definitions from vocabulary.' },
+      { ordinal: 4, layout: 'workedExample',  heading: 'Solving 234 + 156',
+        bullets: ['Add the units.', 'Add the tens.', 'Add the hundreds.'],
+        speakerNotes: 'Walk through.' },
+      { ordinal: 5, layout: 'thinkPairShare', heading: 'Why is place value useful?',
+        bullets: ['Compare your answers.'], speakerNotes: 'Pair up.' },
+      { ordinal: 6, layout: 'yourTurn',       heading: 'Your turn',
+        bullets: ['Try questions 1–4.'], speakerNotes: 'Hand out worksheets.' },
+      { ordinal: 7, layout: 'celebrate',      heading: 'Well done!',
+        speakerNotes: 'Congratulate.' },
+    ];
+    const b64 = await renderLessonPptx(r);
+    assert.ok(b64.length > 1000, 'expected non-trivial PPTX bytes');
+    const buf = Buffer.from(b64, 'base64');
+    const zip = await JSZip.loadAsync(buf);
+    // Every slide should be present in the zip.
+    for (let i = 1; i <= 7; i++) {
+      const path = `ppt/slides/slide${i}.xml`;
+      assert.ok(zip.file(path), `expected slide file at ${path}`);
+    }
+  });
+
+  test('warmUp slide carries the WARM-UP eyebrow strap', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',  heading: 'Topic', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'warmUp', heading: 'How many?', speakerNotes: 'Ask.' },
+      ...r.lesson.slides.slice(2),
+    ];
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    const slide2 = await zip.file('ppt/slides/slide2.xml').async('string');
+    assert.match(slide2, /WARM-UP/);
+  });
+
+  test('celebrate slide includes confetti shapes', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      ...r.lesson.slides.slice(0, 6),
+      { ordinal: 7, layout: 'celebrate', heading: 'Well done!', speakerNotes: 'Cheer.' },
+    ];
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    const slide7 = await zip.file('ppt/slides/slide7.xml').async('string');
+    // Confetti renders as multiple ellipses; expect ≥ 8 ellipse shapes on
+    // the slide (10 in code minus a small safety margin).
+    const ellipseCount = (slide7.match(/<p:sp>/g) || []).length;
+    assert.ok(ellipseCount >= 8, `expected confetti shapes on celebrate, got ${ellipseCount}`);
+  });
+});
+
+describe('Phase B — prompt guidance teaches the model the new layouts', () => {
+  test('buildLessonContextBlock mentions every new layout name', () => {
+    const UNIT = {
+      id: 'MATH-4-2026-t1-u1',
+      topic: 'Whole numbers',
+      capsStrand: 'Numbers, Operations and Relationships',
+      weeks: [1, 2], hours: 6,
+      subtopics: [{ heading: 'Counting', concepts: ['count to 1000'] }],
+    };
+    const text = buildLessonContextBlock(UNIT, 45, 'English').join('\n');
+    for (const layout of ['warmUp', 'wordWall', 'thinkPairShare', 'workedExample', 'yourTurn', 'celebrate']) {
+      assert.match(text, new RegExp(layout), `prompt should mention layout: ${layout}`);
+    }
+  });
+
+  test('prompt instructs the model to vary layouts across the deck', () => {
+    const UNIT = {
+      id: 'MATH-4-2026-t1-u1',
+      topic: 'Whole numbers',
+      capsStrand: 'Numbers, Operations and Relationships',
+      weeks: [1, 2], hours: 6,
+      subtopics: [{ heading: 'Counting', concepts: ['count to 1000'] }],
+    };
+    const text = buildLessonContextBlock(UNIT, 45, 'English').join('\n');
+    assert.match(text, /at least 3 different layouts|vary the layouts|Variety/i,
+      'prompt should explicitly nudge the model toward layout variety');
+  });
+});
+
+describe('Phase B — cache version bump', () => {
+  test('cache key prefix is now gen:v6:', () => {
+    const { buildCacheKey } = generateInternals;
+    const key = buildCacheKey({
+      subject: 'Mathematics', grade: 4, term: 1,
+      language: 'English', resourceType: 'Lesson',
+      totalMarks: 10, difficulty: 'on',
+      unitId: 'MATH-4-u1', lessonMinutes: 45,
+    });
+    assert.ok(key.startsWith('gen:v6:'),
+      `expected cache key to start with gen:v6:, got "${key.slice(0, 12)}…"`);
+  });
+
+  test('non-Lesson cache keys also pick up the v6 bump', () => {
+    const { buildCacheKey } = generateInternals;
+    const key = buildCacheKey({
+      subject: 'Mathematics', grade: 4, term: 1,
+      language: 'English', resourceType: 'Test',
+      totalMarks: 50, difficulty: 'on',
+    });
+    assert.ok(key.startsWith('gen:v6:'),
+      'non-Lesson keys also share the version prefix');
+  });
+});

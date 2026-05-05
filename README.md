@@ -65,7 +65,7 @@ Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PR
 Run the test suite:
 
 ```bash
-npm test          # 508 tests, ~32s, all node:test — no Anthropic API calls
+npm test          # 519 tests, ~32s, all node:test — no Anthropic API calls
 ```
 
 ---
@@ -254,7 +254,7 @@ The series generator stitches N single-lesson calls into one coherent flow. This
   - First lesson (`position === 1`): *"This is the FIRST lesson — treat as the Unit's opener; don't assume prior Unit-specific knowledge"*
   - Mid-series: lists prior subtopics verbatim + *"BUILD ON those prior lessons; do NOT re-teach"*
   - Last lesson: *"This is the LAST lesson — its Consolidation phase should also serve as a brief recap of the whole Unit"*
-- `buildCacheKey` (now `gen:v5:`) includes `seriesPosition` + `seriesTotal` + `seriesPrior` (joined by `|`) so a mid-series lesson can't collide with a single-lesson cache entry. A 1-of-1 series collapses to the single-lesson key (a freebie cache win).
+- `buildCacheKey` (now `gen:v6:`) includes `seriesPosition` + `seriesTotal` + `seriesPrior` (joined by `|`) so a mid-series lesson can't collide with a single-lesson cache entry. A 1-of-1 series collapses to the single-lesson key (a freebie cache win). The `v6` bump invalidates `v5` entries so Phase B's new layout variety can take effect cleanly.
 
 ### Console diagnostics
 
@@ -329,16 +329,24 @@ Layouts:
 
 | Layout | Purpose | Renderer behaviour |
 |---|---|---|
-| `title` | Lesson opener | Big tinted title slide. Auto-applied to slide #1 if no slide declares this layout. |
-| `objectives` | Learning goals | Heading bar + bullets |
-| `vocabulary` | Key terms | Term–definition list (pulls from `lesson.vocabulary` if no bullets given) |
-| `concept` | Direct teaching | Heading bar + bullets |
-| `example` | Worked example | Heading bar + bullets |
-| `practice` | "Now try the worksheet" | Heading bar + bullets |
+| `title` | Lesson opener | Tinted background + rounded hero card with the lesson topic in the friendly display font. Auto-applied to slide #1 if no slide declares this layout. |
+| `objectives` | Learning goals | Per-objective check-card rows (accent-coloured ✓ badge + tinted text card), accent rotation across rows |
+| `vocabulary` | Key terms (definition-rich) | 2-column grid of term cards with accent-coloured top bands and definitions in the body. Pulls from `lesson.vocabulary` when no bullets given. |
+| `wordWall` | Key terms (punchy term-only grid) | 2×N / 3×N grid of solid accent-coloured term cards — definitions go in `speakerNotes`. Phase B. |
+| `warmUp` | Playful opener | Tinted card + "WARM-UP" eyebrow + big question heading + optional 0–2 hint bullets + accent dot. Phase B. |
+| `concept` | Direct teaching (exposition) | Heading bar + bullets |
+| `example` | Worked example (flat) | Heading bar + bullets |
+| `workedExample` | Worked example (step cards) | Vertically stacked numbered step cards — each bullet becomes a card with an accent-coloured circle badge. Phase B. |
+| `thinkPairShare` | Discussion prompt | Question card + 1–3 sub-prompts + paired figure silhouettes + speech-bubble cue. Phase B. |
 | `diagram` | Embedded chart | Renders `stimulusRef` via the SVG → PNG raster path used for DOCX |
+| `practice` | "Now try the worksheet" (plain) | Heading bar + bullets |
+| `yourTurn` | "Now try the worksheet" (kid-mode) | Bright tinted panel with action-style headline + bullet hints + accent icon placeholder (Phase C swaps in real subject art). Phase B. |
 | `exitTicket` | Consolidation | Heading bar + bullets |
+| `celebrate` | Closing well-done slide | Tinted background + scattered confetti shapes + big friendly headline + optional recap bullets. Phase B. |
 
-Visual chrome (green accent bar at top, footer with subject/grade/term, "The Resource Room" caption) is applied to every slide. Diagram slides reuse `lib/diagrams/` (bar_graph / number_line / food_chain) so the SVG → PNG raster matches the DOCX output exactly.
+Visual chrome (green accent bar at top — rounded on junior, square on senior; footer with subject/grade/term, "The Resource Room" caption) is applied to every slide. Diagram slides reuse `lib/diagrams/` (bar_graph / number_line / food_chain) so the SVG → PNG raster matches the DOCX output exactly.
+
+Layout guidance in `buildLessonContextBlock` nudges the model to **use at least 3 different layouts beyond title/objectives/vocabulary** across the deck — a deck of 8 slides where 5 are `concept` is wrong and gets surfaced in prompt-level reviews.
 
 ### The `lesson` schema branch
 
@@ -459,7 +467,7 @@ When `assertResource` fails, the pipeline retries up to 2× (Final Exam: 0×, si
 `lib/cache.js` is a thin SQLite wrapper. The cache key is built in `api/generate.js`:
 
 ```
-gen:v5:{"subject":"...","grade":4,"term":2,"language":"English","resourceType":"Lesson","totalMarks":10,"difficulty":"on","unitId":"MATH-6-2026-t2-u2","lessonMinutes":45,"subtopicHeading":"Solving by inspection","seriesPosition":3,"seriesTotal":8,"seriesPrior":"Number sentences|Solving for a variable"}
+gen:v6:{"subject":"...","grade":4,"term":2,"language":"English","resourceType":"Lesson","totalMarks":10,"difficulty":"on","unitId":"MATH-6-2026-t2-u2","lessonMinutes":45,"subtopicHeading":"Solving by inspection","seriesPosition":3,"seriesTotal":8,"seriesPrior":"Number sentences|Solving for a variable"}
 ```
 
 Lesson keys include `unitId`, `lessonMinutes`, `subtopicHeading`, and series fields (when present). For non-Lesson types those keys are omitted. A 1-of-1 series collapses to the same key as a single-lesson request — that's a deliberate freebie when teachers click "Generate series" on a Unit with one subtopic. Bumping the prefix (`v5` → `v6`) is the standard way to invalidate the entire cache when the response shape changes.
@@ -468,7 +476,8 @@ Cache version history:
 - `v2` — pre-Lesson baseline
 - `v3` — added `lesson` to top-level required[] for Lesson narrowing
 - `v4` — added `subtopicHeading`
-- `v5` — added `seriesPosition`, `seriesTotal`, `seriesPrior` (current)
+- `v5` — added `seriesPosition`, `seriesTotal`, `seriesPrior`
+- `v6` — Phase B slide-layout variety (added `warmUp`, `wordWall`, `thinkPairShare`, `workedExample`, `yourTurn`, `celebrate` to `lessonSlide.layout` enum) (current)
 
 Pass `{ fresh: true }` in the request body to bypass cache for one call. The series orchestrator's resume/retry paths rely on cache hits to re-serve completed lessons free of charge.
 
@@ -824,7 +833,7 @@ The output card includes a **PowerPoint download button** (orange `#D04423`, dis
 ## Testing
 
 ```bash
-npm test          # runs all node:test suites — 508 tests, ~32s, no Anthropic calls
+npm test          # runs all node:test suites — 519 tests, ~32s, no Anthropic calls
 ```
 
 Test files live in `test/`. Conventions:
@@ -941,7 +950,7 @@ The most useful section in this README. If something looks weird in production, 
 
 **Cause:** The cache key needs to include enough series context that mid-series lessons can't collide with single-lesson cache entries for the same Unit + subtopic. Without `seriesPosition` / `seriesTotal` / `seriesPrior` in the key, lesson 3 of 8 would key-collide with a previously-cached single-lesson generation against the same subtopic — and serve a lesson without prior-context awareness.
 
-**Fix already in place:** `buildCacheKey` (now `gen:v5:`) includes the series fields when `seriesContext.total > 1`. A 1-of-1 series collapses to the single-lesson key — that's deliberate (free win when teachers click Generate Series on a Unit with one subtopic).
+**Fix already in place:** `buildCacheKey` (now `gen:v6:`) includes the series fields when `seriesContext.total > 1`. A 1-of-1 series collapses to the single-lesson key — that's deliberate (free win when teachers click Generate Series on a Unit with one subtopic).
 
 **Debugging hint:** if you bump cache version, also check `test/lesson.test.js`'s "cache key uses a versioned prefix" test still uses `/^gen:v\d+:/` (version-agnostic) rather than pinning to a specific number.
 

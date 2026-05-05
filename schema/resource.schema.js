@@ -636,7 +636,18 @@ export const resourceSchema = {
         ordinal: { type: 'integer', minimum: 1, maximum: 30 },
         layout: {
           type: 'string',
-          enum: ['title', 'objectives', 'vocabulary', 'concept', 'example', 'practice', 'diagram', 'exitTicket'],
+          enum: [
+            // Phase A layouts
+            'title', 'objectives', 'vocabulary', 'concept', 'example',
+            'practice', 'diagram', 'exitTicket',
+            // Phase B layouts (kid-friendly variety)
+            'warmUp',          // playful opener — single big question, breathing room
+            'wordWall',        // 2×N grid of vocabulary term cards
+            'thinkPairShare',  // discussion prompt + paired-figure cue
+            'workedExample',   // step-by-step with numbered step cards
+            'yourTurn',        // bright "now try the worksheet" panel
+            'celebrate',       // closing well-done slide
+          ],
         },
         heading:      { type: 'string', minLength: 1, maxLength: 120 },
         bullets:      {

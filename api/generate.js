@@ -1073,10 +1073,20 @@ function buildCacheKey({
       norm.seriesPrior    = (seriesContext.priorSubtopics || []).join('|');
     }
   }
-  // v5 adds seriesContext to the Lesson cache key. Without bumping, a
-  // mid-series lesson with prior-subtopic context would hit a stale
-  // single-lesson cached result and silently re-serve the wrong content.
-  return `gen:v5:${JSON.stringify(norm)}`;
+  // v6 adds the Phase B slide-layout variety enum (warmUp / wordWall /
+  // thinkPairShare / workedExample / yourTurn / celebrate). Old v5 entries
+  // were generated against the 8-layout enum and don't carry the new
+  // layouts, so re-serving them after the prompt has been updated would
+  // permanently rob those teachers of the variety. Bumping invalidates
+  // the whole cache once.
+  //
+  // Cache version history:
+  //   v2 — pre-Lesson baseline
+  //   v3 — added `lesson` to top-level required[] for Lesson narrowing
+  //   v4 — added `subtopicHeading`
+  //   v5 — added `seriesPosition` / `seriesTotal` / `seriesPrior`
+  //   v6 — Phase B slide-layout variety (current)
+  return `gen:v6:${JSON.stringify(norm)}`;
 }
 
 function safeCacheGet(key, log) {
