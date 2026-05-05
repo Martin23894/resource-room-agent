@@ -2035,11 +2035,13 @@ function confirmSeriesGenerate(){
 }
 
 // Pace consecutive POSTs so a 10-lesson series doesn't exceed the
-// 10/min rate limit. We delay each non-cache-hit by ~7 seconds; cache
-// hits are near-instant so back-to-back calls stay safe.
+// 10/min rate limit. We delay each non-cache-hit by ~8 seconds (under
+// 8 calls/min, plenty of headroom under the 10/min cap so an extra
+// auth-me poll or refine call from another tab doesn't push us over).
+// Cache hits are near-instant so back-to-back calls stay safe.
 function paceDelay(prevWasCacheHit){
   if (prevWasCacheHit) return 0;
-  return 7_000;
+  return 8_000;
 }
 
 async function generateSeries(plan, startFrom = 0){
@@ -2099,7 +2101,14 @@ async function generateSeries(plan, startFrom = 0){
       seriesContext: requestBody.seriesContext,
     });
     try {
-      const result = await callGenerateOnce(requestBody);
+      const result = await callGenerateOnceWithRetry(requestBody, {
+        signal: state,
+        onRetry: ({ attempt, of, waitMs, message }) => {
+          state.retryStatus = { lessonIdx: i, attempt, of, waitMs, message };
+          renderSeriesProgress(state, true, i);
+        },
+      });
+      state.retryStatus = null;
       state.completed[i] = {
         position: i + 1,
         heading: subtopicHeading,
@@ -2116,6 +2125,7 @@ async function generateSeries(plan, startFrom = 0){
         ` · ${(result.docxBase64?.length || 0)} chars docx` +
         (result.pptxBase64 ? `, ${result.pptxBase64.length} chars pptx` : ''));
     } catch (err) {
+      state.retryStatus = null;
       const message = err?.message || String(err);
       state.completed[i] = {
         position: i + 1,
@@ -2124,7 +2134,7 @@ async function generateSeries(plan, startFrom = 0){
         error: message,
       };
       state.failedAt = i;
-      console.error(`[series] ✗ lesson ${i + 1}/${total} failed:`, message);
+      console.error(`[series] ✗ lesson ${i + 1}/${total} failed (after auto-retry):`, message);
       break;
     }
     renderSeriesProgress(state, true, i + 1);
@@ -2163,19 +2173,90 @@ async function callGenerateOnce(body){
     // Server fell into SSE mode anyway (or returned HTML). Drain text.
     const t = await r.text();
     console.error('[series] non-JSON response', { status: r.status, contentType: ct, sample: (t || '').slice(0, 200) });
-    throw new Error('Unexpected response (' + r.status + '): ' + (t || r.statusText).slice(0, 200));
+    const err = new Error('Unexpected response (' + r.status + '): ' + (t || r.statusText).slice(0, 200));
+    err.status = r.status;
+    err.transient = r.status >= 500;
+    throw err;
   }
   const d = await r.json();
   if (!r.ok || d.error) {
     console.error('[series] error response', { status: r.status, body: d });
-    // 429s come from the rate limiter; surface a clearer hint than the
-    // plain text so the teacher knows it's transient and pacing-related.
-    if (r.status === 429) {
-      throw new Error((d.error || 'Too many requests') + ' (rate limit — try Resume in a minute)');
-    }
-    throw new Error(d.error || ('Server error ' + r.status));
+    const err = new Error(d.error || ('Server error ' + r.status));
+    err.status = r.status;
+    err.retryAfter = parseRetryAfter(r);
+    err.transient = isTransientStatus(r.status);
+    throw err;
   }
   return d;
+}
+
+// Auto-retry wrapper around callGenerateOnce. Treats rate-limit (429),
+// server errors (5xx) and network blips as transient; re-attempts up to
+// MAX_ATTEMPTS times with exponential backoff (or honors Retry-After /
+// RateLimit-Reset for 429s). Anything 4xx-but-not-429 is treated as
+// terminal — those are real input errors the user should see.
+//
+// onRetry({ attempt, of, waitMs, message }) lets the caller surface the
+// retry in the UI ("retrying... attempt 2 of 3, waiting 7s").
+async function callGenerateOnceWithRetry(body, { onRetry, signal } = {}){
+  const MAX_ATTEMPTS = 3;
+  let lastErr = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      return await callGenerateOnce(body);
+    } catch (err) {
+      lastErr = err;
+      const transient = err?.transient || isTransientError(err);
+      if (attempt >= MAX_ATTEMPTS || !transient) break;
+      const waitMs = backoffForError(err, attempt);
+      console.warn(`[series] transient error on attempt ${attempt}/${MAX_ATTEMPTS}: ${err.message}. Retrying in ${Math.round(waitMs/1000)}s.`);
+      onRetry?.({ attempt, of: MAX_ATTEMPTS, waitMs, message: err.message });
+      // Cancellation check during the wait — split the sleep into 1s
+      // chunks so a user-cancelled series doesn't sit waiting 60s.
+      const checkpoints = Math.max(1, Math.ceil(waitMs / 1000));
+      for (let k = 0; k < checkpoints; k++) {
+        if (signal?.cancelled) throw err;
+        await sleep(Math.min(1000, waitMs - k * 1000));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+function isTransientStatus(status){
+  if (status === 429) return true;
+  if (status >= 500 && status <= 599) return true;
+  return false;
+}
+
+function isTransientError(err){
+  if (err?.status) return isTransientStatus(err.status);
+  // No status means a network / fetch failure — treat as transient.
+  const msg = String(err?.message || '');
+  return /fetch failed|NetworkError|ECONN|ETIMEDOUT|EAI_AGAIN|Failed to fetch/i.test(msg);
+}
+
+function backoffForError(err, attempt){
+  // 429: respect Retry-After / RateLimit-Reset when present, capped at 90s.
+  if (err?.status === 429) {
+    if (Number.isFinite(err?.retryAfter) && err.retryAfter > 0) {
+      return Math.min(err.retryAfter * 1000, 90_000);
+    }
+    return 30_000; // Conservative default — server limit window is 60s.
+  }
+  // 5xx / network: exponential 2s → 4s → 8s with a small jitter.
+  const base = Math.min(2_000 * Math.pow(2, attempt - 1), 30_000);
+  return base + Math.floor(Math.random() * 1_500);
+}
+
+function parseRetryAfter(response){
+  const ra = response?.headers?.get?.('Retry-After');
+  if (ra && /^\d+$/.test(ra)) return Number(ra);
+  // express-rate-limit (with standardHeaders:true) sends RateLimit-Reset
+  // as seconds remaining in the current window.
+  const reset = response?.headers?.get?.('RateLimit-Reset');
+  if (reset && /^\d+$/.test(reset)) return Number(reset);
+  return null;
 }
 
 function renderSeriesProgress(state, inProgress, currentIdx){
@@ -2183,14 +2264,23 @@ function renderSeriesProgress(state, inProgress, currentIdx){
   if (!out) return;
   const completedCount = state.completed.filter((c) => c && !c.failed).length;
   const totalLabel = state.total;
+  const retry = inProgress && state.retryStatus && state.retryStatus.lessonIdx === (currentIdx ?? -1)
+    ? state.retryStatus
+    : null;
   const headerText = inProgress
-    ? (state.cancelled ? `Cancelling…` : `Generating lesson ${Math.min((currentIdx ?? completedCount) + 1, totalLabel)} of ${totalLabel}…`)
+    ? (state.cancelled ? `Cancelling…`
+      : retry
+        ? `Lesson ${(currentIdx ?? completedCount) + 1} of ${totalLabel} — retrying (attempt ${retry.attempt + 1} of ${retry.of})…`
+        : `Generating lesson ${Math.min((currentIdx ?? completedCount) + 1, totalLabel)} of ${totalLabel}…`)
     : (state.failedAt != null
         ? `Series stopped at lesson ${state.failedAt + 1} of ${totalLabel}`
         : (state.cancelled ? `Series cancelled (${completedCount}/${totalLabel} done)` : `Series complete · ${completedCount} of ${totalLabel} lessons`));
+  const baseSub = `${state.unitTopic} · ${state.lessonMinutes} min each`;
   const subText = inProgress
-    ? `${state.unitTopic} · ${state.lessonMinutes} min each · ${completedCount} of ${totalLabel} ready`
-    : `${state.unitTopic} · ${state.lessonMinutes} min each`;
+    ? (retry
+        ? `${baseSub} · waiting ${Math.round(retry.waitMs/1000)}s before next attempt — ${friendlyError(retry.message)}`
+        : `${baseSub} · ${completedCount} of ${totalLabel} ready`)
+    : baseSub;
   const allDone = !inProgress && state.failedAt == null && !state.cancelled
     && state.completed.every((c) => c && !c.failed);
 
