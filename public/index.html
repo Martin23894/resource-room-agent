@@ -423,9 +423,10 @@ select:focus{outline:none;border-color:var(--t4);}
           </select>
         </div>
       </div>
-      <!-- Subtopic picker — only visible for Lesson mode when the chosen Unit
-           has 2+ subtopics. Lets the teacher narrow a 6h Unit into one
-           45-min concept-focused lesson instead of a generic introduction. -->
+      <!-- Subtopic picker — shown for every Lesson cascade. When the chosen
+           Unit only has one subtopic in the CAPS pacing data, the dropdown
+           is rendered disabled with explanatory text rather than hidden,
+           so teachers know the feature exists for other Units. -->
       <div id="subtopic-row" style="margin-bottom:10px;display:none;">
         <div class="flabel">Subtopic focus <span style="font-size:10px;color:var(--ink4);font-weight:400;">(optional)</span></div>
         <div class="sw">
@@ -433,17 +434,17 @@ select:focus{outline:none;border-color:var(--t4);}
             <option value="">Whole unit (auto-pick focus)</option>
           </select>
         </div>
-        <div style="font-size:10px;color:var(--ink4);margin-top:3px;line-height:1.4;">
+        <div id="subtopic-help" style="font-size:10px;color:var(--ink4);margin-top:3px;line-height:1.4;">
           Pick a subtopic to teach a single concept this lesson, or leave on "Whole unit" to let the model choose.
         </div>
       </div>
-      <!-- Series upsell — shown only for Lesson mode when the chosen Unit
-           has 2+ subtopics. One click generates the whole Unit's lessons,
-           billed per lesson (same as clicking Generate N times). -->
+      <!-- Series upsell — shown for every Lesson cascade. When the chosen
+           Unit only has one subtopic, the button is rendered disabled with
+           explanatory text rather than hidden. -->
       <div id="series-row" style="margin-bottom:10px;display:none;">
         <button class="series-link" id="series-link" type="button" onclick="openSeriesModal()">
           ✨ Generate full unit series<br>
-          <span style="font-size:10px;color:var(--ink3);font-weight:400;">All <span id="series-count-pill">N</span> lessons in one click · Same cost as separate</span>
+          <span id="series-link-sub" style="font-size:10px;color:var(--ink3);font-weight:400;">All <span id="series-count-pill">N</span> lessons in one click · Same cost as separate</span>
         </button>
       </div>
       <!-- Resource type — dynamic per subject/grade/term -->
@@ -1038,11 +1039,15 @@ function loadTopics(){
 // selected Unit option, populates the Subtopic dropdown, and hides the
 // whole row when there's only one (or zero) subtopic worth picking.
 function loadSubtopicsForCurrentUnit(){
-  const row = document.getElementById('subtopic-row');
-  const sub = document.getElementById('subtopic');
-  const seriesRow = document.getElementById('series-row');
+  const row        = document.getElementById('subtopic-row');
+  const sub        = document.getElementById('subtopic');
+  const help       = document.getElementById('subtopic-help');
+  const seriesRow  = document.getElementById('series-row');
+  const seriesLink = document.getElementById('series-link');
   const seriesPill = document.getElementById('series-count-pill');
+  const seriesSub  = document.getElementById('series-link-sub');
   if(!row || !sub) return;
+
   // Only Lesson mode uses this picker (and the series upsell).
   if (rtype !== 'Lesson') {
     row.style.display = 'none';
@@ -1056,23 +1061,40 @@ function loadSubtopicsForCurrentUnit(){
   try {
     headings = opt?.dataset?.subtopics ? JSON.parse(opt.dataset.subtopics) : [];
   } catch { headings = []; }
+  const hasMultiple = Array.isArray(headings) && headings.length >= 2;
 
-  // Hide the picker AND the series upsell for Units with 0 or 1 subtopic
-  // — neither would do anything useful. The whole-Unit single-lesson path
-  // covers those.
-  if (!Array.isArray(headings) || headings.length < 2) {
-    sub.innerHTML = '<option value="">Whole unit (auto-pick focus)</option>';
-    row.style.display = 'none';
-    if (seriesRow) seriesRow.style.display = 'none';
-    return;
-  }
+  // ALWAYS show the row in Lesson mode. Hiding it silently when the Unit
+  // only has one subtopic in the CAPS pacing data (e.g. "NUMBER SENTENCES"
+  // Gr 6 T2) makes teachers think the feature broke. Instead the dropdown
+  // goes disabled with an explanatory hint, and the series button shows
+  // a "single-lesson Unit — series unavailable" tooltip.
   row.style.display = '';
-  sub.innerHTML =
-    `<option value="" selected>Whole unit (auto-pick focus)</option>` +
-    headings.map((h) => `<option value="${escAttr(h)}">${escAttr(h)}</option>`).join('');
+  if (hasMultiple) {
+    sub.disabled = false;
+    sub.innerHTML =
+      `<option value="" selected>Whole unit (auto-pick focus)</option>` +
+      headings.map((h) => `<option value="${escAttr(h)}">${escAttr(h)}</option>`).join('');
+    if (help) help.textContent = `${headings.length} subtopics in this Unit. Pick one to focus the lesson, or leave on "Whole unit" to let the model choose.`;
+  } else {
+    sub.disabled = true;
+    sub.innerHTML = `<option value="" selected>Whole unit only</option>`;
+    if (help) help.textContent = 'CAPS doesn\'t break this Unit into named subtopics — generate it as a single Whole-unit lesson.';
+  }
+
+  // Series upsell: same all-or-nothing rule. Show when 2+ subtopics; show
+  // disabled with a hint when only 1.
   if (seriesRow) {
     seriesRow.style.display = '';
-    if (seriesPill) seriesPill.textContent = String(headings.length);
+    if (hasMultiple) {
+      seriesLink.disabled = false;
+      seriesLink.title = '';
+      if (seriesSub) seriesSub.innerHTML = `All <span id="series-count-pill">${headings.length}</span> lessons in one click · Same cost as separate`;
+      else if (seriesPill) seriesPill.textContent = String(headings.length);
+    } else {
+      seriesLink.disabled = true;
+      seriesLink.title = 'This Unit has only one subtopic — generate it as a single Whole-unit lesson instead.';
+      if (seriesSub) seriesSub.innerHTML = 'Series unavailable for single-subtopic Units';
+    }
   }
 }
 
