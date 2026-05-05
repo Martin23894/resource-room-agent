@@ -184,6 +184,9 @@ app.get('/privacy', (_req, res) => {
 app.get('/terms', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'terms.html'));
 });
+app.get('/help', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'help.html'));
+});
 // '/app' (and everything below it) serves the authenticated SPA.
 // The SPA itself shows the auth gate until /api/auth/me succeeds.
 app.get(['/app', '/app/*'], (_req, res) => {
