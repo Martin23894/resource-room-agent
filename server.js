@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { logger } from './lib/logger.js';
 import { openCache } from './lib/cache.js';
 import { parseSession, requireAuth } from './lib/auth.js';
+import { checkEmailConfig } from './lib/email.js';
 
 // Import route handlers
 import generateHandler from './api/generate.js';
@@ -282,6 +283,10 @@ app.use((req, res) => {
 // the first request arrives.
 try { openCache({ logger }); }
 catch (err) { logger.warn({ err: err?.message || err }, 'Cache init failed — generate endpoint will run without caching'); }
+
+// Boot-time deliverability check — logs a warning when EMAIL_PROVIDER=resend
+// but EMAIL_FROM is unset / pointing at the sandbox. Doesn't throw.
+checkEmailConfig({ logger });
 
 app.listen(PORT, () => {
   logger.info(
