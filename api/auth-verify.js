@@ -1,25 +1,28 @@
-// /api/auth/verify — two-step verification to defeat email-scanner prefetch.
+// /api/auth/verify — email-verification flow.
 //
-//   GET  /api/auth/verify?token=X   → renders a "Confirm sign-in" page.
+//   GET  /api/auth/verify?token=X   → renders a "Confirm your email" page.
 //                                      The token is NOT consumed here, so
-//                                      Gmail Safe Links, Outlook Defender,
-//                                      Chrome link prefetch and Resend's
-//                                      click tracker can all GET this URL
-//                                      harmlessly — the real user clicks the
-//                                      button on the page to actually sign in.
+//                                      Gmail Safe Links / Outlook Defender /
+//                                      Chrome prefetch can all GET this URL
+//                                      harmlessly. The teacher clicks the
+//                                      button on the page to actually verify.
 //
-//   POST /api/auth/verify   { token } → consumes the token, mints a session,
-//                                      sets the HMAC-signed cookie and 302s
-//                                      to /. Scanners don't POST, so this
-//                                      endpoint is only reachable when a
-//                                      real browser submits the confirm form.
+//   POST /api/auth/verify   { token } → consumes the token, marks the user's
+//                                      email as verified and (if not already
+//                                      signed in) mints a session, then 302s
+//                                      to /app.
+//
+// Tokens with purpose='verify' confirm a freshly-created account's email.
+// Legacy magic-link sign-in tokens (purpose='signin') still work the same
+// way for backwards compatibility — they sign in any matching user without
+// touching email_verified_at.
 //
 // Invalid / expired / already-used tokens get a friendly HTML page rather
 // than a JSON body because this endpoint is loaded directly from the email.
 
 import { logger as defaultLogger } from '../lib/logger.js';
 import {
-  peekMagicLink, consumeMagicLink, createSession,
+  peekMagicLink, consumeMagicLink, markEmailVerified, createSession,
   signValue, cookieOptions, COOKIE_NAME,
 } from '../lib/auth.js';
 
@@ -52,25 +55,29 @@ ${bodyHtml}
 </div></body></html>`;
 }
 
-function confirmPage({ token, email }) {
+function confirmPage({ token, email, purpose }) {
+  const isVerify = purpose === 'verify';
+  const heading = isVerify ? 'Confirm your email' : 'Welcome back';
+  const sub = isVerify
+    ? 'Click below to confirm this is your email address.'
+    : 'Click below to finish signing in to The Resource Room.';
+  const buttonText = isVerify ? 'Confirm email' : 'Sign in';
   return page({
-    title: 'Confirm sign-in — The Resource Room',
+    title: `${heading} — The Resource Room`,
     bodyHtml: `
-<h1>Welcome back</h1>
-<p class="sub">Click below to finish signing in to The Resource Room.</p>
+<h1>${heading}</h1>
+<p class="sub">${sub}</p>
 <div class="email">${safe(email)}</div>
 <form method="POST" action="/api/auth/verify" style="margin:0;">
   <input type="hidden" name="token" value="${safe(token)}">
-  <button type="submit" id="confirm-btn">Sign in</button>
+  <button type="submit" id="confirm-btn">${buttonText}</button>
 </form>
 <p class="note">Not you? Close this tab — this link will expire automatically.</p>
 <script>
-// Auto-focus the button so <Enter> works immediately, and disable it
-// on submit so a double-click can't hit the POST twice.
 document.getElementById('confirm-btn').focus();
 document.querySelector('form').addEventListener('submit', () => {
   const b = document.getElementById('confirm-btn');
-  b.disabled = true; b.textContent = 'Signing in…';
+  b.disabled = true; b.textContent = '${isVerify ? 'Confirming…' : 'Signing in…'}';
 });
 </script>`,
   });
@@ -95,19 +102,14 @@ export default async function handler(req, res) {
   return res.status(405).json({ error: 'Method not allowed' });
 }
 
-// ─── GET — render confirm page, DO NOT consume the token ───
 function handleGet(req, res, log) {
   const token = String(req.query?.token || '').trim();
   if (!token || !TOKEN_RE.test(token)) {
     return res.status(400).type('html').send(errorPage({
       title: 'Invalid link',
-      message: 'The sign-in link is malformed. Please request a new one.',
+      message: 'The verification link is malformed. Please request a new one.',
     }));
   }
-
-  // If the user already has a valid session (e.g. clicked the email link
-  // from a second tab after already signing in), just send them home.
-  if (req.user) return res.redirect(302, '/app');
 
   let info;
   try {
@@ -115,43 +117,69 @@ function handleGet(req, res, log) {
   } catch (err) {
     log.info({ err: err?.message }, 'peekMagicLink rejected token');
     return res.status(400).type('html').send(errorPage({
-      title: 'Sign-in failed',
-      message: err?.message || 'Sign-in link is invalid.',
-      hint: 'If this keeps happening after your first click, your email provider may be scanning links before you see them. Request a fresh link and click the Sign in button on the confirmation page.',
+      title: 'Link invalid',
+      message: err?.message || 'This link is no longer valid.',
+      hint: 'If this keeps happening after your first click, your email provider may be scanning links before you see them. Request a fresh link and click the button on the confirmation page.',
     }));
   }
 
-  return res.status(200).type('html').send(confirmPage({ token, email: info.email }));
+  // The verify endpoint accepts 'verify' (post-signup) and 'signin' (legacy
+  // magic-link). 'reset' tokens belong on /api/auth/reset and are rejected
+  // here so a stolen reset link can't be confirmed against the wrong route.
+  if (info.purpose && info.purpose !== 'verify' && info.purpose !== 'signin') {
+    return res.status(400).type('html').send(errorPage({
+      title: 'Wrong link type',
+      message: 'This link is for a different action.',
+      hint: 'Use the link from the password-reset email instead.',
+    }));
+  }
+
+  // Already signed in? For 'verify' tokens, still confirm the email so the
+  // banner clears; for 'signin' tokens, just go home.
+  if (req.user && info.purpose !== 'verify') return res.redirect(302, '/app');
+
+  return res.status(200).type('html').send(confirmPage({ token, email: info.email, purpose: info.purpose || 'signin' }));
 }
 
-// ─── POST — actually consume the token and sign the user in ───
 function handlePost(req, res, log) {
-  // Body can be form-urlencoded (from the confirm page <form>) or JSON
-  // (from programmatic callers / tests). The route mounts urlencoded + json
-  // parsers in server.js; fall back to query string if neither populated
-  // req.body.
   const token = String(req.body?.token || req.query?.token || '').trim();
   if (!token || !TOKEN_RE.test(token)) {
     return res.status(400).type('html').send(errorPage({
       title: 'Invalid link',
-      message: 'The sign-in link is malformed. Please request a new one.',
+      message: 'The verification link is malformed. Please request a new one.',
     }));
   }
 
-  let user;
+  let user, purpose;
   try {
-    user = consumeMagicLink(token);
+    ({ user, purpose } = consumeMagicLink(token));
   } catch (err) {
     log.info({ err: err?.message }, 'consumeMagicLink rejected token');
     return res.status(400).type('html').send(errorPage({
-      title: 'Sign-in failed',
-      message: err?.message || 'Sign-in link is invalid.',
-      hint: 'Request a fresh sign-in link from the home page.',
+      title: 'Verification failed',
+      message: err?.message || 'This link is invalid.',
+      hint: 'Request a fresh link from the sign-in page.',
     }));
   }
 
-  const session = createSession(user.id);
-  res.cookie(COOKIE_NAME, signValue(session.id), cookieOptions());
-  log.info({ userId: user.id, email: user.email }, 'User signed in');
+  if (purpose !== 'verify' && purpose !== 'signin') {
+    return res.status(400).type('html').send(errorPage({
+      title: 'Wrong link type',
+      message: 'This link is for a different action.',
+    }));
+  }
+
+  if (purpose === 'verify') {
+    markEmailVerified(user.id);
+  }
+
+  // If the teacher already has a session (just signed up + clicked verify
+  // from the same browser), keep it. Otherwise mint one so they don't have
+  // to re-enter credentials right after verifying.
+  if (!req.user) {
+    const session = createSession(user.id);
+    res.cookie(COOKIE_NAME, signValue(session.id), cookieOptions());
+  }
+  log.info({ userId: user.id, email: user.email, purpose }, 'auth/verify consumed token');
   return res.redirect(302, '/app');
 }

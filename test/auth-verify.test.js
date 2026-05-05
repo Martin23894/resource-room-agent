@@ -74,7 +74,7 @@ describe('peekMagicLink (non-consuming)', () => {
     peekMagicLink(token);
     peekMagicLink(token);
     // Token is still consumable afterwards — proves peek doesn't mark used_at
-    const user = consumeMagicLink(token);
+    const { user } = consumeMagicLink(token);
     assert.equal(user.email, em('teacher'));
   });
 
@@ -103,7 +103,7 @@ describe('GET /api/auth/verify — renders confirm page, does NOT consume', () =
     assert.match(res.body, /Sign in/);
 
     // Token is STILL consumable after a GET — this is the whole point
-    const user = consumeMagicLink(token);
+    const { user } = consumeMagicLink(token);
     assert.equal(user.email, em('teacher'));
   });
 

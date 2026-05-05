@@ -38,6 +38,9 @@ export default function handler(req, res) {
       id: req.user.id,
       email: req.user.email,
       created_at: req.user.created_at,
+      emailVerified: !!req.user.email_verified_at,
+      emailVerifiedAt: req.user.email_verified_at || null,
+      hasPassword: !!req.user.password_hash,
       profile,
       subscription: {
         tier,                       // null | 'essential' | 'classroom' | 'pro'
