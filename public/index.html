@@ -289,6 +289,26 @@ select:focus{outline:none;border-color:var(--t4);}
 .profile-status{font-size:12px;line-height:1.5;min-height:18px;margin-top:10px;}
 .profile-status.error{color:#a32d2d;}
 .profile-status.success{color:var(--t6);font-weight:600;}
+/* Danger zone — account deletion (POPIA right-to-erasure). Hidden by
+   default during onboarding; only the Account modal exposes it. */
+.danger-zone{margin-top:24px;padding-top:18px;border-top:1px solid var(--bdr);}
+.danger-zone h3{font-size:13px;color:#a32d2d;margin:0 0 6px;font-weight:700;}
+.danger-zone p{font-size:12px;color:var(--ink3);line-height:1.55;margin:0 0 12px;}
+.danger-zone .danger-link{background:transparent;border:1.5px solid #d6a0a0;color:#a32d2d;font-size:12px;font-weight:700;padding:8px 14px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.danger-zone .danger-link:hover{background:#FAEAEA;border-color:#a32d2d;}
+.danger-confirm{margin-top:14px;padding:14px;background:#FAEAEA;border:1px solid #d6a0a0;border-radius:8px;display:none;}
+.danger-confirm.on{display:block;}
+.danger-confirm p{font-size:12px;color:#5d2020;margin:0 0 10px;line-height:1.55;}
+.danger-confirm strong{color:#a32d2d;}
+.danger-confirm input{width:100%;padding:9px 11px;border:1.5px solid #d6a0a0;border-radius:7px;font-size:13px;font-family:inherit;color:var(--ink);background:#fff;margin-bottom:10px;box-sizing:border-box;}
+.danger-confirm input:focus{outline:none;border-color:#a32d2d;}
+.danger-confirm-row{display:flex;gap:8px;justify-content:flex-end;}
+.danger-confirm-row button{padding:8px 14px;border-radius:7px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:none;}
+.danger-confirm-row .delete{background:#a32d2d;color:#fff;border:none;}
+.danger-confirm-row .delete:hover:not(:disabled){background:#822323;}
+.danger-confirm-row .delete:disabled{background:var(--ink4);cursor:wait;}
+.danger-confirm-row .cancel-del{background:transparent;border:1.5px solid #d6a0a0;color:#5d2020;}
+.danger-confirm-row .cancel-del:hover{border-color:#a32d2d;}
 .user-account{background:transparent;border:1px solid var(--t6);color:var(--t1);font-size:11px;font-weight:700;padding:4px 10px;border-radius:14px;cursor:pointer;font-family:inherit;}
 .user-account:hover{background:var(--t9);color:#fff;}
 
@@ -484,6 +504,24 @@ select:focus{outline:none;border-color:var(--t4);}
         <button type="submit" class="save" id="profile-save">Save profile</button>
       </div>
     </form>
+
+    <!-- Danger zone: hidden during onboarding so a fresh teacher can't
+         accidentally delete the account they just made. Shown only when
+         the modal is opened from the "Account" button. -->
+    <div class="danger-zone" id="danger-zone" style="display:none;">
+      <h3>Danger zone</h3>
+      <p>Permanently delete your account, profile, settings and history. This cannot be undone.</p>
+      <button type="button" class="danger-link" onclick="showDeleteConfirm()">Delete my account</button>
+
+      <div class="danger-confirm" id="danger-confirm">
+        <p>To confirm, type your email <strong id="danger-confirm-email"></strong> below. We'll email you when the deletion completes.</p>
+        <input type="email" id="danger-confirm-input" autocomplete="off" placeholder="Type your email"/>
+        <div class="danger-confirm-row">
+          <button type="button" class="cancel-del" onclick="hideDeleteConfirm()">Cancel</button>
+          <button type="button" class="delete" id="danger-confirm-btn" onclick="doDeleteAccount()">Delete permanently</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2897,15 +2935,21 @@ function openProfileModal({ onboarding = false } = {}){
   const title = document.getElementById('profile-title');
   const sub = document.getElementById('profile-sub');
   const cancel = document.getElementById('profile-cancel');
+  const dangerZone = document.getElementById('danger-zone');
   if (onboarding) {
     title.textContent = "Welcome — let's set up your profile";
     sub.textContent = 'Tell us a bit about yourself so we can personalise your resources. You can edit this any time.';
     cancel.style.display = 'none';
+    if (dangerZone) dangerZone.style.display = 'none';
   } else {
     title.textContent = 'Account';
     sub.textContent = 'Update your profile details. Your email is the address you sign in with.';
     cancel.style.display = 'inline-block';
+    if (dangerZone) dangerZone.style.display = 'block';
   }
+  // Reset the danger-zone confirm box every time we open the modal so
+  // a previously-typed email doesn't linger.
+  hideDeleteConfirm();
   // Hydrate inputs from cached _currentUser.profile (always fresh because
   // we re-fetch /me on every page load) — no extra GET needed.
   const p = _currentUser?.profile || {};
@@ -2982,6 +3026,56 @@ async function saveProfile(){
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = orig;
+  }
+}
+
+// ── Account deletion (POPIA right-to-erasure) ────────────────────────────────
+function showDeleteConfirm(){
+  const box = document.getElementById('danger-confirm');
+  if (!box) return;
+  document.getElementById('danger-confirm-email').textContent = _currentUser?.email || '';
+  document.getElementById('danger-confirm-input').value = '';
+  box.classList.add('on');
+  setTimeout(() => document.getElementById('danger-confirm-input')?.focus(), 30);
+}
+
+function hideDeleteConfirm(){
+  const box = document.getElementById('danger-confirm');
+  if (!box) return;
+  box.classList.remove('on');
+  const input = document.getElementById('danger-confirm-input');
+  if (input) input.value = '';
+}
+
+async function doDeleteAccount(){
+  const typed = document.getElementById('danger-confirm-input').value.trim().toLowerCase();
+  const expected = (_currentUser?.email || '').toLowerCase();
+  if (!expected || typed !== expected){
+    alert('Email does not match. Type your email exactly to confirm.');
+    return;
+  }
+  const btn = document.getElementById('danger-confirm-btn');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Deleting…';
+  try {
+    const r = await fetch('/api/user/account', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ confirmEmail: typed }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok){
+      throw new Error(d.error || 'Could not delete account.');
+    }
+    // Done — drop everything in memory and bounce to the landing page.
+    alert('Your account has been deleted. We sent a confirmation to your email.');
+    window.location.assign('/');
+  } catch (err){
+    alert(err.message || 'Could not delete account.');
+    btn.disabled = false;
+    btn.textContent = orig;
   }
 }
 
