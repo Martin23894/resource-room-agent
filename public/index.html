@@ -376,6 +376,7 @@ select:focus{outline:none;border-color:var(--t4);}
     <div class="user-chip" id="user-chip" style="display:none;">
       <span class="tier-badge" id="tier-badge" style="display:none;"></span>
       <span class="user-email" id="user-email"></span>
+      <a class="user-account" href="/help" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">Help</a>
       <button type="button" class="user-account" onclick="openAccountModal()">Account</button>
       <button type="button" class="user-billing" id="user-billing" onclick="openBilling()" style="display:none;"></button>
       <button type="button" class="user-logout" onclick="doLogout()">Sign out</button>
@@ -450,7 +451,7 @@ select:focus{outline:none;border-color:var(--t4);}
      emailVerified === false. Lets the teacher resend the verification
      email without leaving the app. -->
 <div class="verify-banner hidden" id="verify-banner">
-  <div class="v-msg">Please verify your email — we sent a confirmation link to <strong id="verify-banner-email"></strong>.</div>
+  <div class="v-msg">Please verify your email — we sent a confirmation link to <strong id="verify-banner-email"></strong>. <a href="/help#signin" target="_blank" style="color:#633806;text-decoration:underline;">Didn't get it?</a></div>
   <button type="button" id="verify-banner-btn" onclick="resendVerification()">Resend link</button>
 </div>
 

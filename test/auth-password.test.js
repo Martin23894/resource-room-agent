@@ -25,7 +25,7 @@ import {
   hashPassword, verifyPassword, validatePassword,
   MIN_PASSWORD_LENGTH,
 } from '../lib/password.js';
-import signupHandler from '../api/auth-signup.js';
+import signupHandler, { __exposedForTests } from '../api/auth-signup.js';
 import signinHandler from '../api/auth-signin.js';
 import forgotHandler from '../api/auth-forgot.js';
 import resetHandler from '../api/auth-reset.js';
@@ -198,6 +198,54 @@ describe('POST /api/auth/signup', () => {
 
     const after = getUserByEmail(em('legacy'));
     assert.ok(after.password_hash, 'password was attached');
+  });
+
+  test('buildWelcomeEmail produces the expected content', () => {
+    const { buildWelcomeEmail } = __exposedForTests;
+    const { subject, text, html } = buildWelcomeEmail();
+    assert.match(subject, /Welcome/i);
+    // Key bits a teacher needs in the body
+    assert.match(text, /14-day free trial/);
+    assert.match(text, /Quick start/);
+    assert.match(text, /\/help/);
+    assert.match(text, /\/app/);
+    // HTML version mirrors the plain-text one
+    assert.match(html, /Quick start/);
+    assert.match(html, /href="[^"]*\/help"/);
+    assert.match(html, /href="[^"]*\/app"/);
+  });
+
+  test('signup sends both a verification email AND a welcome email', async () => {
+    // Use console driver so sendEmail / createMagicLink push entries through
+    // the injected logger we can inspect.
+    process.env.EMAIL_PROVIDER = 'console';
+    const events = [];
+    const captureLog = {
+      info: (a, b) => events.push({ kind: 'info', a, b }),
+      warn: (a, b) => events.push({ kind: 'warn', a, b }),
+      error: (a, b) => events.push({ kind: 'error', a, b }),
+    };
+    const req = makeReq({
+      body: { email: em('welcome'), password: 'a-strong-pass-1' },
+    });
+    req.log = captureLog;
+    const res = makeRes();
+    await signupHandler(req, res);
+    assert.equal(res.statusCode, 200);
+
+    // The console email driver logs once per email with the subject in the
+    // bindings object — we assert we got both subjects.
+    const subjects = events
+      .filter((e) => e.a && typeof e.a.subject === 'string')
+      .map((e) => e.a.subject);
+    assert.ok(
+      subjects.some((s) => /Confirm your email/i.test(s)),
+      'verification email subject should appear in log: ' + JSON.stringify(subjects),
+    );
+    assert.ok(
+      subjects.some((s) => /Welcome to The Resource Room/i.test(s)),
+      'welcome email subject should appear in log: ' + JSON.stringify(subjects),
+    );
   });
 });
 
