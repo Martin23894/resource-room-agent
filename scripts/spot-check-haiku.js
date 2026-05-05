@@ -1,10 +1,9 @@
 #!/usr/bin/env node
-// Spot-check the Haiku 4.5 swaps on /api/cover and /api/refine by exercising
-// the underlying handler functions directly with synthetic inputs. Prints
-// outputs to stdout for eyeball review. No moderator — these endpoints aren't
-// CAPS-paper-shaped so the moderator's rubric doesn't apply.
+// Spot-check the Haiku 4.5 swap on /api/refine by exercising the underlying
+// handler function directly with synthetic inputs. Prints outputs to stdout
+// for eyeball review. No moderator — refine isn't CAPS-paper-shaped so the
+// moderator's rubric doesn't apply.
 
-import coverHandler from '../api/cover.js';
 import refineHandler from '../api/refine.js';
 
 const silentLogger = { info: () => {}, warn: () => {}, error: console.error };
@@ -19,22 +18,6 @@ function mockRes() {
     status(c) { this.statusCode = c; return this; },
     json(p) { this.payload = p; this.headersSent = true; return this; },
   };
-}
-
-async function checkCover() {
-  console.log('\n══════ /api/cover (Haiku) ══════');
-  const cases = [
-    { subject: 'Mathematics', topic: 'Fractions, decimals, percentages', resourceType: 'Test', language: 'English', grade: 6, term: 2, difficulty: 'on' },
-    { subject: 'English Home Language', topic: 'Comprehension and language structures', resourceType: 'Exam', language: 'English', grade: 5, term: 4, difficulty: 'on' },
-  ];
-  for (const c of cases) {
-    const t0 = Date.now();
-    const r = mockRes();
-    await coverHandler(mockReq(c), r);
-    console.log(`\n→ ${c.subject} G${c.grade} ${c.resourceType}  (${Date.now() - t0}ms, status=${r.statusCode})`);
-    if (r.statusCode !== 200) { console.log('ERROR:', r.payload); continue; }
-    console.log(JSON.stringify(r.payload, null, 2));
-  }
 }
 
 async function checkRefine() {
@@ -77,6 +60,5 @@ QUESTION 2: Decimals  [10 marks]
 }
 
 (async () => {
-  await checkCover();
   await checkRefine();
 })().catch((err) => { console.error(err); process.exit(1); });
