@@ -16,7 +16,8 @@ Node/Express. Deployed on Railway.
 1. [What it does](#what-it-does)
 2. [Quick start](#quick-start)
 3. [Environment variables](#environment-variables)
-4. [Resource types](#resource-types)
+4. [Production email setup](#production-email-setup)
+5. [Resource types](#resource-types)
 5. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
    1. [Single lesson + Subtopic picker](#single-lesson--subtopic-picker)
    2. [Lesson series generator](#lesson-series-generator)
@@ -85,9 +86,64 @@ See `.env.example` for the canonical list.
 | `APP_URL` | prod recommended | Base URL for magic-link verification (e.g. `https://resource-room.up.railway.app`). Leave blank for local dev — links become relative. |
 | `EMAIL_PROVIDER` | no | `console` (logs to stdout — dev default), `resend` (Resend API), or `disabled`. |
 | `RESEND_API_KEY` | if `EMAIL_PROVIDER=resend` | API key from <https://resend.com/api-keys>. |
-| `EMAIL_FROM` | no | Sender address (e.g. `The Resource Room <no-reply@yourdomain.com>`). Defaults to Resend's sandbox sender; verify your own domain in Resend to send from it. |
+| `EMAIL_FROM` | prod recommended | Sender address (e.g. `The Resource Room <no-reply@yourdomain.com>`). Must be on a domain you've verified in Resend — see [Production email setup](#production-email-setup). Without it, Resend falls back to its rate-limited sandbox sender and the server logs a startup warning. |
+| `EMAIL_REPLY_TO` | no | Address teachers reach when they reply to a sign-in / password-reset email. Defaults to `EMAIL_FROM`. |
 | `STRIPE_SECRET_KEY` | for billing | Stripe secret key. Required when checkout/portal endpoints are exercised. |
 | `STRIPE_WEBHOOK_SECRET` | for billing | Stripe webhook-signature secret used by `/api/stripe/webhook`. |
+
+---
+
+## Production email setup
+
+Sign-in, password reset and email verification all go through this. If
+the sending domain isn't authenticated, Gmail/Outlook will silently
+spam-fold or reject — and teachers will think the app is broken without
+ever telling you.
+
+The server logs a conspicuous warning at boot if `EMAIL_PROVIDER=resend`
+but `EMAIL_FROM` is unset / pointing at the Resend sandbox, so check
+your logs after the first deploy.
+
+Setup checklist (one-time, ~30 minutes including DNS propagation):
+
+1. **Add your domain in Resend.** Sign in to <https://resend.com>,
+   open Domains → Add Domain, enter your sending domain
+   (e.g. `theresourceroom.co.za`).
+2. **Add the DNS records.** Resend will give you four records:
+   - **SPF** (`TXT @`) — tells receiving servers Resend is allowed to
+     send on your behalf.
+   - **DKIM** (two `TXT` records, often on a subdomain like
+     `resend._domainkey`) — cryptographic signature on every email.
+   - **DMARC** (`TXT _dmarc`) — `v=DMARC1; p=quarantine;` is a sensible
+     default. Tighten to `p=reject` once you're confident.
+   Paste these into your DNS provider (Cloudflare, Route53, Namecheap…).
+3. **Wait for verification.** Resend marks the domain "Verified" once
+   the records propagate. Usually < 30 min, sometimes a few hours.
+4. **Disable click + open tracking** for the domain in Resend
+   (Domains → your domain → Tracking). Click-tracking rewrites our
+   sign-in URLs through a Resend redirect — Gmail's "Safe Links"
+   pre-fetches that wrapped URL and consumes the token before the
+   teacher clicks it. Open-tracking adds an invisible image which
+   trips spam filters on fresh sending domains.
+5. **Set the env vars** in your deploy environment (Railway → Variables):
+   ```
+   EMAIL_PROVIDER=resend
+   RESEND_API_KEY=re_…
+   EMAIL_FROM=The Resource Room <[email protected]>
+   EMAIL_REPLY_TO=[email protected]
+   ```
+6. **Send yourself a test sign-in.** Use the forgot-password flow on a
+   personal Gmail / Outlook account. If it lands in inbox (not spam), you're
+   done. If it lands in spam, check the email's "Show original" → SPF /
+   DKIM / DMARC should all say `PASS`.
+
+Common pitfalls:
+- **No DKIM** → Gmail will mark it as `dkim=none` and aggressively
+  spam-folder. Adding it after the fact takes another 30-min wait.
+- **DMARC `p=reject` before SPF/DKIM stabilise** → mails get rejected
+  outright. Start with `p=quarantine`, escalate later.
+- **EMAIL_FROM doesn't match the verified domain** → Resend rejects the
+  send with a 403.
 
 ---
 
