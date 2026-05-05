@@ -92,8 +92,9 @@ describe('users', () => {
 describe('magic links', () => {
   test('createMagicLink + consumeMagicLink round-trip creates a user', async () => {
     const { token } = await createMagicLink(em('teacher'));
-    const user = consumeMagicLink(token);
+    const { user, purpose } = consumeMagicLink(token);
     assert.equal(user.email, em('teacher'));
+    assert.equal(purpose, 'signin');
   });
   test('consumeMagicLink rejects an unknown token', () => {
     assert.throws(() => consumeMagicLink('does-not-exist'), /Unknown/);

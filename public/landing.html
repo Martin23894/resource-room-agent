@@ -49,19 +49,25 @@ h1 .accent{color:var(--t6);}
 .btn-secondary:hover{border-color:var(--t6);text-decoration:none;color:var(--t6);}
 .hero-note{font-size:12px;color:var(--ink3);margin-top:14px;}
 
-/* ── Inline sign-in form (above the fold) ───────────── */
-.signin-card{max-width:420px;margin:34px auto 0;background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:22px 24px;text-align:left;box-shadow:0 2px 14px rgba(0,0,0,0.04);}
-.signin-card h2{font-size:16px;color:var(--t8);margin-bottom:6px;}
-.signin-card p{font-size:13px;color:var(--ink3);margin-bottom:14px;}
-.signin-form{display:flex;gap:8px;}
-.signin-form input{flex:1;padding:11px 13px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:14px;font-family:inherit;background:var(--sur);}
-.signin-form input:focus{outline:none;border-color:var(--t4);}
-.signin-form button{background:var(--t8);color:#fff;font-weight:700;font-size:13px;padding:0 18px;border-radius:8px;}
-.signin-form button:hover{background:var(--t6);}
-.signin-form button:disabled{background:var(--ink4);cursor:wait;}
+/* ── Inline sign-in / sign-up card (above the fold) ── */
+.signin-card{max-width:440px;margin:34px auto 0;background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:22px 24px;text-align:left;box-shadow:0 2px 14px rgba(0,0,0,0.04);}
+.signin-tabs{display:flex;gap:4px;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:3px;margin-bottom:16px;}
+.signin-tab{flex:1;padding:8px 10px;font-size:12px;font-weight:700;color:var(--ink3);background:transparent;border:none;border-radius:6px;cursor:pointer;font-family:inherit;text-align:center;}
+.signin-tab.on{background:#fff;color:var(--t8);box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.signin-card h2{font-size:16px;color:var(--t8);margin-bottom:4px;}
+.signin-card p.help{font-size:12px;color:var(--ink3);margin-bottom:12px;line-height:1.55;}
+.signin-row{margin-bottom:10px;}
+.signin-row label{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px;letter-spacing:.4px;text-transform:uppercase;}
+.signin-row input{width:100%;padding:10px 12px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:14px;font-family:inherit;background:var(--sur);}
+.signin-row input:focus{outline:none;border-color:var(--t4);}
+.signin-submit{width:100%;background:var(--t8);color:#fff;font-weight:700;font-size:14px;padding:11px;border-radius:8px;cursor:pointer;font-family:inherit;border:none;margin-top:4px;}
+.signin-submit:hover:not(:disabled){background:var(--t6);}
+.signin-submit:disabled{background:var(--ink4);cursor:wait;}
 .signin-status{font-size:12px;margin-top:10px;min-height:16px;}
 .signin-status.ok{color:var(--t6);}
 .signin-status.err{color:#a82c2c;}
+.signin-foot{font-size:12px;color:var(--ink3);margin-top:12px;text-align:center;}
+.signin-foot a{color:var(--t6);font-weight:600;cursor:pointer;}
 
 /* ── Sections ───────────────────────────────────────── */
 .section{padding:64px 28px;max-width:1080px;margin:0 auto;}
@@ -140,13 +146,62 @@ footer{background:var(--t9);color:var(--t1);padding:34px 28px 22px;margin-top:60
   </div>
   <div class="hero-note">Free 14-day trial · No credit card required</div>
 
-  <div class="signin-card">
-    <h2>Sign in to The Resource Room</h2>
-    <p>Enter your school email and we'll send a one-click sign-in link.</p>
-    <form class="signin-form" id="signin-form" onsubmit="event.preventDefault();sendMagicLink();">
-      <input type="email" id="signin-email" placeholder="[email protected]" autocomplete="email" required/>
-      <button type="submit" id="signin-btn">Send link</button>
+  <div class="signin-card" id="signin-card">
+    <div class="signin-tabs" role="tablist">
+      <button type="button" class="signin-tab on" id="tab-signin" role="tab" aria-selected="true" onclick="showAuthMode('signin')">Sign in</button>
+      <button type="button" class="signin-tab" id="tab-signup" role="tab" onclick="showAuthMode('signup')">Create account</button>
+    </div>
+
+    <!-- SIGN IN -->
+    <form id="form-signin" onsubmit="event.preventDefault();doSignin();">
+      <h2>Welcome back</h2>
+      <p class="help">Sign in with your email and password.</p>
+      <div class="signin-row">
+        <label for="signin-email">Email</label>
+        <input type="email" id="signin-email" autocomplete="email" required placeholder="[email protected]"/>
+      </div>
+      <div class="signin-row">
+        <label for="signin-password">Password</label>
+        <input type="password" id="signin-password" autocomplete="current-password" required/>
+      </div>
+      <button type="submit" class="signin-submit" id="signin-submit">Sign in</button>
+      <div class="signin-foot">
+        <a onclick="showAuthMode('forgot')">Forgot password?</a>
+      </div>
     </form>
+
+    <!-- SIGN UP -->
+    <form id="form-signup" style="display:none;" onsubmit="event.preventDefault();doSignup();">
+      <h2>Create your account</h2>
+      <p class="help">Free 14-day trial. We'll email you a verification link.</p>
+      <div class="signin-row">
+        <label for="signup-email">Email</label>
+        <input type="email" id="signup-email" autocomplete="email" required placeholder="[email protected]"/>
+      </div>
+      <div class="signin-row">
+        <label for="signup-password">Password</label>
+        <input type="password" id="signup-password" autocomplete="new-password" required minlength="10" placeholder="At least 10 characters"/>
+      </div>
+      <div class="signin-row">
+        <label for="signup-confirm">Confirm password</label>
+        <input type="password" id="signup-confirm" autocomplete="new-password" required minlength="10"/>
+      </div>
+      <button type="submit" class="signin-submit" id="signup-submit">Create account</button>
+      <div class="signin-foot">By creating an account you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.</div>
+    </form>
+
+    <!-- FORGOT PASSWORD -->
+    <form id="form-forgot" style="display:none;" onsubmit="event.preventDefault();doForgot();">
+      <h2>Reset your password</h2>
+      <p class="help">Enter your email and we'll send a link to set a new password.</p>
+      <div class="signin-row">
+        <label for="forgot-email">Email</label>
+        <input type="email" id="forgot-email" autocomplete="email" required placeholder="[email protected]"/>
+      </div>
+      <button type="submit" class="signin-submit" id="forgot-submit">Send reset link</button>
+      <div class="signin-foot"><a onclick="showAuthMode('signin')">Back to sign in</a></div>
+    </form>
+
     <div class="signin-status" id="signin-status" aria-live="polite"></div>
   </div>
 </section>
@@ -254,41 +309,116 @@ footer{background:var(--t9);color:var(--t1);padding:34px 28px 22px;margin-top:60
 <script>
 document.getElementById('yr').textContent = new Date().getFullYear();
 
-async function sendMagicLink(){
-  const emailEl = document.getElementById('signin-email');
-  const btn = document.getElementById('signin-btn');
+// Tabbed auth: 'signin' | 'signup' | 'forgot'.
+function showAuthMode(mode){
+  const forms = { signin: 'form-signin', signup: 'form-signup', forgot: 'form-forgot' };
+  Object.entries(forms).forEach(([m, id]) => {
+    document.getElementById(id).style.display = (m === mode) ? 'block' : 'none';
+  });
+  document.getElementById('tab-signin').classList.toggle('on', mode === 'signin');
+  document.getElementById('tab-signup').classList.toggle('on', mode === 'signup');
+  document.getElementById('tab-signin').setAttribute('aria-selected', mode === 'signin' ? 'true' : 'false');
+  document.getElementById('tab-signup').setAttribute('aria-selected', mode === 'signup' ? 'true' : 'false');
+  // Forgot has no tab — leave both off.
+  if (mode === 'forgot'){
+    document.getElementById('tab-signin').classList.remove('on');
+    document.getElementById('tab-signup').classList.remove('on');
+  }
   const status = document.getElementById('signin-status');
-  const email = (emailEl.value || '').trim();
-  if (!email) { status.className='signin-status err'; status.textContent='Please enter your email.'; return; }
-
-  btn.disabled = true;
-  const orig = btn.textContent;
-  btn.textContent = 'Sending…';
-  status.className = 'signin-status';
   status.textContent = '';
+  status.className = 'signin-status';
+}
 
+function setStatus(kind, message){
+  const status = document.getElementById('signin-status');
+  status.className = `signin-status ${kind || ''}`.trim();
+  status.textContent = message || '';
+}
+
+async function doSignin(){
+  const email = document.getElementById('signin-email').value.trim();
+  const password = document.getElementById('signin-password').value;
+  const btn = document.getElementById('signin-submit');
+  if (!email || !password){ setStatus('err', 'Email and password are required.'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent; btn.textContent = 'Signing in…';
+  setStatus();
   try {
-    const r = await fetch('/api/auth/request', {
+    const r = await fetch('/api/auth/signin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok){
+      location.assign('/app');
+      return;
+    }
+    setStatus('err', d.error || 'Sign-in failed.');
+  } catch {
+    setStatus('err', 'Network error — please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function doSignup(){
+  const email = document.getElementById('signup-email').value.trim();
+  const password = document.getElementById('signup-password').value;
+  const confirm = document.getElementById('signup-confirm').value;
+  const btn = document.getElementById('signup-submit');
+  if (!email || !password){ setStatus('err', 'Email and password are required.'); return; }
+  if (password !== confirm){ setStatus('err', 'Passwords do not match.'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent; btn.textContent = 'Creating…';
+  setStatus();
+  try {
+    const r = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok){
+      // Signup mints a session immediately. Drop the user into the app
+      // — the verification banner inside /app reminds them to confirm.
+      location.assign('/app');
+      return;
+    }
+    setStatus('err', d.error || 'Could not create account.');
+  } catch {
+    setStatus('err', 'Network error — please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function doForgot(){
+  const email = document.getElementById('forgot-email').value.trim();
+  const btn = document.getElementById('forgot-submit');
+  if (!email){ setStatus('err', 'Please enter your email.'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent; btn.textContent = 'Sending…';
+  setStatus();
+  try {
+    const r = await fetch('/api/auth/forgot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({ email }),
     });
-    if (r.ok) {
-      status.className = 'signin-status ok';
-      status.textContent = `Check your inbox — we sent a sign-in link to ${email}.`;
-      emailEl.value = '';
+    if (r.ok){
+      setStatus('ok', `If an account exists for ${email}, we've sent a reset link.`);
     } else {
       const d = await r.json().catch(() => ({}));
-      status.className = 'signin-status err';
-      status.textContent = d.error || 'Could not send sign-in link. Try again.';
+      setStatus('err', d.error || 'Could not send reset link.');
     }
   } catch {
-    status.className = 'signin-status err';
-    status.textContent = 'Network error — please try again.';
+    setStatus('err', 'Network error — please try again.');
   } finally {
-    btn.disabled = false;
-    btn.textContent = orig;
+    btn.disabled = false; btn.textContent = orig;
   }
 }
 

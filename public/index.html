@@ -271,6 +271,24 @@ select:focus{outline:none;border-color:var(--t4);}
 .auth-status.success{color:var(--t8);font-weight:600;}
 .auth-status.error{color:#a32d2d;}
 
+/* Auth tabs (sign in / create) and password fields, reusing the auth-card. */
+.auth-tabs{display:flex;gap:4px;background:var(--sur);border:1px solid var(--bdr);border-radius:8px;padding:3px;margin:14px 0 16px;}
+.auth-tab{flex:1;padding:8px 10px;font-size:12px;font-weight:700;color:var(--ink3);background:transparent;border:none;border-radius:6px;cursor:pointer;font-family:inherit;text-align:center;}
+.auth-tab.on{background:#fff;color:var(--t8);box-shadow:0 1px 3px rgba(0,0,0,0.06);}
+.auth-card .auth-row{margin-bottom:10px;text-align:left;}
+.auth-card .auth-row input{width:100%;padding:10px 12px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:13px;color:var(--ink);background:var(--sur);font-family:inherit;}
+.auth-card .auth-row input:focus{outline:none;border-color:var(--t4);}
+.auth-foot{font-size:12px;color:var(--ink3);margin-top:12px;text-align:center;}
+.auth-foot a{color:var(--t6);font-weight:600;cursor:pointer;}
+
+/* Email-verification banner shown above the layout when emailVerified=false. */
+.verify-banner{background:#FAEEDA;border-bottom:1px solid #E8C98F;color:#633806;padding:9px 16px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;line-height:1.4;}
+.verify-banner.hidden{display:none;}
+.verify-banner button{background:#BA7517;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.verify-banner button:hover:not(:disabled){background:#8C5610;}
+.verify-banner button:disabled{opacity:0.6;cursor:wait;}
+.verify-banner .v-msg{flex:1;}
+
 /* Profile / onboarding modal — same look-and-feel as the auth gate. */
 .profile-modal{position:fixed;inset:0;background:rgba(4,52,44,.78);display:none;align-items:center;justify-content:center;z-index:210;padding:20px;}
 .profile-modal.on{display:flex;}
@@ -384,14 +402,65 @@ select:focus{outline:none;border-color:var(--t4);}
       <div><div class="l-wrap"><span class="l-room">ROOM</span></div></div>
     </div>
     <h2 id="auth-title">Sign in to continue</h2>
-    <p class="auth-sub">Enter your email and we'll send you a one-click sign-in link. No password to remember.</p>
-    <form id="auth-form" onsubmit="event.preventDefault(); sendMagicLink();">
-      <label class="auth-label" for="auth-email">Email</label>
-      <input id="auth-email" type="email" autocomplete="email" required placeholder="[email protected]" />
-      <button class="auth-submit" id="auth-submit" type="submit">Send sign-in link</button>
+    <p class="auth-sub" id="auth-sub">Welcome back — sign in with your email and password.</p>
+
+    <div class="auth-tabs" role="tablist">
+      <button type="button" class="auth-tab on" id="auth-tab-signin" role="tab" aria-selected="true" onclick="showGateMode('signin')">Sign in</button>
+      <button type="button" class="auth-tab" id="auth-tab-signup" role="tab" onclick="showGateMode('signup')">Create account</button>
+    </div>
+
+    <!-- SIGN IN -->
+    <form id="gate-form-signin" onsubmit="event.preventDefault(); doGateSignin();">
+      <div class="auth-row">
+        <label class="auth-label" for="gate-signin-email">Email</label>
+        <input id="gate-signin-email" type="email" autocomplete="email" required placeholder="[email protected]"/>
+      </div>
+      <div class="auth-row">
+        <label class="auth-label" for="gate-signin-password">Password</label>
+        <input id="gate-signin-password" type="password" autocomplete="current-password" required/>
+      </div>
+      <button class="auth-submit" id="gate-signin-btn" type="submit">Sign in</button>
+      <div class="auth-foot"><a onclick="showGateMode('forgot')">Forgot password?</a></div>
     </form>
+
+    <!-- SIGN UP -->
+    <form id="gate-form-signup" style="display:none;" onsubmit="event.preventDefault(); doGateSignup();">
+      <div class="auth-row">
+        <label class="auth-label" for="gate-signup-email">Email</label>
+        <input id="gate-signup-email" type="email" autocomplete="email" required placeholder="[email protected]"/>
+      </div>
+      <div class="auth-row">
+        <label class="auth-label" for="gate-signup-password">Password</label>
+        <input id="gate-signup-password" type="password" autocomplete="new-password" required minlength="10" placeholder="At least 10 characters"/>
+      </div>
+      <div class="auth-row">
+        <label class="auth-label" for="gate-signup-confirm">Confirm password</label>
+        <input id="gate-signup-confirm" type="password" autocomplete="new-password" required minlength="10"/>
+      </div>
+      <button class="auth-submit" id="gate-signup-btn" type="submit">Create account</button>
+      <div class="auth-foot">By signing up you agree to our <a href="/terms">Terms</a> &amp; <a href="/privacy">Privacy</a>.</div>
+    </form>
+
+    <!-- FORGOT PASSWORD -->
+    <form id="gate-form-forgot" style="display:none;" onsubmit="event.preventDefault(); doGateForgot();">
+      <div class="auth-row">
+        <label class="auth-label" for="gate-forgot-email">Email</label>
+        <input id="gate-forgot-email" type="email" autocomplete="email" required placeholder="[email protected]"/>
+      </div>
+      <button class="auth-submit" id="gate-forgot-btn" type="submit">Send reset link</button>
+      <div class="auth-foot"><a onclick="showGateMode('signin')">Back to sign in</a></div>
+    </form>
+
     <div class="auth-status" id="auth-status" aria-live="polite"></div>
   </div>
+</div>
+
+<!-- Email-verification banner. Hidden until /api/auth/me reports
+     emailVerified === false. Lets the teacher resend the verification
+     email without leaving the app. -->
+<div class="verify-banner hidden" id="verify-banner">
+  <div class="v-msg">Please verify your email — we sent a confirmation link to <strong id="verify-banner-email"></strong>.</div>
+  <button type="button" id="verify-banner-btn" onclick="resendVerification()">Resend link</button>
 </div>
 
 <!-- Profile / onboarding modal. Shown automatically on first sign-in
@@ -2637,6 +2706,7 @@ function renderSignedIn(user, billing){
   if (chip) chip.style.display = 'inline-flex';
   renderTierBadge(user.subscription);
   renderBillingButton(user.subscription);
+  updateVerifyBanner(user);
   hideAuthGate();
   // First sign-in: profile is empty → pop the onboarding modal.
   if (user.profile && !user.profile.complete) {
@@ -2778,38 +2848,151 @@ async function checkAuth(){
   return null;
 }
 
-async function sendMagicLink(){
-  const emailEl = document.getElementById('auth-email');
-  const submitBtn = document.getElementById('auth-submit');
+// ── Auth gate: tabbed sign-in / sign-up / forgot ────────────────────────────
+function showGateMode(mode){
+  const map = { signin: 'gate-form-signin', signup: 'gate-form-signup', forgot: 'gate-form-forgot' };
+  Object.entries(map).forEach(([m, id]) => {
+    document.getElementById(id).style.display = (m === mode) ? 'block' : 'none';
+  });
+  const tabSignin = document.getElementById('auth-tab-signin');
+  const tabSignup = document.getElementById('auth-tab-signup');
+  tabSignin.classList.toggle('on', mode === 'signin');
+  tabSignup.classList.toggle('on', mode === 'signup');
+  tabSignin.setAttribute('aria-selected', mode === 'signin' ? 'true' : 'false');
+  tabSignup.setAttribute('aria-selected', mode === 'signup' ? 'true' : 'false');
+  if (mode === 'forgot'){
+    tabSignin.classList.remove('on'); tabSignup.classList.remove('on');
+  }
+  const sub = document.getElementById('auth-sub');
+  sub.textContent = mode === 'signup'
+    ? 'Create your account — free 14-day trial, no credit card.'
+    : mode === 'forgot'
+      ? 'Enter your email and we\'ll send a link to reset your password.'
+      : 'Welcome back — sign in with your email and password.';
+  setGateStatus();
+}
+
+function setGateStatus(kind, message){
   const status = document.getElementById('auth-status');
-  const email = (emailEl?.value || '').trim();
-  if (!email){ status.className='auth-status error'; status.textContent='Please enter your email.'; return; }
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Sending…';
-  status.className = 'auth-status';
-  status.textContent = '';
+  status.className = `auth-status ${kind || ''}`.trim();
+  status.textContent = message || '';
+}
+
+async function doGateSignin(){
+  const email = document.getElementById('gate-signin-email').value.trim();
+  const password = document.getElementById('gate-signin-password').value;
+  const btn = document.getElementById('gate-signin-btn');
+  if (!email || !password){ setGateStatus('error', 'Email and password are required.'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent; btn.textContent = 'Signing in…';
+  setGateStatus();
   try {
-    const r = await fetch('/api/auth/request', {
+    const r = await fetch('/api/auth/signin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok){
+      // Re-fetch /me to populate the chip + onboarding modal.
+      await checkAuth();
+      return;
+    }
+    setGateStatus('error', d.error || 'Sign-in failed.');
+  } catch {
+    setGateStatus('error', 'Network error — please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function doGateSignup(){
+  const email = document.getElementById('gate-signup-email').value.trim();
+  const password = document.getElementById('gate-signup-password').value;
+  const confirm = document.getElementById('gate-signup-confirm').value;
+  const btn = document.getElementById('gate-signup-btn');
+  if (!email || !password){ setGateStatus('error', 'Email and password are required.'); return; }
+  if (password !== confirm){ setGateStatus('error', 'Passwords do not match.'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent; btn.textContent = 'Creating…';
+  setGateStatus();
+  try {
+    const r = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email, password }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok){
+      await checkAuth();
+      return;
+    }
+    setGateStatus('error', d.error || 'Could not create account.');
+  } catch {
+    setGateStatus('error', 'Network error — please try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+async function doGateForgot(){
+  const email = document.getElementById('gate-forgot-email').value.trim();
+  const btn = document.getElementById('gate-forgot-btn');
+  if (!email){ setGateStatus('error', 'Please enter your email.'); return; }
+  btn.disabled = true;
+  const orig = btn.textContent; btn.textContent = 'Sending…';
+  setGateStatus();
+  try {
+    const r = await fetch('/api/auth/forgot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({ email }),
     });
     if (r.ok){
-      status.className = 'auth-status success';
-      status.textContent = `Check your inbox — we sent a sign-in link to ${email}.`;
-      emailEl.value = '';
+      setGateStatus('success', `If an account exists for ${email}, we've sent a reset link.`);
     } else {
       const d = await r.json().catch(() => ({}));
-      status.className = 'auth-status error';
-      status.textContent = d.error || 'Could not send sign-in link. Try again.';
+      setGateStatus('error', d.error || 'Could not send reset link.');
     }
-  } catch (err){
-    status.className = 'auth-status error';
-    status.textContent = 'Network error — please try again.';
+  } catch {
+    setGateStatus('error', 'Network error — please try again.');
   } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Send sign-in link';
+    btn.disabled = false; btn.textContent = orig;
+  }
+}
+
+// ── Email-verification banner ───────────────────────────────────────────────
+function updateVerifyBanner(user){
+  const banner = document.getElementById('verify-banner');
+  if (!banner) return;
+  if (user && user.emailVerified === false){
+    document.getElementById('verify-banner-email').textContent = user.email;
+    banner.classList.remove('hidden');
+  } else {
+    banner.classList.add('hidden');
+  }
+}
+
+async function resendVerification(){
+  const btn = document.getElementById('verify-banner-btn');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Sending…';
+  try {
+    const r = await fetchAuthed('/api/auth/resend-verification', { method: 'POST' });
+    if (r.ok){
+      btn.textContent = 'Sent';
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 4000);
+    } else {
+      const d = await r.json().catch(() => ({}));
+      alert(d.error || 'Could not send verification email.');
+      btn.textContent = orig; btn.disabled = false;
+    }
+  } catch {
+    alert('Network error — please try again.');
+    btn.textContent = orig; btn.disabled = false;
   }
 }
 

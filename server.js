@@ -17,10 +17,14 @@ import testHandler from './api/test.js';
 import atpHandler from './api/atp.js';
 import pacingUnitsHandler from './api/pacing-units.js';
 import rebuildDocxHandler from './api/rebuild-docx.js';
-import authRequestHandler from './api/auth-request.js';
 import authVerifyHandler from './api/auth-verify.js';
 import authLogoutHandler from './api/auth-logout.js';
 import authMeHandler from './api/auth-me.js';
+import authSignupHandler from './api/auth-signup.js';
+import authSigninHandler from './api/auth-signin.js';
+import authForgotHandler from './api/auth-forgot.js';
+import authResetHandler from './api/auth-reset.js';
+import authResendVerificationHandler from './api/auth-resend-verification.js';
 import userSettingsHandler from './api/user-settings.js';
 import userHistoryHandler from './api/user-history.js';
 import userProfileHandler from './api/user-profile.js';
@@ -120,16 +124,37 @@ const perDay = rateLimit({
 
 const apiLimiters = [perMinute, perHour, perDay];
 
-// Tight bucket for /api/auth/request so a hostile actor can't spam
-// someone's inbox with magic links: 3/min, 10/hr per IP.
-const authRequestLimiters = [
+// Tight buckets for the auth surface — keep these well below the
+// general API limiters so a hostile actor can't abuse them.
+//
+// emailLimiters: anything that triggers an outgoing email (signup,
+//   forgot-password). 3/min, 10/hr per IP — high enough that a teacher
+//   retrying a couple of times is fine, low enough that an attacker
+//   can't flood a target inbox.
+//
+// signinLimiters: per-IP brute-force protection on the password check.
+//   10/min, 60/hr per IP — generous on legit retries while throttling
+//   credential-stuffing.
+const emailLimiters = [
   rateLimit({
     windowMs: 60 * 1000, max: 3,
+    standardHeaders: true, legacyHeaders: false,
+    handler: jsonMessage('Too many requests. Wait a minute.'),
+  }),
+  rateLimit({
+    windowMs: 60 * 60 * 1000, max: 10,
+    standardHeaders: true, legacyHeaders: false,
+    handler: jsonMessage('Too many requests this hour. Try again later.'),
+  }),
+];
+const signinLimiters = [
+  rateLimit({
+    windowMs: 60 * 1000, max: 10,
     standardHeaders: true, legacyHeaders: false,
     handler: jsonMessage('Too many sign-in attempts. Wait a minute.'),
   }),
   rateLimit({
-    windowMs: 60 * 60 * 1000, max: 10,
+    windowMs: 60 * 60 * 1000, max: 60,
     standardHeaders: true, legacyHeaders: false,
     handler: jsonMessage('Too many sign-in attempts this hour. Try again later.'),
   }),
@@ -187,13 +212,22 @@ for (const [route, filePath] of Object.entries(VENDOR_FILES)) {
 }
 
 // ─── Auth routes (no requireAuth — these ARE the sign-in flow) ──
-app.post('/api/auth/request', authRequestLimiters, authRequestHandler);
-// Magic-link verify is two-step: GET shows the confirm page, POST consumes
-// the token. The POST accepts both form-urlencoded (from the confirm page's
-// <form>) and JSON (programmatic callers / tests) so we mount a dedicated
-// urlencoded parser for this route alongside the global JSON one.
+// Email + password is the primary path. Magic-link is kept only for the
+// email-verification step on signup and the password-reset flow.
+const urlencoded4k = express.urlencoded({ extended: false, limit: '4kb' });
+
+app.post('/api/auth/signup', emailLimiters, authSignupHandler);
+app.post('/api/auth/signin', signinLimiters, authSigninHandler);
+app.post('/api/auth/forgot', emailLimiters, authForgotHandler);
+// Reset is two-step: GET renders the form (token NOT consumed — defeats
+// email-scanner prefetch), POST applies. POST accepts urlencoded (the
+// form) or JSON (programmatic).
+app.get('/api/auth/reset', authResetHandler);
+app.post('/api/auth/reset', urlencoded4k, signinLimiters, authResetHandler);
+// Verify is the same shape — GET = confirm page, POST = mark verified.
 app.get('/api/auth/verify', authVerifyHandler);
-app.post('/api/auth/verify', express.urlencoded({ extended: false, limit: '4kb' }), authVerifyHandler);
+app.post('/api/auth/verify', urlencoded4k, authVerifyHandler);
+app.post('/api/auth/resend-verification', emailLimiters, authResendVerificationHandler);
 app.post('/api/auth/logout', authLogoutHandler);
 app.get('/api/auth/me', authMeHandler);
 
