@@ -363,6 +363,24 @@ lib/illustrations/
 
 **Raster path** — same `rasterSvgToPng` from `lib/diagrams/raster.js`. Illustrations rasterise to PNG once at render time and embed via `docx ImageRun` / `pptxgen.addImage`. Failures fall back gracefully — text-only cover, placeholder shape on `yourTurn`, text-only `celebrate` — so a missing-fonts environment never breaks generation.
 
+### Decorative photos — tried and rolled back
+
+A Phase D iteration (commits up to `f471c98`) wired a per-subject stock-photo sidebar into the PPTX `concept` / `example` / `warmUp` slides, with a deterministic picker keyed off `meta.subject` + slide ordinal, a curation helper script, a GitHub Actions workflow that fetched candidates from Pexels / Unsplash, and ~46 hand-curated photos across 6 subject categories. **The whole feature was reverted** because the photos didn't pull their weight — they were visible decoration but never matched what a given lesson was actually discussing.
+
+The user-facing requirement was *loose topic match* — e.g. a lesson on rusty nails should have a rusty-nail photo. That's not reliably achievable with stock-photo libraries:
+
+- **Search-quality is content-dependent.** Common nouns ("rusty nail", "abacus", "globe") return decent results. CAPS topics like *"place value"*, *"improper fractions"*, *"compound sentences"*, *"trade winds"* return mediocre / wrong / no matches. Hit rate across the curriculum is ~30–50%.
+- **Live API search at render time** would break our generation determinism, blow holes in the cache layer, and add a network-failure surface to PPTX rendering.
+- **Per-subject category buckets** (the Phase D approach) gave each subject a generic photo pool — recognisable as "maths" or "geography" but never tied to the actual lesson content.
+
+If this comes up again, the realistic paths are:
+
+1. **Per-slide AI image generation** at PPTX render time (DALL-E / Imagen / similar). Adds ~$0.10–0.30 per lesson on top of Anthropic costs, the IP picture for commercial use is still grey, and it breaks our deterministic-cache contract. Probably the lowest-effort path technically but with real trade-offs.
+2. **Commissioned illustration set indexed by CAPS topic** — a designer produces ~100–200 illustrations covering common Foundation/Intermediate/Senior phase topics, vendored into a `topic → illustration` map. Owned IP, perfectly on-brand, expensive (~$5–15K one-time), slow lead time. Phase C v2 is a smaller version of this for the mascot only.
+3. **Hybrid** — vendor a small SA-relevant photo library *only for subject hero/title slides* (where decoration makes sense) and skip the per-concept-slide ambition entirely. This is closer to what the Phase C illustration library already does, just with photos.
+
+The session that built and reverted Phase D is preserved in the git history if anyone wants to read the picker/workflow code instead of rebuilding from scratch — last green commit was `20627c5`, revert at `f471c98`.
+
 ### What the PowerPoint contains
 
 5–15 slides driven by `lesson.slides[]`. Each slide has an `ordinal`, a `layout`, a `heading`, optional `bullets` (≤ 8), optional `speakerNotes` (rendered into the Notes pane), and an optional `stimulusRef`.
