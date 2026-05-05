@@ -9,7 +9,7 @@ import assert from 'node:assert/strict';
 
 import { resourceSchema, assertResource, narrowSchemaForRequest } from '../schema/resource.schema.js';
 import { buildLessonContextBlock } from '../lib/atp-prompt.js';
-import { getPacingUnitsSlim, getPacingUnitById } from '../lib/atp.js';
+import { getPacingUnitsSlim, getPacingUnitById, getUnitSubtopicHeadings, findUnitSubtopic } from '../lib/atp.js';
 import { renderLessonPptx } from '../lib/pptx-builder.js';
 import { __internals as generateInternals } from '../api/generate.js';
 import { __internals as renderInternals } from '../lib/render.js';
@@ -605,5 +605,133 @@ describe('renderLessonPptx', () => {
     assert.equal(result.ok, true, JSON.stringify(result.errors));
     const b64 = await renderLessonPptx(r);
     assert.ok(b64.length > 1000);
+  });
+});
+
+describe('Subtopic helpers (Phase A — Lesson focus)', () => {
+  const SAMPLE_UNIT = {
+    id: 'MATH-6-2026-t2-u2',
+    topic: 'Number sentences',
+    subtopics: [
+      { heading: 'Number sentences with one or more variables',
+        concepts: ['• Identify variables in a number sentence', '• Write number sentences for a situation'] },
+      { heading: 'Solving for a variable using known number facts',
+        concepts: ['• Solve by inspection', '• Solve by trial and improvement'] },
+      // Duplicate heading should be deduped
+      { heading: 'Solving for a variable using known number facts',
+        concepts: ['• something extra'] },
+      // Empty heading should be skipped
+      { heading: '   ', concepts: ['• ignored'] },
+    ],
+  };
+
+  test('getUnitSubtopicHeadings returns deduped, trimmed top-level headings', () => {
+    const headings = getUnitSubtopicHeadings(SAMPLE_UNIT);
+    assert.deepEqual(headings, [
+      'Number sentences with one or more variables',
+      'Solving for a variable using known number facts',
+    ]);
+  });
+
+  test('getUnitSubtopicHeadings returns [] for missing/empty subtopics', () => {
+    assert.deepEqual(getUnitSubtopicHeadings(null), []);
+    assert.deepEqual(getUnitSubtopicHeadings({}), []);
+    assert.deepEqual(getUnitSubtopicHeadings({ subtopics: [] }), []);
+    assert.deepEqual(getUnitSubtopicHeadings({ subtopics: [{ heading: '' }] }), []);
+  });
+
+  test('findUnitSubtopic finds by exact (trimmed) heading match', () => {
+    const found = findUnitSubtopic(SAMPLE_UNIT, '  Number sentences with one or more variables  ');
+    assert.ok(found);
+    assert.equal(found.concepts.length, 2);
+  });
+
+  test('findUnitSubtopic returns null for unknown heading', () => {
+    assert.equal(findUnitSubtopic(SAMPLE_UNIT, 'no such heading'), null);
+    assert.equal(findUnitSubtopic(null, 'x'), null);
+    assert.equal(findUnitSubtopic({}, 'x'), null);
+  });
+
+  test('getPacingUnitsSlim now includes subtopicHeadings on each unit', () => {
+    const units = getPacingUnitsSlim('Mathematics', 4, 1);
+    assert.ok(units.length > 0);
+    for (const u of units) {
+      assert.ok(Array.isArray(u.subtopicHeadings),
+        `expected subtopicHeadings array on unit ${u.id}`);
+    }
+    // At least one unit should have actual subtopics — Maths Gr 4 T1 has rich data.
+    assert.ok(units.some((u) => u.subtopicHeadings.length > 0),
+      'expected at least one unit with subtopic headings');
+  });
+});
+
+describe('buildLessonContextBlock — subtopic focus', () => {
+  const UNIT = {
+    topic: 'Number sentences',
+    capsStrand: 'Patterns, Functions and Algebra',
+    weeks: [1, 2],
+    hours: 6,
+    subtopics: [],
+  };
+  const SUBTOPIC = {
+    heading: 'Solving for a variable using known number facts',
+    concepts: ['• Solve by inspection', '• Solve by trial and improvement'],
+  };
+
+  test('whole-unit mode (no subtopic) keeps the broad framing', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English').join('\n');
+    assert.match(text, /teaches the CAPS Unit "Number sentences"/);
+    // No subtopic-focus block.
+    assert.ok(!/Subtopic focus/.test(text), 'no subtopic block in whole-unit mode');
+  });
+
+  test('subtopic mode pins the lesson focus and lists the concepts verbatim', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC).join('\n');
+    assert.match(text, /focuses NARROWLY on the subtopic "Solving for a variable using known number facts"/);
+    assert.match(text, /### Subtopic focus/);
+    assert.match(text, /Solve by inspection/);
+    assert.match(text, /Solve by trial and improvement/);
+    assert.match(text, /Do NOT introduce concepts from other subtopics/);
+    // Anchor directive should reference the subtopic heading too.
+    assert.match(text, /capsAnchor\.subStrand to "Solving for a variable using known number facts"/);
+    // Objectives directive should mention the subtopic concepts (not the whole Unit).
+    assert.match(text, /come from the subtopic concepts listed above/);
+  });
+
+  test('subtopic mode degrades gracefully when the subtopic has no concepts', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English',
+      { heading: 'Bare subtopic', concepts: [] }).join('\n');
+    assert.match(text, /no detailed concepts in CAPS/);
+  });
+
+  test('null/undefined subtopic falls back to whole-unit mode', () => {
+    const a = buildLessonContextBlock(UNIT, 45, 'English', null).join('\n');
+    const b = buildLessonContextBlock(UNIT, 45, 'English').join('\n');
+    assert.ok(!/Subtopic focus/.test(a));
+    assert.ok(!/Subtopic focus/.test(b));
+  });
+});
+
+describe('Cache key includes subtopicHeading for Lesson requests', () => {
+  const { buildCacheKey } = generateInternals;
+  const base = {
+    subject: 'Mathematics', grade: 6, term: 2,
+    language: 'English', resourceType: 'Lesson', totalMarks: 10,
+    difficulty: 'on', unitId: 'MATH-6-2026-t2-u2', lessonMinutes: 45,
+  };
+
+  test('whole-Unit Lesson and subtopic-focused Lesson get different keys', () => {
+    const whole = buildCacheKey({ ...base });
+    const focus = buildCacheKey({ ...base, subtopicHeading: 'Solving by inspection' });
+    assert.notEqual(whole, focus);
+  });
+
+  test('non-Lesson requests do not put subtopicHeading in the key', () => {
+    const k = buildCacheKey({ ...base, resourceType: 'Test', subtopicHeading: 'x' });
+    assert.ok(!/subtopicHeading/.test(k));
+  });
+
+  test('cache key prefix is v4 (latest schema)', () => {
+    assert.match(buildCacheKey(base), /^gen:v4:/);
   });
 });

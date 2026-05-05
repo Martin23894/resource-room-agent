@@ -379,7 +379,7 @@ select:focus{outline:none;border-color:var(--t4);}
       <div style="margin-bottom:10px;">
         <div class="flabel" id="topic-label">Topic</div>
         <div class="sw">
-          <select id="topic"><option value="">— Select subject first —</option></select>
+          <select id="topic" onchange="loadSubtopicsForCurrentUnit()"><option value="">— Select subject first —</option></select>
         </div>
       </div>
       <!-- Lesson length — only visible when resource type is Lesson -->
@@ -392,6 +392,20 @@ select:focus{outline:none;border-color:var(--t4);}
             <option value="60">60 minutes</option>
             <option value="90">90 minutes</option>
           </select>
+        </div>
+      </div>
+      <!-- Subtopic picker — only visible for Lesson mode when the chosen Unit
+           has 2+ subtopics. Lets the teacher narrow a 6h Unit into one
+           45-min concept-focused lesson instead of a generic introduction. -->
+      <div id="subtopic-row" style="margin-bottom:10px;display:none;">
+        <div class="flabel">Subtopic focus <span style="font-size:10px;color:var(--ink4);font-weight:400;">(optional)</span></div>
+        <div class="sw">
+          <select id="subtopic">
+            <option value="">Whole unit (auto-pick focus)</option>
+          </select>
+        </div>
+        <div style="font-size:10px;color:var(--ink4);margin-top:3px;line-height:1.4;">
+          Pick a subtopic to teach a single concept this lesson, or leave on "Whole unit" to let the model choose.
         </div>
       </div>
       <!-- Resource type — dynamic per subject/grade/term -->
@@ -793,6 +807,8 @@ function onResTypeChange(){
     return;
   }
   if (lessonRow) lessonRow.style.display = 'none';
+  const subRow = document.getElementById('subtopic-row');
+  if (subRow) subRow.style.display = 'none';
   if (topicLabel) topicLabel.textContent = 'Topic';
 
   // Update marks dropdown from ATP
@@ -922,8 +938,16 @@ function loadTopics(){
           const weeks = (u.weeks || []).length ? `Week ${u.weeks[0]}${u.weeks.length>1?'–'+u.weeks[u.weeks.length-1]:''}` : '';
           const hours = u.hours ? `, ${u.hours}h` : '';
           const meta = (weeks || hours) ? ` (${[weeks, hours].filter(Boolean).join('').replace(/^, /, '')})` : '';
-          return `<option value="${escAttr(u.topic)}" data-unit-id="${escAttr(u.id)}"${i===0?' selected':''}>${escAttr(u.topic)}${escAttr(meta)}</option>`;
+          // Stash subtopic headings on the option so the Subtopic picker can
+          // populate without a follow-up fetch. JSON-encode so commas in
+          // headings don't break the attribute split.
+          const subtopicsAttr = Array.isArray(u.subtopicHeadings) && u.subtopicHeadings.length
+            ? ` data-subtopics='${escAttr(JSON.stringify(u.subtopicHeadings))}'`
+            : '';
+          return `<option value="${escAttr(u.topic)}" data-unit-id="${escAttr(u.id)}"${subtopicsAttr}${i===0?' selected':''}>${escAttr(u.topic)}${escAttr(meta)}</option>`;
         }).join('');
+        // Populate the subtopic picker for the initially-selected unit.
+        loadSubtopicsForCurrentUnit();
       })
       .catch(() => {
         topicEl.innerHTML = '<option value="">Could not load CAPS units</option>';
@@ -967,6 +991,37 @@ function loadTopics(){
   } else {
     topicEl.innerHTML = `<option value="">All Term ${t} topics</option>`;
   }
+}
+
+// ── Subtopic picker (Lesson mode) ────────────────────────────────────────────
+// Reads the data-subtopics attribute that loadTopics() stashed on the
+// selected Unit option, populates the Subtopic dropdown, and hides the
+// whole row when there's only one (or zero) subtopic worth picking.
+function loadSubtopicsForCurrentUnit(){
+  const row = document.getElementById('subtopic-row');
+  const sub = document.getElementById('subtopic');
+  if(!row || !sub) return;
+  // Only Lesson mode uses this picker.
+  if (rtype !== 'Lesson') { row.style.display = 'none'; return; }
+
+  const topicEl = document.getElementById('topic');
+  const opt = topicEl?.options?.[topicEl.selectedIndex];
+  let headings = [];
+  try {
+    headings = opt?.dataset?.subtopics ? JSON.parse(opt.dataset.subtopics) : [];
+  } catch { headings = []; }
+
+  // Hide the picker for Units with 0 or 1 subtopic — there's nothing useful
+  // to choose between. The whole-Unit fallback handles those.
+  if (!Array.isArray(headings) || headings.length < 2) {
+    sub.innerHTML = '<option value="">Whole unit (auto-pick focus)</option>';
+    row.style.display = 'none';
+    return;
+  }
+  row.style.display = '';
+  sub.innerHTML =
+    `<option value="" selected>Whole unit (auto-pick focus)</option>` +
+    headings.map((h) => `<option value="${escAttr(h)}">${escAttr(h)}</option>`).join('');
 }
 
 // ── Largest Remainder Method — mirrors generate.js exactly ────────────────────
@@ -1240,11 +1295,14 @@ async function doGenerate(bypassCache){
   const term = document.getElementById('term').value;
   const includeRubric = document.getElementById('rubric').checked;
 
-  // Lesson-only extras: read the unitId off the selected option and the
-  // lesson length off the dedicated dropdown.
+  // Lesson-only extras: read the unitId off the selected option, the
+  // lesson length off the dedicated dropdown, and the optional Subtopic
+  // focus (empty string = whole-Unit fallback, which the backend treats
+  // as no narrowing).
   const isLesson = rtype === 'Lesson';
   const unitId = isLesson ? (topicEl.options[topicEl.selectedIndex]?.dataset?.unitId || '') : null;
   const lessonMinutes = isLesson ? parseInt(document.getElementById('lesson-len').value, 10) || 45 : null;
+  const subtopicHeading = isLesson ? (document.getElementById('subtopic')?.value || '').trim() : null;
 
   if(!subj){ alert('Please select a subject.'); return; }
   if (isLesson && !unitId) { alert('Please select a CAPS Unit for the lesson.'); return; }
@@ -1283,7 +1341,7 @@ async function doGenerate(bypassCache){
         grade,
         term,
         teacherGuidance: currentGuidance(),
-        ...(isLesson ? { unitId, lessonMinutes } : {}),
+        ...(isLesson ? { unitId, lessonMinutes, ...(subtopicHeading ? { subtopicHeading } : {}) } : {}),
         _bypassCache: bypassCache === true
       })
     });
