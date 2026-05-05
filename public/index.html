@@ -222,6 +222,35 @@ select:focus{outline:none;border-color:var(--t4);}
 .upgrade-btn.secondary{background:#fff;color:var(--green-deep);border:1px solid var(--green-deep);}
 .upgrade-btn.secondary:hover{background:#f0f7f3;}
 .upgrade-btn:disabled{opacity:0.6;cursor:wait;}
+/* Series UI — confirmation modal + progress strip + completed-lesson list */
+.series-link{display:block;width:100%;margin-top:8px;padding:7px 8px;background:transparent;border:1.5px dashed var(--bdr2);border-radius:8px;font-size:11px;font-weight:600;color:var(--t8);cursor:pointer;text-align:center;font-family:inherit;line-height:1.4;}
+.series-link:hover{background:var(--t05);border-color:var(--t4);color:var(--t8);}
+.series-link:disabled{opacity:.55;cursor:not-allowed;}
+.series-card{position:relative;max-width:560px;}
+.series-list{margin:14px 0 18px;padding:12px 14px;background:var(--sur);border:1px solid var(--bdr);border-radius:9px;font-size:12px;color:var(--ink2);max-height:240px;overflow-y:auto;}
+.series-list li{padding:3px 0;list-style:decimal inside;}
+.series-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;color:var(--ink2);margin-bottom:10px;}
+.series-meta div{background:var(--sur);border:1px solid var(--bdr);border-radius:7px;padding:8px 10px;}
+.series-meta strong{display:block;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--ink4);letter-spacing:.5px;margin-bottom:2px;}
+.series-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;}
+.series-actions .upgrade-btn,.series-actions .upgrade-btn.secondary{padding:9px 16px;}
+.series-bar{padding:14px 18px;background:var(--t05);border:1.5px solid var(--t2);border-radius:10px;margin-bottom:14px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.series-bar-spin{width:22px;height:22px;border:3px solid #d6efe2;border-top-color:var(--t6);border-radius:50%;animation:sp 0.85s linear infinite;flex-shrink:0;}
+.series-bar-text{flex:1;min-width:160px;font-size:13px;color:var(--t8);font-weight:600;}
+.series-bar-sub{font-size:11px;color:var(--ink3);font-weight:400;display:block;margin-top:2px;}
+.series-bar .abtn{padding:6px 12px;}
+.series-results{display:flex;flex-direction:column;gap:7px;margin-bottom:12px;}
+.series-result-row{display:flex;align-items:center;gap:9px;padding:9px 12px;background:var(--sur2);border:1px solid var(--bdr);border-radius:8px;font-size:12px;}
+.series-result-row.done{border-color:var(--t2);background:var(--t05);}
+.series-result-row.failed{border-color:#f09595;background:#fff5f5;}
+.series-result-num{font-size:10px;font-weight:700;color:var(--ink4);min-width:46px;}
+.series-result-title{flex:1;font-weight:600;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.series-result-status{font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:3px 8px;border-radius:12px;}
+.series-result-status.done{background:var(--t6);color:#fff;}
+.series-result-status.failed{background:#A32D2D;color:#fff;}
+.series-result-status.pending{background:var(--bdr2);color:var(--ink3);}
+.series-result-actions{display:flex;gap:5px;}
+.series-result-actions .abtn{padding:4px 10px;font-size:10px;}
 .user-logout{background:var(--t6);border:none;color:#fff;font-size:10px;font-weight:700;border-radius:14px;padding:4px 10px;cursor:pointer;font-family:inherit;}
 .user-logout:hover{background:var(--t4);color:var(--t9);}
 
@@ -407,6 +436,15 @@ select:focus{outline:none;border-color:var(--t4);}
         <div style="font-size:10px;color:var(--ink4);margin-top:3px;line-height:1.4;">
           Pick a subtopic to teach a single concept this lesson, or leave on "Whole unit" to let the model choose.
         </div>
+      </div>
+      <!-- Series upsell — shown only for Lesson mode when the chosen Unit
+           has 2+ subtopics. One click generates the whole Unit's lessons,
+           billed per lesson (same as clicking Generate N times). -->
+      <div id="series-row" style="margin-bottom:10px;display:none;">
+        <button class="series-link" id="series-link" type="button" onclick="openSeriesModal()">
+          ✨ Generate full unit series<br>
+          <span style="font-size:10px;color:var(--ink3);font-weight:400;">All <span id="series-count-pill">N</span> lessons in one click · Same cost as separate</span>
+        </button>
       </div>
       <!-- Resource type — dynamic per subject/grade/term -->
       <div style="margin-bottom:10px;">
@@ -809,6 +847,8 @@ function onResTypeChange(){
   if (lessonRow) lessonRow.style.display = 'none';
   const subRow = document.getElementById('subtopic-row');
   if (subRow) subRow.style.display = 'none';
+  const sRow = document.getElementById('series-row');
+  if (sRow) sRow.style.display = 'none';
   if (topicLabel) topicLabel.textContent = 'Topic';
 
   // Update marks dropdown from ATP
@@ -1000,9 +1040,15 @@ function loadTopics(){
 function loadSubtopicsForCurrentUnit(){
   const row = document.getElementById('subtopic-row');
   const sub = document.getElementById('subtopic');
+  const seriesRow = document.getElementById('series-row');
+  const seriesPill = document.getElementById('series-count-pill');
   if(!row || !sub) return;
-  // Only Lesson mode uses this picker.
-  if (rtype !== 'Lesson') { row.style.display = 'none'; return; }
+  // Only Lesson mode uses this picker (and the series upsell).
+  if (rtype !== 'Lesson') {
+    row.style.display = 'none';
+    if (seriesRow) seriesRow.style.display = 'none';
+    return;
+  }
 
   const topicEl = document.getElementById('topic');
   const opt = topicEl?.options?.[topicEl.selectedIndex];
@@ -1011,17 +1057,23 @@ function loadSubtopicsForCurrentUnit(){
     headings = opt?.dataset?.subtopics ? JSON.parse(opt.dataset.subtopics) : [];
   } catch { headings = []; }
 
-  // Hide the picker for Units with 0 or 1 subtopic — there's nothing useful
-  // to choose between. The whole-Unit fallback handles those.
+  // Hide the picker AND the series upsell for Units with 0 or 1 subtopic
+  // — neither would do anything useful. The whole-Unit single-lesson path
+  // covers those.
   if (!Array.isArray(headings) || headings.length < 2) {
     sub.innerHTML = '<option value="">Whole unit (auto-pick focus)</option>';
     row.style.display = 'none';
+    if (seriesRow) seriesRow.style.display = 'none';
     return;
   }
   row.style.display = '';
   sub.innerHTML =
     `<option value="" selected>Whole unit (auto-pick focus)</option>` +
     headings.map((h) => `<option value="${escAttr(h)}">${escAttr(h)}</option>`).join('');
+  if (seriesRow) {
+    seriesRow.style.display = '';
+    if (seriesPill) seriesPill.textContent = String(headings.length);
+  }
 }
 
 // ── Largest Remainder Method — mirrors generate.js exactly ────────────────────
@@ -1860,6 +1912,366 @@ function doCopy(btn){
   navigator.clipboard.writeText(window._cur)
     .then(()=>{ const o=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=o, 1800); })
     .catch(()=>alert('Please select and copy manually.'));
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LESSON SERIES — Phase B
+// ═══════════════════════════════════════════════════════════════════════════
+// Generates a full Unit's worth of lessons (one per top-level subtopic) by
+// orchestrating sequential POSTs to /api/generate, each with a different
+// subtopicHeading and a seriesContext payload. The backend treats every call
+// as a normal billable Lesson generation — the cache hits on re-runs, the
+// rate limiter applies per-call, and Stripe credits (when wired up) deduct
+// per lesson. The frontend just sequences the calls and stitches the
+// downloads together.
+//
+// State lives on `window._series = { unitId, lessonMinutes, headings,
+// completed: [...{base64docx, base64pptx, filename, ...}], failedAt }`.
+// On a partial-failure the user can click Resume — completed lessons hit
+// cache (~free) and only the remaining ones spend credits.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const JSZIP_SAFETY_FILE_LIMIT = 60;  // Per-series ceiling: 20 lessons × 3 files
+
+function ensureJSZip(){
+  if (window.JSZip) return Promise.resolve(window.JSZip);
+  if (window._jszipPromise) return window._jszipPromise;
+  window._jszipPromise = loadFirstAvailable(JSZIP_URLS)
+    .then(() => {
+      if (!window.JSZip) throw new Error('JSZip loaded but not exposed on window');
+      return window.JSZip;
+    })
+    .catch((err) => { window._jszipPromise = null; throw err; });
+  return window._jszipPromise;
+}
+
+function openSeriesModal(){
+  // Read current sidebar state for the modal — Unit, headings, lesson length.
+  const subj = decodeSubj(document.getElementById('subj').value);
+  const topicEl = document.getElementById('topic');
+  const opt = topicEl?.options?.[topicEl.selectedIndex];
+  if (!subj || !opt) { alert('Please pick a subject and CAPS Unit first.'); return; }
+  let headings = [];
+  try { headings = opt.dataset.subtopics ? JSON.parse(opt.dataset.subtopics) : []; }
+  catch { headings = []; }
+  if (!headings.length) {
+    alert('This Unit has no subtopics — generate a single Whole-Unit lesson instead.');
+    return;
+  }
+  const lessonMinutes = parseInt(document.getElementById('lesson-len').value, 10) || 45;
+  const unitId = opt.dataset.unitId || '';
+  const unitTopic = opt.value;
+  const totalMinutes = headings.length * lessonMinutes;
+  const totalHours = (totalMinutes / 60).toFixed(1);
+  const grade = document.getElementById('grade').value;
+  const term = document.getElementById('term').value;
+
+  document.getElementById('series-modal')?.remove();
+  const m = document.createElement('div');
+  m.id = 'series-modal';
+  m.className = 'upgrade-modal';
+  m.innerHTML = `
+    <div class="upgrade-backdrop" onclick="closeSeriesModal()"></div>
+    <div class="upgrade-card series-card" role="dialog" aria-modal="true" aria-labelledby="series-title">
+      <button class="upgrade-close" aria-label="Close" onclick="closeSeriesModal()">×</button>
+      <h2 id="series-title">Generate full unit series</h2>
+      <p class="upgrade-sub">${esc(unitTopic)} — Grade ${esc(grade)} Term ${esc(term)}</p>
+      <div class="series-meta">
+        <div><strong>Lessons</strong>${headings.length}</div>
+        <div><strong>Length each</strong>${lessonMinutes} min</div>
+        <div><strong>Total time</strong>~${totalHours} hours</div>
+        <div><strong>Cost</strong>${headings.length} generations</div>
+      </div>
+      <p style="margin:0 0 6px;font-size:12px;color:var(--ink2);">One lesson per subtopic, in CAPS-prescribed order:</p>
+      <ol class="series-list">
+        ${headings.map((h) => `<li>${esc(h)}</li>`).join('')}
+      </ol>
+      <p style="margin:0;font-size:11px;color:var(--ink3);">Each lesson is a normal billable generation — same cost as clicking Generate ${headings.length} times. Cached lessons re-serve free; rate limits apply (10 / minute), so a long series may take a few minutes. You can cancel mid-series and resume later.</p>
+      <div class="series-actions">
+        <button class="upgrade-btn secondary" onclick="closeSeriesModal()">Cancel</button>
+        <button class="upgrade-btn" id="series-confirm-btn" onclick="confirmSeriesGenerate()">Generate ${headings.length} lessons</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(m);
+  // Stash the planned series so confirmSeriesGenerate can read it.
+  m.dataset.payload = JSON.stringify({ unitId, unitTopic, headings, lessonMinutes });
+}
+
+function closeSeriesModal(){
+  document.getElementById('series-modal')?.remove();
+}
+
+function confirmSeriesGenerate(){
+  const m = document.getElementById('series-modal');
+  if (!m) return;
+  let plan;
+  try { plan = JSON.parse(m.dataset.payload || '{}'); }
+  catch { return; }
+  closeSeriesModal();
+  generateSeries(plan, /* startFrom */ 0);
+}
+
+// Pace consecutive POSTs so a 10-lesson series doesn't exceed the
+// 10/min rate limit. We delay each non-cache-hit by ~7 seconds; cache
+// hits are near-instant so back-to-back calls stay safe.
+function paceDelay(prevWasCacheHit){
+  if (prevWasCacheHit) return 0;
+  return 7_000;
+}
+
+async function generateSeries(plan, startFrom = 0){
+  const { unitId, unitTopic, headings, lessonMinutes } = plan;
+  const total = headings.length;
+
+  // Initialise series state. If we're resuming, keep prior completed entries.
+  if (!window._series || window._series.unitId !== unitId || startFrom === 0) {
+    window._series = {
+      unitId, unitTopic, headings, lessonMinutes, total,
+      completed: new Array(total).fill(null),
+      failedAt: null,
+      cancelled: false,
+    };
+  } else {
+    window._series.failedAt = null;
+    window._series.cancelled = false;
+  }
+  const state = window._series;
+
+  // Switch the main panel to series view.
+  showGen('o');
+  renderSeriesProgress(state, /* inProgress */ true, startFrom);
+
+  const subj = decodeSubj(document.getElementById('subj').value);
+  const grade = parseInt(document.getElementById('grade').value, 10);
+  const term = parseInt(document.getElementById('term').value, 10);
+  const includeRubric = document.getElementById('rubric').checked;
+
+  let prevCacheHit = false;
+  for (let i = startFrom; i < total; i++) {
+    if (state.cancelled) break;
+    if (state.completed[i] && !state.completed[i].failed) continue;
+
+    if (i > startFrom) {
+      const delayMs = paceDelay(prevCacheHit);
+      if (delayMs) await sleep(delayMs);
+    }
+    if (state.cancelled) break;
+
+    renderSeriesProgress(state, true, i);
+
+    const subtopicHeading = headings[i];
+    const priorSubtopics = headings.slice(0, i);
+    try {
+      const result = await callGenerateOnce({
+        subject: subj, grade, term, language: lang, difficulty: diff,
+        resourceType: 'Lesson', includeRubric,
+        duration: parseInt(document.getElementById('dur').value, 10) || 10,
+        unitId, lessonMinutes, subtopicHeading,
+        seriesContext: { position: i + 1, total, priorSubtopics },
+        teacherGuidance: currentGuidance(),
+      });
+      state.completed[i] = {
+        position: i + 1,
+        heading: subtopicHeading,
+        docxBase64: result.docxBase64,
+        pptxBase64: result.pptxBase64 || null,
+        filename: result.filename,
+        pptxFilename: result.pptxFilename || null,
+        cached: !!result?._meta?.cached,
+        failed: false,
+      };
+      prevCacheHit = !!state.completed[i].cached;
+    } catch (err) {
+      state.completed[i] = {
+        position: i + 1,
+        heading: subtopicHeading,
+        failed: true,
+        error: err?.message || String(err),
+      };
+      state.failedAt = i;
+      break;
+    }
+    renderSeriesProgress(state, true, i + 1);
+  }
+
+  if (state.cancelled) state.failedAt = null;
+  renderSeriesProgress(state, /* inProgress */ false);
+  // Single-lesson preview state is meaningless during a series — clear so
+  // the legacy download buttons don't dangle from a previous run.
+  window._docxBase64 = null;
+  window._pptxBase64 = null;
+}
+
+function sleep(ms){ return new Promise((r) => setTimeout(r, ms)); }
+
+function cancelSeries(){
+  if (!window._series) return;
+  window._series.cancelled = true;
+  // The fetch in flight finishes; the loop check after the await aborts.
+}
+
+// One generation call — non-streaming for series (the per-lesson SSE
+// stream isn't useful inside an outer progress strip). Returns the parsed
+// payload or throws.
+async function callGenerateOnce(body){
+  const r = await fetchAuthed('/api/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const ct = r.headers.get('Content-Type') || '';
+  if (!ct.includes('application/json')) {
+    // Server fell into SSE mode anyway (or returned HTML). Drain text.
+    const t = await r.text();
+    throw new Error('Unexpected response: ' + (t || r.statusText).slice(0, 200));
+  }
+  const d = await r.json();
+  if (!r.ok || d.error) throw new Error(d.error || ('Server error ' + r.status));
+  return d;
+}
+
+function renderSeriesProgress(state, inProgress, currentIdx){
+  const out = document.getElementById('os');
+  if (!out) return;
+  const completedCount = state.completed.filter((c) => c && !c.failed).length;
+  const totalLabel = state.total;
+  const headerText = inProgress
+    ? (state.cancelled ? `Cancelling…` : `Generating lesson ${Math.min((currentIdx ?? completedCount) + 1, totalLabel)} of ${totalLabel}…`)
+    : (state.failedAt != null
+        ? `Series stopped at lesson ${state.failedAt + 1} of ${totalLabel}`
+        : (state.cancelled ? `Series cancelled (${completedCount}/${totalLabel} done)` : `Series complete · ${completedCount} of ${totalLabel} lessons`));
+  const subText = inProgress
+    ? `${state.unitTopic} · ${state.lessonMinutes} min each · ${completedCount} of ${totalLabel} ready`
+    : `${state.unitTopic} · ${state.lessonMinutes} min each`;
+  const allDone = !inProgress && state.failedAt == null && !state.cancelled
+    && state.completed.every((c) => c && !c.failed);
+
+  const rows = state.completed.map((entry, i) => {
+    const heading = state.headings[i];
+    if (!entry) {
+      return `<div class="series-result-row">
+        <span class="series-result-num">L${i+1}</span>
+        <span class="series-result-title">${esc(heading)}</span>
+        <span class="series-result-status pending">Pending</span>
+      </div>`;
+    }
+    if (entry.failed) {
+      return `<div class="series-result-row failed">
+        <span class="series-result-num">L${i+1}</span>
+        <span class="series-result-title">${esc(heading)}</span>
+        <span class="series-result-status failed">Failed</span>
+      </div>`;
+    }
+    const cachedTag = entry.cached ? ' (cached)' : '';
+    return `<div class="series-result-row done">
+      <span class="series-result-num">L${i+1}${esc(cachedTag)}</span>
+      <span class="series-result-title">${esc(heading)}</span>
+      <span class="series-result-status done">Ready</span>
+      <span class="series-result-actions">
+        <button class="abtn word" onclick="downloadSeriesEntry(${i},'docx')">⬇ Word</button>
+        ${entry.pptxBase64 ? `<button class="abtn pptx" onclick="downloadSeriesEntry(${i},'pptx')">⬇ PPT</button>` : ''}
+      </span>
+    </div>`;
+  }).join('');
+
+  out.style.display = 'block';
+  out.innerHTML = `
+    <div class="out-hdr">
+      <div>
+        <div class="out-title">Lesson series — ${esc(state.unitTopic)}</div>
+        <div class="out-sub">Grade ${esc(document.getElementById('grade').value)} · Term ${esc(document.getElementById('term').value)} · ${state.total} lessons</div>
+      </div>
+      <div class="brow">
+        ${allDone ? '<button class="abtn pri" onclick="downloadSeriesZip()">⬇ Download all (ZIP)</button>' : ''}
+        ${(state.failedAt != null && !inProgress) ? `<button class="abtn pri" onclick="resumeSeries()">Resume from L${state.failedAt + 1}</button>` : ''}
+      </div>
+    </div>
+    <div class="series-bar">
+      ${inProgress ? '<div class="series-bar-spin" aria-hidden="true"></div>' : ''}
+      <div class="series-bar-text">
+        ${esc(headerText)}
+        <span class="series-bar-sub">${esc(subText)}</span>
+      </div>
+      ${inProgress ? '<button class="abtn" onclick="cancelSeries()">Cancel</button>' : ''}
+    </div>
+    <div class="series-results">${rows}</div>
+  `;
+}
+
+function downloadSeriesEntry(idx, kind){
+  const entry = window._series?.completed?.[idx];
+  if (!entry || entry.failed) { alert('Lesson not ready.'); return; }
+  const b64 = kind === 'pptx' ? entry.pptxBase64 : entry.docxBase64;
+  if (!b64) { alert('That file isn\'t available for this lesson.'); return; }
+  const mime = kind === 'pptx'
+    ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+    : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const ext = kind === 'pptx' ? '.pptx' : '.docx';
+  const fnameField = kind === 'pptx' ? 'pptxFilename' : 'filename';
+  const baseName = (entry[fnameField] || `Lesson-${idx+1}${ext}`).replace(/\.(docx|pptx)$/i, '');
+  const safeHeading = entry.heading.replace(/[^\w\-]+/g, '-').slice(0, 60);
+  const dl = `${String(idx+1).padStart(2,'0')}-${baseName}-${safeHeading}${ext}`;
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = dl;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+async function downloadSeriesZip(){
+  const state = window._series;
+  if (!state) return;
+  const ready = state.completed.filter((c) => c && !c.failed);
+  if (!ready.length) { alert('No lessons ready to bundle.'); return; }
+
+  let JSZip;
+  try { JSZip = await ensureJSZip(); }
+  catch (err) { alert('Could not load ZIP library: ' + err.message); return; }
+
+  const zip = new JSZip();
+  let fileCount = 0;
+  for (let i = 0; i < state.completed.length; i++) {
+    const entry = state.completed[i];
+    if (!entry || entry.failed) continue;
+    const safe = entry.heading.replace(/[^\w\-]+/g, '-').slice(0, 60);
+    const stem = `${String(i+1).padStart(2,'0')}-${safe}`;
+    if (entry.docxBase64) {
+      zip.file(`${stem}.docx`, _b64ToUint8(entry.docxBase64));
+      fileCount++;
+    }
+    if (entry.pptxBase64) {
+      zip.file(`${stem}.pptx`, _b64ToUint8(entry.pptxBase64));
+      fileCount++;
+    }
+    if (fileCount > JSZIP_SAFETY_FILE_LIMIT) break;
+  }
+  const buf = await zip.generateAsync({ type: 'blob' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(buf);
+  const unitSafe = state.unitTopic.replace(/[^\w\-]+/g, '-').slice(0, 60);
+  a.download = `series-${unitSafe}.zip`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function _b64ToUint8(b64){ return Uint8Array.from(atob(b64), c => c.charCodeAt(0)); }
+
+function resumeSeries(){
+  const state = window._series;
+  if (!state || state.failedAt == null) return;
+  const startFrom = state.failedAt;
+  // Wipe the failed marker on the failed slot so the loop retries it.
+  state.completed[startFrom] = null;
+  state.failedAt = null;
+  generateSeries(
+    { unitId: state.unitId, unitTopic: state.unitTopic, headings: state.headings, lessonMinutes: state.lessonMinutes },
+    startFrom,
+  );
 }
 
 function downloadDocx(){

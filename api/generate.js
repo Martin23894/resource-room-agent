@@ -197,6 +197,7 @@ function buildContext(req) {
     prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonSubtopic, lessonMinutes,
+    seriesContext: isLesson ? (req.seriesContext || null) : null,
   };
 }
 
@@ -267,7 +268,7 @@ function buildSystemPrompt(ctx) {
     isCreativeArts, creativeArtsFocus,
     prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
-    isLesson, lessonUnit, lessonSubtopic, lessonMinutes,
+    isLesson, lessonUnit, lessonSubtopic, lessonMinutes, seriesContext,
   } = ctx;
 
   const cogTable = cogLevels
@@ -308,7 +309,7 @@ function buildSystemPrompt(ctx) {
     ...buildCapsReferenceBlock(pacingUnits),
     ...buildAssessmentStructureBlock(pacingFormalAssessments, resourceType, totalMarks),
     ...(isLesson ? [] : buildOutOfScopeBlock(outOfScopePacingUnits || [])),
-    ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language, lessonSubtopic) : []),
+    ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language, lessonSubtopic, seriesContext) : []),
     ...(isCreativeArts ? buildCreativeArtsTaskBriefBlock(creativeArtsFocus, term, language) : []),
     `## Cognitive framework: ${frameworkName}`,
     `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,
@@ -1009,8 +1010,36 @@ function parseRequest(body) {
     parsed.subtopicHeading = str(body.subtopicHeading, {
       field: 'subtopicHeading', required: false, max: 500,
     }) || null;
+    // Optional seriesContext: when the frontend is orchestrating a series
+    // of lessons (Phase B), each call posts the lesson's position + the
+    // headings already covered, so the prompt can ask the model to build
+    // on prior knowledge rather than re-teach an introduction every time.
+    parsed.seriesContext = parseSeriesContext(body.seriesContext);
   }
   return parsed;
+}
+
+/**
+ * Validate the optional seriesContext sub-object posted with a Lesson
+ * generation. Returns null when missing/invalid (graceful fallback to
+ * single-lesson behaviour) or { position, total, priorSubtopics } when
+ * well-formed. Tight bounds prevent abuse — series of 30+ lessons would
+ * exceed the rate limit anyway, so 20 is a comfortable upper bound.
+ */
+function parseSeriesContext(input) {
+  if (!input || typeof input !== 'object') return null;
+  const position = Number(input.position);
+  const total = Number(input.total);
+  if (!Number.isInteger(position) || !Number.isInteger(total)) return null;
+  if (position < 1 || total < 1 || position > total || total > 20) return null;
+  const prior = Array.isArray(input.priorSubtopics) ? input.priorSubtopics : [];
+  // Cap and sanitise prior headings — strings only, max 30 entries, max
+  // 500 chars each (matches the subtopicHeading cap).
+  const priorSubtopics = prior
+    .slice(0, 30)
+    .filter((s) => typeof s === 'string' && s.trim())
+    .map((s) => String(s).trim().slice(0, 500));
+  return { position, total, priorSubtopics };
 }
 
 function buildFilename({ subject, resourceType, grade, term }) {
@@ -1026,18 +1055,28 @@ function buildFilename({ subject, resourceType, grade, term }) {
 // don't collide.
 function buildCacheKey({
   subject, grade, term, language, resourceType, totalMarks, difficulty,
-  unitId, lessonMinutes, subtopicHeading,
+  unitId, lessonMinutes, subtopicHeading, seriesContext,
 }) {
   const norm = { subject, grade, term, language, resourceType, totalMarks, difficulty };
   if (resourceType === 'Lesson') {
     norm.unitId = unitId || null;
     norm.lessonMinutes = lessonMinutes || null;
     norm.subtopicHeading = subtopicHeading || null;
+    // Series context changes the prompt (prior-subtopics list, position
+    // in the sequence) so series lessons must not collide with
+    // single-lesson cache entries for the same Unit + subtopic. Pull
+    // only the fields that actually shape the prompt; cap the prior list
+    // by stable join so re-orderings of the same set still hit the same key.
+    if (seriesContext && seriesContext.total > 1) {
+      norm.seriesPosition = seriesContext.position;
+      norm.seriesTotal    = seriesContext.total;
+      norm.seriesPrior    = (seriesContext.priorSubtopics || []).join('|');
+    }
   }
-  // v4 adds subtopicHeading to the Lesson cache key. Without bumping, a
-  // re-run with a subtopic chosen would hit a stale whole-Unit cached
-  // result and silently serve the wrong lesson.
-  return `gen:v4:${JSON.stringify(norm)}`;
+  // v5 adds seriesContext to the Lesson cache key. Without bumping, a
+  // mid-series lesson with prior-subtopic context would hit a stale
+  // single-lesson cached result and silently re-serve the wrong content.
+  return `gen:v5:${JSON.stringify(norm)}`;
 }
 
 function safeCacheGet(key, log) {
