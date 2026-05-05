@@ -1,0 +1,106 @@
+name: Seed Phase D photos
+
+# One-click curation helper for the Lesson PPTX photo library
+# (Phase D). Runs scripts/seed-photos.js with an Unsplash API key from
+# repo secrets, fetches ~15 candidate JPGs per category, and pushes them
+# to a review branch (phase-d-candidates-N) so the curator can browse
+# the photos directly on GitHub — no local terminal required.
+#
+# After the workflow finishes:
+#   1. Open the review branch on GitHub — GitHub previews each JPG inline
+#   2. Pick favourites and tell the maintainer (or open a PR) to copy
+#      chosen photos into lib/illustrations/photos/<category>/01.jpg…NN.jpg
+#   3. Delete the review branch when done; the candidates artefact
+#      (uploaded as a backup) is auto-cleaned after 14 days.
+
+on:
+  workflow_dispatch:
+    inputs:
+      category:
+        description: 'Category to seed (or "all" for every category).'
+        required: false
+        type: choice
+        default: 'all'
+        options:
+          - all
+          - mathematics
+          - sciences
+          - geography
+          - languages
+          - history
+          - lifeskills
+      candidates:
+        description: 'Candidates per search query (default 3 → ~15 per category).'
+        required: false
+        type: string
+        default: '3'
+
+permissions:
+  contents: write
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the workflow branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Run seed-photos
+        env:
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          CATEGORY:   ${{ inputs.category }}
+          CANDIDATES: ${{ inputs.candidates }}
+        run: |
+          set -euo pipefail
+          if [ -z "${UNSPLASH_ACCESS_KEY:-}" ]; then
+            echo "::error::UNSPLASH_ACCESS_KEY secret is not set. Add it under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          ARGS=()
+          if [ "$CATEGORY" != "all" ]; then ARGS+=("--category=$CATEGORY"); fi
+          if [ -n "$CANDIDATES" ]; then ARGS+=("--candidates=$CANDIDATES"); fi
+          node scripts/seed-photos.js "${ARGS[@]}"
+
+      - name: Push candidates to a review branch
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="phase-d-candidates-${{ github.run_number }}"
+          git checkout -b "$BRANCH"
+
+          # Force-add the candidates dir — it's gitignored on every other
+          # branch on purpose, but the review branch needs the JPGs visible
+          # in GitHub's web UI so the curator can browse them inline.
+          git add -f lib/illustrations/photos/_candidates/
+
+          if git diff --cached --quiet; then
+            echo "No candidates downloaded — nothing to push."
+            exit 0
+          fi
+
+          git commit -m "Phase D: photo candidates batch ${{ github.run_number }} (category=${{ inputs.category }})"
+          git push origin "$BRANCH"
+
+          echo "## Candidates ready for review" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Branch: \`$BRANCH\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Browse: <https://github.com/${{ github.repository }}/tree/$BRANCH/lib/illustrations/photos/_candidates>" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload candidates as artefact (backup)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase-d-candidates-${{ github.run_number }}
+          path: lib/illustrations/photos/_candidates/
+          retention-days: 14
+          if-no-files-found: warn

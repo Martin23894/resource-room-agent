@@ -108,6 +108,51 @@ category (~90 total), downloads each as a pre-cropped 1200×800 JPG into
 `_candidates/<category>/`, and writes a `_credits.json` sibling so every
 candidate is traceable back to its photographer and source URL.
 
+There are two ways to run it: a **GitHub Actions workflow** (recommended
+— no local terminal needed) or a **local terminal command**.
+
+### Path A — GitHub Actions (recommended)
+
+The workflow at `.github/workflows/seed-photos.yml` runs the script on
+GitHub's runner, uses your repo secret for the API key, and pushes the
+candidates to a review branch you can browse directly on github.com.
+
+**One-time setup:**
+
+1. Get a free Unsplash API key — <https://unsplash.com/oauth/applications>.
+   You only need the **Access Key** (the Demo tier is fine for our use).
+2. Add it as a repo secret: **Settings → Secrets and variables → Actions
+   → New repository secret**.
+   Name: `UNSPLASH_ACCESS_KEY`. Value: paste the Access Key.
+
+**Each curation run:**
+
+1. **Actions tab → "Seed Phase D photos" → Run workflow**.
+   - `category`: pick one (or `all` for every category in one run).
+   - `candidates`: `3` is the default (~15 per category); bump to `5`
+     if a category needs more variety.
+2. The workflow runs in ~30 seconds and pushes results to a review
+   branch named `phase-d-candidates-<run-number>` (e.g.
+   `phase-d-candidates-7`). The Actions Summary shows the branch link.
+3. **Browse the review branch on github.com** —
+   `lib/illustrations/photos/_candidates/<category>/` shows each JPG
+   inline. Open each `_credits.json` to see photographer + source URL
+   per candidate.
+4. Pick favourites and tell the maintainer (or open a PR yourself)
+   to copy chosen photos into `lib/illustrations/photos/<category>/`
+   as `01.jpg` … `NN.jpg`.
+5. Delete the review branch when curation is done. The workflow also
+   uploads a `phase-d-candidates-N` artefact (auto-cleaned after 14
+   days) as a backup.
+
+**Rate limits:** the Demo tier is 50 API calls/hour. A full run of all 6
+categories uses ~120 calls (5 search calls + ~15 download-tracking pings
+per category) — so kick off **one category at a time** unless you've been
+approved for Production access. The script skips already-downloaded
+photos so re-running across categories is safe.
+
+### Path B — Local terminal
+
 ```sh
 # Get a free API key first: https://unsplash.com/oauth/applications
 export UNSPLASH_ACCESS_KEY="your-access-key-here"
