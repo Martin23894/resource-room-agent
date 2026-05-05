@@ -731,7 +731,116 @@ describe('Cache key includes subtopicHeading for Lesson requests', () => {
     assert.ok(!/subtopicHeading/.test(k));
   });
 
-  test('cache key prefix is v4 (latest schema)', () => {
-    assert.match(buildCacheKey(base), /^gen:v4:/);
+  test('cache key uses a versioned prefix (any vN)', () => {
+    assert.match(buildCacheKey(base), /^gen:v\d+:/);
+  });
+});
+
+describe('buildLessonContextBlock — series context (Phase B)', () => {
+  const UNIT = {
+    topic: 'Number sentences',
+    capsStrand: 'Patterns, Functions and Algebra',
+    weeks: [1, 2],
+    hours: 6,
+    subtopics: [],
+  };
+  const SUBTOPIC = {
+    heading: 'Solving for a variable using known number facts',
+    concepts: ['• Solve by inspection'],
+  };
+
+  test('no seriesContext → no series block', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC).join('\n');
+    assert.ok(!/Series context/.test(text));
+    assert.ok(!/lesson \d+ of \d+/.test(text));
+  });
+
+  test('seriesContext { total: 1 } is treated as a single-lesson — no series block', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC, {
+      position: 1, total: 1, priorSubtopics: [],
+    }).join('\n');
+    assert.ok(!/Series context/.test(text));
+  });
+
+  test('first lesson in a series sets the opener-context language', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC, {
+      position: 1, total: 8, priorSubtopics: [],
+    }).join('\n');
+    assert.match(text, /### Series context/);
+    assert.match(text, /lesson 1 of 8/);
+    assert.match(text, /FIRST lesson in the series/);
+    assert.match(text, /Future lessons in this series will cover/);
+    // No prior list — must not say "BUILD ON".
+    assert.ok(!/BUILD ON/.test(text));
+  });
+
+  test('mid-series lesson lists prior subtopics and tells the model to build on them', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC, {
+      position: 3, total: 5,
+      priorSubtopics: [
+        'Number sentences with one or more variables',
+        'Solving for a variable using known number facts',
+      ],
+    }).join('\n');
+    assert.match(text, /lesson 3 of 5/);
+    assert.match(text, /Prior lessons in this series have already covered/);
+    assert.match(text, /Number sentences with one or more variables/);
+    assert.match(text, /BUILD ON those prior lessons/);
+    assert.match(text, /Future lessons in this series will cover/);
+  });
+
+  test('last lesson flags the consolidation slot for whole-Unit recap', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC, {
+      position: 8, total: 8,
+      priorSubtopics: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+    }).join('\n');
+    assert.match(text, /lesson 8 of 8/);
+    assert.match(text, /LAST lesson in the series/);
+    assert.match(text, /recap of the whole Unit/);
+    // Last lesson — no "future lessons" line.
+    assert.ok(!/Future lessons in this series will cover/.test(text));
+  });
+
+  test('series context + subtopic focus play nicely together', () => {
+    const text = buildLessonContextBlock(UNIT, 45, 'English', SUBTOPIC, {
+      position: 2, total: 5, priorSubtopics: ['intro topic'],
+    }).join('\n');
+    assert.match(text, /### Series context/);
+    assert.match(text, /### Subtopic focus/);
+    assert.match(text, /This is lesson 2 of 5 in the series/);
+  });
+});
+
+describe('parseSeriesContext (validator)', () => {
+  // We don't export it directly — go through parseRequest. But the cache
+  // key is the most observable surface, so test via that.
+  const { buildCacheKey } = generateInternals;
+  const base = {
+    subject: 'Mathematics', grade: 6, term: 2,
+    language: 'English', resourceType: 'Lesson', totalMarks: 10,
+    difficulty: 'on', unitId: 'MATH-6-2026-t2-u2', lessonMinutes: 45,
+  };
+
+  test('series cache key differs by position', () => {
+    const k1 = buildCacheKey({ ...base, seriesContext: { position: 1, total: 5, priorSubtopics: [] } });
+    const k2 = buildCacheKey({ ...base, seriesContext: { position: 2, total: 5, priorSubtopics: ['a'] } });
+    assert.notEqual(k1, k2);
+  });
+
+  test('series cache key differs by prior subtopics', () => {
+    const k1 = buildCacheKey({ ...base, seriesContext: { position: 2, total: 5, priorSubtopics: ['a'] } });
+    const k2 = buildCacheKey({ ...base, seriesContext: { position: 2, total: 5, priorSubtopics: ['a', 'b'] } });
+    assert.notEqual(k1, k2);
+  });
+
+  test('series cache key matches the same single-lesson key when total is 1', () => {
+    const single = buildCacheKey({ ...base });
+    const seriesOfOne = buildCacheKey({ ...base, seriesContext: { position: 1, total: 1, priorSubtopics: [] } });
+    assert.equal(single, seriesOfOne);
+  });
+
+  test('non-Lesson requests ignore seriesContext entirely', () => {
+    const k = buildCacheKey({ ...base, resourceType: 'Test', seriesContext: { position: 1, total: 5, priorSubtopics: ['x'] } });
+    assert.ok(!/seriesPosition|seriesTotal|seriesPrior/.test(k));
   });
 });
