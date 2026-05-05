@@ -27,6 +27,7 @@ import authResendVerificationHandler from './api/auth-resend-verification.js';
 import userSettingsHandler from './api/user-settings.js';
 import userHistoryHandler from './api/user-history.js';
 import userProfileHandler from './api/user-profile.js';
+import userAccountHandler from './api/user-account.js';
 import billingCheckoutHandler from './api/billing-checkout.js';
 import billingPortalHandler from './api/billing-portal.js';
 import stripeWebhookHandler from './api/stripe-webhook.js';
@@ -246,6 +247,9 @@ app.get('/api/test', testHandler);
 // auth-gated so the user can only see their own rows.
 app.get('/api/user/profile', requireAuth, userProfileHandler);
 app.put('/api/user/profile', requireAuth, userProfileHandler);
+// POPIA right-to-erasure: hard-delete the user row + cascading state.
+// Body must include the user's email for confirmation.
+app.delete('/api/user/account', requireAuth, userAccountHandler);
 app.get('/api/user/settings', requireAuth, userSettingsHandler);
 app.put('/api/user/settings', requireAuth, userSettingsHandler);
 app.get('/api/user/history', requireAuth, userHistoryHandler);
