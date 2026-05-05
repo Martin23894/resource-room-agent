@@ -3,7 +3,8 @@
 CAPS-aligned teaching-resource generator for South African Grades 4–7.
 Teachers pick a grade, term, subject, and resource type; the app returns
 downloadable artefacts grounded in the DBE Annual Teaching Plan: question
-papers + memos as DOCX, full lessons as DOCX + PowerPoint, and Teacha
+papers + memos as DOCX, full lessons as DOCX + PowerPoint (single lessons
+*or* a complete unit's worth of lessons in one click), and Teacha
 marketplace product listings.
 
 Powered by Claude Sonnet 4.6 via the Anthropic tool API. Built on
@@ -18,6 +19,8 @@ Node/Express. Deployed on Railway.
 3. [Environment variables](#environment-variables)
 4. [Resource types](#resource-types)
 5. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
+   1. [Single lesson + Subtopic picker](#single-lesson--subtopic-picker)
+   2. [Lesson series generator](#lesson-series-generator)
 6. [Architecture](#architecture)
 7. [Project layout](#project-layout)
 8. [API surface](#api-surface)
@@ -61,7 +64,7 @@ Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PR
 Run the test suite:
 
 ```bash
-npm test          # 447 tests, ~32s, all node:test — no Anthropic API calls
+npm test          # 491 tests, ~32s, all node:test — no Anthropic API calls
 ```
 
 ---
@@ -114,13 +117,18 @@ The `resourceType` field on a generation request determines what the model produ
 
 ## The Lesson generator
 
-The Lesson generator is the most complex resource type and the most recently added. It produces three artefacts from one schema-validated Resource:
+The Lesson generator is the most complex resource type. It produces three artefacts from one schema-validated Resource:
 
 1. **Lesson plan** (teacher-facing) — DOCX
 2. **Slide deck** (learner-facing) — PowerPoint
 3. **Worksheet + memo** (learner-facing, embedded inside the lesson DOCX) — DOCX
 
 Because all three come from a single Claude tool call against a single schema, the slides, lesson plan, and worksheet are **structurally guaranteed to teach and test the same concepts** — that's the unfair advantage no template-based competitor can match.
+
+There are **two ways to use it**:
+
+- **Single lesson** (default) — one /api/generate call → one Lesson artefact-pack.
+- **Lesson series** (one-click upsell) — N /api/generate calls orchestrated client-side, one per top-level subtopic of the chosen Unit, each aware of which subtopics came before. Same per-call cost as N separate generations; the convenience is the win.
 
 ### Data flow
 
@@ -131,28 +139,41 @@ Frontend                                Backend
  2. User selects "Lesson plan + worksheet" resourceType
  3. Topic dropdown swaps to a CAPS Unit picker:
       GET /api/pacing-units?subject=…&grade=…&term=…
-      → returns slim Unit list from data/atp-pacing.json
- 4. User picks a Unit, sets lesson length (30/45/60/90 min),
-    marks (10-30), language, difficulty
- 5. POST /api/generate with body:
-      { subject, grade, term, language,
-        resourceType: 'Lesson',
-        unitId, lessonMinutes, duration: marks }
+      → slim Unit list (id, topic, weeks, hours,
+        subtopicHeadings[]) from data/atp-pacing.json
+ 4. User picks a Unit and lesson length. The Subtopic
+    dropdown populates from the chosen Unit's
+    subtopicHeadings[] (data-subtopics on each option).
+    The Series upsell ("Generate full unit series")
+    appears for Units with 2+ subtopics, disabled with
+    a hint for single-subtopic Units.
+ 5a. Single lesson: POST /api/generate, SSE accept,
+     body { ..., unitId, lessonMinutes, subtopicHeading? }
+ 5b. Series:        modal confirms N subtopics → frontend
+     orchestrator POSTs N times, JSON accept, body
+     { ..., unitId, lessonMinutes, subtopicHeading,
+       seriesContext: { position, total, priorSubtopics } }
                                         │
                                         ▼
                             ┌── api/generate.js ──┐
                             │                      │
-                            │ 1. parseRequest      │
+                            │ 1. parseRequest      │  ← extracts unitId,
+                            │                      │     lessonMinutes,
+                            │                      │     subtopicHeading,
+                            │                      │     seriesContext
                             │ 2. buildContext      │  ← lib/atp.js
-                            │    (loads Unit,      │     getPacingUnitById()
+                            │    (loads Unit;      │     getPacingUnitById()
+                            │     resolves         │     findUnitSubtopic()
+                            │     subtopic;        │
                             │     locks topics to  │
                             │     unit.topic)      │
                             │ 3. narrowSchema      │  ← schema/resource.schema.js
                             │    (adds 'lesson'    │     narrowSchemaForRequest()
                             │     to required[])   │
                             │ 4. buildSystemPrompt │  ← lib/atp-prompt.js
-                            │    + buildLesson     │     buildLessonContextBlock()
-                            │      ContextBlock    │
+                            │    + buildLesson     │     buildLessonContextBlock(
+                            │      ContextBlock    │       unit, mins, lang,
+                            │                      │       subtopic?, seriesCtx?)
                             │ 5. callAnthropicTool │  → Claude Sonnet 4.6
                             │    (24k maxTokens)   │
                             │ 6. unwrapStringified │  ← see "Bugs we've hit"
@@ -168,7 +189,84 @@ Frontend                                Backend
                             │     only)            │
                             │ 10. Stream SSE       │
                             │     phases + result  │
+                            │     (single mode)    │
+                            │     OR JSON res      │
+                            │     (series mode)    │
                             └──────────────────────┘
+```
+
+### Single lesson + Subtopic picker
+
+The default mode produces ONE lesson at the chosen length. Without a subtopic chosen, the model sees the Unit's full concept tree and picks ~45 minutes of it on its own — fine for a Unit with one subtopic but causes overlapping "introduction" lessons across multiple generations of a multi-subtopic Unit.
+
+To narrow that, the **Subtopic picker** lets the teacher pick one of the Unit's top-level subtopic headings. When set, the generator pipeline:
+
+- Loads the matching subtopic via `findUnitSubtopic(unit, heading)` and stashes `lessonSubtopic` on `ctx`.
+- `buildLessonContextBlock` emits a `### Subtopic focus` block listing the subtopic's `concepts[]` verbatim and tells the model NOT to cover other subtopics of the Unit.
+- The model's `capsAnchor.subStrand` is pinned to the subtopic heading, so the rendered lesson plan header reads *"CAPS Anchor: Number Sentences / Solving by inspection"* — the teacher knows exactly which slice of the Unit this lesson covers.
+- Cache key includes `subtopicHeading` so two subtopic-focused variants of the same Unit don't collide.
+
+Single-subtopic Units (e.g. NUMBER SENTENCES Gr 6 T2 in the 2023-24 ATP, captured as one subtopic block in `data/atp-pacing.json`) keep the picker visible but disabled, with helper text *"CAPS doesn't break this Unit into named subtopics — generate it as a single Whole-unit lesson."*
+
+### Lesson series generator
+
+The series generator stitches N single-lesson calls into one coherent flow. This is the **hybrid model**: each lesson in the series is a normal billable /api/generate call (so the existing rate limiter, Stripe credits, and result cache all apply per-lesson), but coordinated so each lesson knows what came before.
+
+**Frontend orchestrator** (`generateSeries`, `callGenerateOnceWithRetry`, `renderSeriesProgress` in `public/index.html`):
+
+- The "Generate full unit series" button shows only when the Unit has 2+ subtopics. For single-subtopic Units it's visible but disabled with a tooltip.
+- Confirmation modal lists the planned subtopics, total minutes, and cost ("8 generations · same as separate") — no discount, no surprise.
+- The orchestrator iterates `subtopicHeadings[]` in order. Each iteration POSTs to `/api/generate` (JSON mode, not SSE) with:
+  ```jsonc
+  { ...standard fields,
+    subtopicHeading: "<this iteration's heading>",
+    seriesContext: {
+      position: <1-indexed>,
+      total: <N>,
+      priorSubtopics: [<all earlier headings>]
+    } }
+  ```
+- Calls are paced **8s** between non-cache hits to stay under the server's 10/min rate limit (~7.5 calls/min, safe headroom). Cache hits skip the pacing.
+- A per-lesson **auto-retry layer** (`callGenerateOnceWithRetry`) handles transient failures invisibly:
+  - 429 → wait `Retry-After` / `RateLimit-Reset` (capped 90s, default 30s)
+  - 5xx → exponential 2s → 4s → 8s with small jitter
+  - Network errors (`fetch failed`, `ECONN`, `ETIMEDOUT`) → same exponential
+  - 4xx-but-not-429 → terminal, surface immediately
+  - 3 attempts max per lesson; the wait is split into 1s chunks so a user-cancelled series doesn't sit waiting 60s.
+
+**UI**:
+
+- Progress strip: *"Generating lesson 3 of 8…"* → flips to *"Lesson 3 of 8 — retrying (attempt 2 of 3) — waiting 12s before next attempt — Too many requests"* during a transient retry.
+- Per-lesson rows show Pending / Ready / Failed badges and individual ⬇ Word + ⬇ PowerPoint download buttons as each completes. A `(cached)` tag appears next to lessons served from the result cache.
+- Failed rows render the actual error message inline (red, wrapped under the row) plus a per-row **↻ Retry** button.
+- Bulk download via JSZip (already a dep): "Download all (ZIP)" packages every completed lesson's DOCX + PPTX with stable `01-subtopic-name.docx` filenames.
+
+**Resume & retry**:
+
+- `resumeSeries()` (toolbar button when the series has stopped mid-way) re-invokes the orchestrator from `failedAt`. Already-completed lessons hit the cache and re-serve free; only the failed one + remaining ones spend new credits.
+- `retrySeriesLesson(idx)` (per-row button) retries a single lesson without restarting the whole series. Same cache mechanics.
+
+**Backend additions for series**:
+
+- `parseSeriesContext(input)` validates the optional payload (position/total ints, `priorSubtopics[]` capped at 30 entries × 500 chars). Anything malformed → `null` (graceful fallback to single-lesson behaviour).
+- `buildLessonContextBlock(unit, mins, lang, subtopic?, seriesContext?)` adds a `### Series context` block when seriesContext is present:
+  - First lesson (`position === 1`): *"This is the FIRST lesson — treat as the Unit's opener; don't assume prior Unit-specific knowledge"*
+  - Mid-series: lists prior subtopics verbatim + *"BUILD ON those prior lessons; do NOT re-teach"*
+  - Last lesson: *"This is the LAST lesson — its Consolidation phase should also serve as a brief recap of the whole Unit"*
+- `buildCacheKey` (now `gen:v5:`) includes `seriesPosition` + `seriesTotal` + `seriesPrior` (joined by `|`) so a mid-series lesson can't collide with a single-lesson cache entry. A 1-of-1 series collapses to the single-lesson key (a freebie cache win).
+
+### Console diagnostics
+
+While a series runs, the browser console gets one log per step (open DevTools → Console):
+
+```
+[series] starting lesson 1/3: "Investigate and extend patterns"
+[series] ✓ lesson 1/3 ready · 28401 chars docx, 18234 chars pptx
+[series] pacing 8000ms before lesson 2/3
+[series] starting lesson 2/3: "Input and output values"
+[series] transient error on attempt 1/3: Too many requests... Retrying in 30s.
+[series] ✓ lesson 2/3 ready (cached) · 28233 chars docx, 18102 chars pptx
+[series] ✗ lesson 3/3 failed (after auto-retry): <message>
 ```
 
 ### What the lesson DOCX contains
@@ -330,10 +428,18 @@ When `assertResource` fails, the pipeline retries up to 2× (Final Exam: 0×, si
 `lib/cache.js` is a thin SQLite wrapper. The cache key is built in `api/generate.js`:
 
 ```
-gen:v3:{"subject":"...","grade":4,"term":2,"language":"English","resourceType":"Lesson","totalMarks":10,"difficulty":"on","unitId":"MATH-6-2026-t2-u2","lessonMinutes":45}
+gen:v5:{"subject":"...","grade":4,"term":2,"language":"English","resourceType":"Lesson","totalMarks":10,"difficulty":"on","unitId":"MATH-6-2026-t2-u2","lessonMinutes":45,"subtopicHeading":"Solving by inspection","seriesPosition":3,"seriesTotal":8,"seriesPrior":"Number sentences|Solving for a variable"}
 ```
 
-For non-Lesson types `unitId` and `lessonMinutes` are omitted. Bumping the prefix (`v3` → `v4`) is the standard way to invalidate the entire cache when the response shape changes. Pass `{ fresh: true }` in the request body to bypass cache for one call.
+Lesson keys include `unitId`, `lessonMinutes`, `subtopicHeading`, and series fields (when present). For non-Lesson types those keys are omitted. A 1-of-1 series collapses to the same key as a single-lesson request — that's a deliberate freebie when teachers click "Generate series" on a Unit with one subtopic. Bumping the prefix (`v5` → `v6`) is the standard way to invalidate the entire cache when the response shape changes.
+
+Cache version history:
+- `v2` — pre-Lesson baseline
+- `v3` — added `lesson` to top-level required[] for Lesson narrowing
+- `v4` — added `subtopicHeading`
+- `v5` — added `seriesPosition`, `seriesTotal`, `seriesPrior` (current)
+
+Pass `{ fresh: true }` in the request body to bypass cache for one call. The series orchestrator's resume/retry paths rely on cache hits to re-serve completed lessons free of charge.
 
 ---
 
@@ -497,8 +603,20 @@ All `/api/*` endpoints return JSON. Non-auth endpoints under `/api/auth/*` are l
   "duration": 10,                    // total marks (5-200; the field is named "duration" for legacy reasons)
   "difficulty": "on",                // below | on | above
   "topic": "Number Sentences",       // optional — pin to a single topic; ignored for Lesson (replaced by unitId)
-  "unitId": "MATH-6-2026-t2-u2",     // Lesson only — from /api/pacing-units
-  "lessonMinutes": 45,               // Lesson only — 20-120
+
+  // Lesson-only fields:
+  "unitId": "MATH-6-2026-t2-u2",     // required for Lesson — from /api/pacing-units
+  "lessonMinutes": 45,               // optional, 20-120, default 45
+  "subtopicHeading": "Solving by inspection",  // optional — narrows lesson to one subtopic of the Unit
+  "seriesContext": {                 // optional — set by the frontend series orchestrator
+    "position": 3,                   //   1-indexed lesson number
+    "total": 8,                      //   total lessons in the series
+    "priorSubtopics": [              //   subtopics already covered by earlier lessons in this series
+      "Number sentences with one or more variables",
+      "Solving for a variable using known number facts"
+    ]
+  },
+
   "fresh": false                     // optional — bypass result cache
 }
 ```
@@ -549,6 +667,13 @@ It narrows:
 - `sections[*].questions[*].topic` (recursive via $ref) → enum of `meta.topicScope.topics`
 - `memo.answers[*].cognitiveLevel` → same
 - **`required[]` adds `'lesson'` when resourceType === `'Lesson'`** — without this, Sonnet skips the entire lesson branch (it's optional in the base schema, since most resource types don't have one)
+
+### Lesson-flow helpers in `lib/atp.js`
+
+- `getPacingUnitsSlim(subject, grade, term)` — slim Unit list for the frontend Unit picker. Includes `subtopicHeadings[]` so the picker can populate without a follow-up fetch.
+- `getPacingUnitById(subject, grade, unitId)` — looks up the chosen Unit (returns `{ unit, term, year }`).
+- `getUnitSubtopicHeadings(unit)` — returns deduped, trimmed top-level subtopic headings for a Unit.
+- `findUnitSubtopic(unit, heading)` — finds a subtopic by exact (trimmed) heading match. Returns `null` for unknown headings (graceful fallback to whole-Unit scope rather than failing the request).
 
 ### `assertResource(resource)`
 
@@ -638,23 +763,27 @@ To **add pacing data for a new subject**: drop the DBE PDF into the repo root, t
 
 ## Frontend cascade
 
-`public/index.html` is one file (~2,200 lines). The cascade is wired by these handlers:
+`public/index.html` is one file (~2,400 lines). The cascade is wired by these handlers:
 
 - `onGradeChange()` → `loadSubjects()` → `loadResourceTypes()` → `loadTopics()`
 - `onTermChange()` → same chain
 - `onSubjChange()` → `loadResourceTypes()` + `loadTopics()`
-- `onResTypeChange()` → reads `data-rtype` off the selected option, sets `rtype`, swaps the topic dropdown for a Unit picker if `rtype === 'Lesson'`, shows/hides the Lesson length field, retunes the marks dropdown
+- `onResTypeChange()` → reads `data-rtype` off the selected option, sets `rtype`, swaps the topic dropdown for a Unit picker if `rtype === 'Lesson'`, shows/hides the Lesson length + Subtopic + Series rows, retunes the marks dropdown
 
 ### Lesson-specific UI
 
 When the user selects "Lesson plan + worksheet":
 
-1. Topic dropdown label flips to **"CAPS Unit"**
-2. `loadTopics()` async-fetches `GET /api/pacing-units?subject=…&grade=…&term=…` and populates the dropdown with `<option value="<topic>" data-unit-id="...">…</option>`
-3. **Lesson length** field appears below the Unit picker (30 / 45 / 60 / 90 min, default 45)
-4. Marks dropdown re-tunes to **10–30 marks** (worksheet-sized)
+1. Topic dropdown label flips to **"CAPS Unit"**.
+2. `loadTopics()` async-fetches `GET /api/pacing-units?subject=…&grade=…&term=…` and populates the dropdown with `<option value="<topic>" data-unit-id="..." data-subtopics="[…JSON…]">…</option>`. Subtopic headings are stashed on the option so the Subtopic picker can populate sync, no extra fetch.
+3. **Lesson length** field (30 / 45 / 60 / 90 min, default 45).
+4. **Subtopic focus** dropdown — always visible in Lesson mode. Populated from the chosen Unit's `data-subtopics`. For single-subtopic Units it shows "Whole unit only" disabled with helper text *"CAPS doesn't break this Unit into named subtopics."*
+5. **Generate full unit series** upsell button — always visible in Lesson mode. Enabled (with the lesson count subtitle) for Units with 2+ subtopics; disabled with *"Series unavailable for single-subtopic Units"* otherwise. Same data source as the picker.
+6. Marks dropdown re-tunes to **10–30 marks** (worksheet-sized).
 
-`doGenerate()` reads `unitId` from the selected option's `data-unit-id` and `lessonMinutes` from the new field, and includes both in the POST body.
+`doGenerate()` reads `unitId` from the selected option's `data-unit-id`, `lessonMinutes` from the lesson-length dropdown, and `subtopicHeading` from the subtopic dropdown (empty string = whole-Unit fallback, dropped from the request body). Posts via SSE for live phase progress.
+
+`openSeriesModal()` → `confirmSeriesGenerate()` → `generateSeries(plan, startFrom)` is the series flow. The orchestrator iterates the Unit's subtopics, calls `callGenerateOnceWithRetry()` per lesson (which wraps `callGenerateOnce()` with auto-retry classification), and renders progress + per-lesson results via `renderSeriesProgress()`. JSZip is loaded lazily by `ensureJSZip()` for the bulk-download path (same lazy pattern as the existing `ensureDocxLib()`).
 
 The output card includes a **PowerPoint download button** (orange `#D04423`, distinguishable from the blue Word button) when the result payload contains `pptxBase64`.
 
@@ -663,20 +792,20 @@ The output card includes a **PowerPoint download button** (orange `#D04423`, dis
 ## Testing
 
 ```bash
-npm test          # runs all node:test suites — 447 tests, ~32s, no Anthropic calls
+npm test          # runs all node:test suites — 491 tests, ~32s, no Anthropic calls
 ```
 
 Test files live in `test/`. Conventions:
 
-- One file per concern (`api.test.js` would cover one route; `lesson.test.js` covers the whole Lesson generator including schema, prompt, renderers, and inference helpers)
+- One file per concern (`api.test.js` would cover one route; `lesson.test.js` covers the whole Lesson generator including schema, prompt, renderers, inference helpers, subtopic flow, and series context)
 - Pure functions only — no Anthropic API key needed (all Anthropic calls are mocked or stubbed)
 - `node:test` reporter `spec` for readable output
 
 Key test files:
 
-- `test/lesson.test.js` — schema invariants, prompt builder, renderers, inference, stringified-branch unwrapping
+- `test/lesson.test.js` — schema invariants, prompt builder (whole-Unit, subtopic focus, series context), renderers, inference, stringified-branch unwrapping, narrowSchema "lesson" required, subtopic helpers (`getUnitSubtopicHeadings` / `findUnitSubtopic`), cache key separation across single/subtopic/series modes
 - `test/atp.test.js` — ATP database integrity, pacing helpers
-- `test/atp-prompt.test.js` — prompt-block builders
+- `test/atp-prompt.test.js` — prompt-block builders (CAPS reference, assessment structure, formal-assessment matcher, lesson-prompt subtopic + series blocks)
 - `test/generate-cache.test.js` — cache key shape + handler short-circuit
 - `test/anthropic*.test.js` — SDK wrapper retry / abort / caching behaviour
 - `test/diagrams.test.js` — bar_graph / number_line / food_chain SVG output
@@ -760,6 +889,38 @@ The most useful section in this README. If something looks weird in production, 
 
 **Cause:** Sonnet emits a near-miss like `"X — Y — Y"` instead of canonical `"X — Y"`. We snap to canonical via `snapTopicsToCanonical()` (collapse-duplicates pass + Levenshtein within a 10% budget). If a real near-miss is being rejected, widen the budget — but check first that the canonical topic isn't itself wrong.
 
+### "The Subtopic dropdown vanishes for some Units — looks like the feature broke"
+
+**Cause:** Phase A's original logic hid the Subtopic row whenever the chosen Unit had fewer than 2 subtopics in the CAPS pacing data. NUMBER SENTENCES Gr 6 T2 (and others) are captured as a single subtopic block in `data/atp-pacing.json`, so the entire row vanished with no explanation.
+
+**Fix already in place:** `loadSubtopicsForCurrentUnit()` always shows the row in Lesson mode. For single-subtopic Units the dropdown is rendered disabled with explanatory help text and the Series button shows disabled with a tooltip. The teacher always sees the controls, so they know the feature exists and why it isn't actionable for this particular Unit.
+
+**Debugging hint:** if the controls are silently hidden again, check that `loadSubtopicsForCurrentUnit()` is the function setting the row's `display`. The `onResTypeChange()` handler also hides them when `rtype !== 'Lesson'` — that's the only intentional hide path.
+
+### "Series stops mid-way with a transient error and the user has to manually click Retry"
+
+**Cause:** The original orchestrator (Phase B) treated every error as terminal — even rate-limit (429), Anthropic 5xx, and schema-fail-after-retries which are all effectively transient. The user had to click the Retry button by hand and let the cache replay completed lessons.
+
+**Fix already in place:** `callGenerateOnceWithRetry()` wraps every series call. Up to 3 attempts per lesson on transient failures: 429 → respect `Retry-After` / `RateLimit-Reset` (capped 90s, default 30s); 5xx + network → exponential 2s → 4s → 8s with jitter; 4xx-but-not-429 → terminal. The progress strip shows "retrying (attempt 2 of 3) — waiting 12s — Too many requests" so the user knows it's handling the failure.
+
+**Debugging hint:** if a series stops without auto-retry firing, the error is probably 4xx-but-not-429 (real input bug — auth, validation, etc.). Open DevTools → Console; the `[series] error response` log shows the full server response body.
+
+### "Series cache key collision — re-running mid-series serves a wrong / single-lesson result"
+
+**Cause:** The cache key needs to include enough series context that mid-series lessons can't collide with single-lesson cache entries for the same Unit + subtopic. Without `seriesPosition` / `seriesTotal` / `seriesPrior` in the key, lesson 3 of 8 would key-collide with a previously-cached single-lesson generation against the same subtopic — and serve a lesson without prior-context awareness.
+
+**Fix already in place:** `buildCacheKey` (now `gen:v5:`) includes the series fields when `seriesContext.total > 1`. A 1-of-1 series collapses to the single-lesson key — that's deliberate (free win when teachers click Generate Series on a Unit with one subtopic).
+
+**Debugging hint:** if you bump cache version, also check `test/lesson.test.js`'s "cache key uses a versioned prefix" test still uses `/^gen:v\d+:/` (version-agnostic) rather than pinning to a specific number.
+
+### "Series rate-limit issues — orchestrator hits 429 repeatedly"
+
+**Cause:** Server rate limit is 10 calls/min per user on `/api/generate` (and the limiter is shared with `/api/refine`, `/api/cover`, `/api/rebuild-docx`). If pacing is too aggressive, a long series can hit 429 once the rolling window fills up.
+
+**Fix already in place:** Pacing is **8 seconds** between non-cache-hit calls (~7.5 calls/min, comfortable headroom). Cache hits skip pacing. Auto-retry honors `Retry-After` if a 429 still slips through.
+
+**Debugging hint:** if 429s become common, either the user's other-tab activity is sharing the limit (auth-me polls don't count, but generate/refine/cover do), or pacing needs to widen further (10s would be ~6 calls/min — very safe). Also worth checking that `callGenerateOnce` is reading `RateLimit-Reset` correctly via `parseRetryAfter`.
+
 ---
 
 ## Glossary
@@ -777,8 +938,11 @@ The most useful section in this README. If something looks weird in production, 
 - **Phase** (Lesson) — one of Introduction / Direct Teaching / Guided Practice / Independent Work / Consolidation. Five phases per Lesson, prescribed by CAPS.
 - **Resource type** — Worksheet / Test / Exam / Final Exam / Investigation / Project / Practical / Assignment / Lesson. Drives the entire generation shape.
 - **RTT** — Response-to-Text. The CAPS HL/FAL paper format with a passage + comprehension + summary + visual-text sections.
+- **Series** (Lesson) — N orchestrated single-lesson generations covering one Unit's subtopics in CAPS order, each aware of the prior subtopics via `seriesContext`. Frontend-orchestrated; each call is a normal billable `/api/generate`.
 - **Stimulus** — shared content (passage / visualText / dataSet / diagram / scenario) referenced by questions via `stimulusRef`.
+- **Subtopic** (Lesson) — one of a Unit's top-level concept blocks. Source of `findUnitSubtopic` lookups and the optional `subtopicHeading` request field that narrows lesson focus.
 - **Tool call** — Claude's structured-output mechanism. We use **forced** tool use (`tool_choice: { type: "tool", name: "build_resource" }`) so the model must call our tool with a schema-conforming object.
+- **Transient error** — series-orchestrator term for an error class that should be auto-retried: 429 (rate limit), 5xx (server / Anthropic-side), and network errors. Anything else (4xx-non-429) is treated as terminal and surfaced to the user immediately.
 - **Unit** (Lesson) — one teaching block from the ATP pacing data, identified by a stable id like `MATH-6-2026-t2-u2`.
 
 ---
