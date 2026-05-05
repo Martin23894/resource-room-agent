@@ -17,7 +17,8 @@ Node/Express. Deployed on Railway.
 2. [Quick start](#quick-start)
 3. [Environment variables](#environment-variables)
 4. [Production email setup](#production-email-setup)
-5. [Resource types](#resource-types)
+5. [Operational status](#operational-status)
+6. [Resource types](#resource-types)
 5. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
    1. [Single lesson + Subtopic picker](#single-lesson--subtopic-picker)
    2. [Lesson series generator](#lesson-series-generator)
@@ -88,6 +89,10 @@ See `.env.example` for the canonical list.
 | `RESEND_API_KEY` | if `EMAIL_PROVIDER=resend` | API key from <https://resend.com/api-keys>. |
 | `EMAIL_FROM` | prod recommended | Sender address (e.g. `The Resource Room <no-reply@yourdomain.com>`). Must be on a domain you've verified in Resend — see [Production email setup](#production-email-setup). Without it, Resend falls back to its rate-limited sandbox sender and the server logs a startup warning. |
 | `EMAIL_REPLY_TO` | no | Address teachers reach when they reply to a sign-in / password-reset email. Defaults to `EMAIL_FROM`. |
+| `SENTRY_DSN` | prod recommended | Server-side error tracking. Unset → errors log via pino but don't aggregate. See [Operational status](#operational-status). |
+| `SENTRY_RELEASE` | no | Release identifier for grouping errors by deploy (e.g. `${RAILWAY_GIT_COMMIT_SHA}`). |
+| `PLAUSIBLE_DOMAIN` | no | Domain registered on Plausible (e.g. `theresourceroom.co.za`). When set, every public HTML page loads the Plausible script. POPIA / GDPR safe out of the box, no cookie banner needed. |
+| `HEALTH_STATUS_SECRET` | prod recommended | Guards `GET /health/status`. Without this, the operational status endpoint is open. |
 | `STRIPE_SECRET_KEY` | for billing | Stripe secret key. Required when checkout/portal endpoints are exercised. |
 | `STRIPE_WEBHOOK_SECRET` | for billing | Stripe webhook-signature secret used by `/api/stripe/webhook`. |
 
@@ -144,6 +149,80 @@ Common pitfalls:
   outright. Start with `p=quarantine`, escalate later.
 - **EMAIL_FROM doesn't match the verified domain** → Resend rejects the
   send with a 403.
+
+---
+
+## Operational status
+
+Three lightweight pieces of operational kit are wired up for production:
+
+### Server-side error tracking — Sentry
+
+When `SENTRY_DSN` is set, unhandled errors thrown by route handlers and
+best-effort `captureException()` calls (in `lib/sentry.js`) are reported
+to Sentry. Without the DSN, errors still log via pino — they just don't
+aggregate into a dashboard.
+
+Setup:
+
+1. Sign up at <https://sentry.io>, create a Node project, copy the DSN
+   from Settings → Projects → <project> → Client Keys.
+2. Set `SENTRY_DSN=…` in Railway. Optionally set `SENTRY_RELEASE` to
+   `${RAILWAY_GIT_COMMIT_SHA}` so errors are grouped by deploy.
+3. Trigger a test error (e.g. visit a known-bad URL with `NODE_ENV=
+   production`) and confirm it appears in Sentry.
+
+What we *don't* do: performance / tracing (`tracesSampleRate=0`) and
+client-side errors. Both are bigger commitments — revisit when there's
+a specific question to answer.
+
+### Privacy-friendly analytics — Plausible
+
+When `PLAUSIBLE_DOMAIN` is set, every public HTML page (`/`, `/app`,
+`/help`, `/privacy`, `/terms`, `/404`) loads
+`https://plausible.io/js/script.js` with that domain attached. The
+loader at `/_/analytics.js` decides at request-time based on the env
+var, so there's nothing to rebuild when you flip it on.
+
+Plausible:
+
+- Doesn't use cookies → POPIA / GDPR compliant out of the box, no
+  consent banner.
+- Doesn't track personally-identifiable info.
+- Charges per pageview (~$9/month for 10k views).
+
+Setup: register your domain at <https://plausible.io>, then set
+`PLAUSIBLE_DOMAIN=theresourceroom.co.za` in Railway.
+
+### Health / status endpoint — `GET /health/status`
+
+A single URL that runs five quick checks and returns a JSON snapshot:
+
+```json
+{
+  "status": "ok" | "attention",
+  "timestamp": "2026-01-01T00:00:00Z",
+  "checks": {
+    "database":  { "ok": true,  "info": "SQLite reachable" },
+    "auth":      { "ok": true,  "info": "Cookie-signing secret configured" },
+    "anthropic": { "ok": true,  "info": "Key configured" },
+    "email":     { "ok": false, "info": "EMAIL_PROVIDER=console — emails are only logged" },
+    "sentry":    { "ok": true,  "info": "Error tracking enabled" }
+  }
+}
+```
+
+`status: "ok"` only when every check is green — useful for at-a-glance
+"is the deploy actually production-ready?" inspection. The endpoint
+always returns HTTP 200 so a config issue (e.g. `EMAIL_FROM` unset)
+doesn't trip an uptime monitor watching the basic `/health` ping.
+
+In production set `HEALTH_STATUS_SECRET` and call the endpoint with
+`?secret=…` — without the secret it 404s, hiding env-var presence
+from the open internet.
+
+The plain `/health` endpoint (no per-dependency detail, always returns
+`{status:"ok"}`) stays unauthenticated and is what Railway probes.
 
 ---
 

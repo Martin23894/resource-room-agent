@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "@resvg/resvg-js": "^2.6.2",
+    "@sentry/node": "^10.51.0",
     "better-sqlite3": "^11.5.0",
     "docx": "^8.5.0",
     "docx-preview": "^0.3.2",
