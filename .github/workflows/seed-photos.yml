@@ -54,13 +54,17 @@ jobs:
 
       - name: Run seed-photos
         env:
+          # Either provider works. Pexels is preferred when both are set
+          # (200 req/hr free vs Unsplash Demo's 50 req/hr) — see
+          # scripts/seed-photos.js → resolveProvider().
+          PEXELS_API_KEY:      ${{ secrets.PEXELS_API_KEY }}
           UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
           CATEGORY:   ${{ inputs.category }}
           CANDIDATES: ${{ inputs.candidates }}
         run: |
           set -euo pipefail
-          if [ -z "${UNSPLASH_ACCESS_KEY:-}" ]; then
-            echo "::error::UNSPLASH_ACCESS_KEY secret is not set. Add it under Settings → Secrets and variables → Actions."
+          if [ -z "${PEXELS_API_KEY:-}" ] && [ -z "${UNSPLASH_ACCESS_KEY:-}" ]; then
+            echo "::error::Neither PEXELS_API_KEY nor UNSPLASH_ACCESS_KEY is set. Add one under Settings → Secrets and variables → Actions. Pexels (https://www.pexels.com/api/) is the recommended path — instant free key, 200 req/hr."
             exit 1
           fi
           ARGS=()

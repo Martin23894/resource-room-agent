@@ -102,14 +102,23 @@ sources):
 
 ## Faster curation: `scripts/seed-photos.js`
 
-Rather than searching Unsplash by hand for 50 photos, run the
-seed-photos helper. It uses the Unsplash API to fetch ~15 candidates per
-category (~90 total), downloads each as a pre-cropped 1200×800 JPG into
-`_candidates/<category>/`, and writes a `_credits.json` sibling so every
-candidate is traceable back to its photographer and source URL.
+Rather than searching by hand for 50 photos, run the seed-photos helper.
+It calls a stock-photo API to fetch ~15 candidates per category (~90
+total), downloads each as a JPG into `_candidates/<category>/`, and
+writes a `_credits.json` sibling so every candidate is traceable back to
+its photographer and source URL.
 
-There are two ways to run it: a **GitHub Actions workflow** (recommended
-— no local terminal needed) or a **local terminal command**.
+The script supports **two providers**, auto-detected from which API-key
+env var is set:
+
+| Provider | Free-tier rate limit | Approval gate | Notes |
+|---|---|---|---|
+| **Pexels** *(recommended)* | 200 req/hr | none — instant key | Higher headroom, simpler workflow. |
+| Unsplash | 50 req/hr (Demo) | Demo instant; Production = 14 days | More aesthetic depth on some queries. |
+
+If both keys are set, Pexels wins (the rate limits are friendlier).
+There are two ways to run the script: a **GitHub Actions workflow**
+(recommended — no local terminal needed) or a **local terminal command**.
 
 ### Path A — GitHub Actions (recommended)
 
@@ -117,13 +126,15 @@ The workflow at `.github/workflows/seed-photos.yml` runs the script on
 GitHub's runner, uses your repo secret for the API key, and pushes the
 candidates to a review branch you can browse directly on github.com.
 
-**One-time setup:**
+**One-time setup — choose one provider:**
 
-1. Get a free Unsplash API key — <https://unsplash.com/oauth/applications>.
-   You only need the **Access Key** (the Demo tier is fine for our use).
-2. Add it as a repo secret: **Settings → Secrets and variables → Actions
-   → New repository secret**.
-   Name: `UNSPLASH_ACCESS_KEY`. Value: paste the Access Key.
+- **Pexels** *(easiest)*: get a free key at <https://www.pexels.com/api/>
+  (instant — no approval). Add as a repo secret named `PEXELS_API_KEY`
+  under **Settings → Secrets and variables → Actions**.
+- **Unsplash**: get a free Access Key at
+  <https://unsplash.com/oauth/applications> (Demo tier instant; ignore
+  the "Production" 14-day approval — Demo is enough for the curation
+  pass). Add as a repo secret named `UNSPLASH_ACCESS_KEY`.
 
 **Each curation run:**
 
@@ -145,17 +156,21 @@ candidates to a review branch you can browse directly on github.com.
    uploads a `phase-d-candidates-N` artefact (auto-cleaned after 14
    days) as a backup.
 
-**Rate limits:** the Demo tier is 50 API calls/hour. A full run of all 6
-categories uses ~120 calls (5 search calls + ~15 download-tracking pings
-per category) — so kick off **one category at a time** unless you've been
-approved for Production access. The script skips already-downloaded
-photos so re-running across categories is safe.
+**Rate limit awareness:** Pexels gives 200 req/hr — comfortably enough
+for `category=all` runs. Unsplash Demo is 50 req/hr; a full all-categories
+run uses ~120 calls (5 search calls + ~15 download-tracking pings per
+category), so on Unsplash kick off **one category at a time**. The
+script gracefully reports rate-limit errors and is safe to re-run — it
+skips files already on disk.
 
 ### Path B — Local terminal
 
 ```sh
-# Get a free API key first: https://unsplash.com/oauth/applications
-export UNSPLASH_ACCESS_KEY="your-access-key-here"
+# Pexels — recommended (200 req/hr, instant key from https://www.pexels.com/api/)
+export PEXELS_API_KEY="your-pexels-api-key-here"
+
+# Or Unsplash (50 req/hr Demo, key from https://unsplash.com/oauth/applications)
+export UNSPLASH_ACCESS_KEY="your-unsplash-access-key-here"
 
 # Fetch candidates for all 6 categories (default 3 per query, ~15 per cat)
 node scripts/seed-photos.js
@@ -167,7 +182,7 @@ node scripts/seed-photos.js --category=mathematics
 node scripts/seed-photos.js --candidates=5
 ```
 
-The `_candidates/` directory is **gitignored** — only the final 50
+The `_candidates/` directory is **gitignored** — only the final ~50
 curated photos under `<category>/01.jpg` … `NN.jpg` are committed.
 
 After running:
@@ -183,14 +198,19 @@ After running:
 
 The script:
 
-- Calls Unsplash's `download_location` endpoint per photo, as the API ToS
-  requires (this increments the photographer's stats counter)
+- Auto-detects the provider from the env var that's set (Pexels wins
+  when both are present)
 - Skips files already on disk so re-runs are additive
-- Merges the credits manifest across runs so adding new query terms is
+- Merges `_credits.json` across runs so adding new query terms later is
   safe and incremental
-- Saves photos as `<unsplash-id>.jpg` so each candidate is traceable
-- Uses Unsplash CDN URL params to request 1200×800 cropped JPG — no
-  client-side resize / no extra dependencies
+- Saves photos as `<photo-id>.jpg` so each candidate is traceable to its
+  source
+- For Unsplash, uses CDN URL params to request a pre-cropped 1200×800
+  JPG and pings the photographer's download counter as the API ToS
+  requires; for Pexels, downloads the `large` rendition (~940 px wide,
+  cover-cropped at PowerPoint render time)
+- Reports rate-limit errors clearly and continues — re-run later when
+  the limit window rolls over
 
 ## After dropping photos in
 
