@@ -7,6 +7,7 @@
 
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import {
   pickHero, pickIcon, pickStamp, pickSubjectIcon,
@@ -225,9 +226,16 @@ describe('PHOTO_CATEGORIES — slot manifest', () => {
     }
   });
 
-  test('total slot count is 50 across all categories', () => {
+  test('total slot count is in the expected curation range (45–55)', () => {
+    // Started at 50 in the Phase D scaffold; per-category counts shift up
+    // and down as the curator picks (e.g. mathematics dropped from 8 → 7
+    // when only 7 of the 8 candidates made the cut). Asserting an exact
+    // total would force a test edit on every curation pass — assert the
+    // sensible band instead so the test catches accidental zeroes / typos
+    // without churning on each photo decision.
     const total = Object.values(PHOTO_CATEGORIES).reduce((a, b) => a + b, 0);
-    assert.equal(total, 50, `expected 50 photo slots total, got ${total}`);
+    assert.ok(total >= 45 && total <= 55,
+      `expected total photo slots in 45–55, got ${total}`);
   });
 });
 
@@ -260,12 +268,14 @@ describe('pickPhoto — deterministic per (subject, slot)', () => {
     assert.deepEqual(a, b);
   });
 
-  test('reports exists:false when the photo file is not on disk yet', () => {
-    // Phase D ships scaffolded — actual JPGs vendored by the curator.
-    // Until they land, every slot reports exists:false and callers fall
-    // back to text-only layouts.
+  test('exists flag matches actual filesystem state', () => {
+    // Curation runs over time — early on most slots are exists:false, then
+    // they flip to true as the curator places JPGs. Rather than asserting
+    // a specific state, verify the picker always reports what's actually
+    // on disk so the renderer's branching is correct in either world.
     const photo = pickPhoto({ subject: 'Mathematics', slot: 0 });
-    assert.equal(photo.exists, false);
+    assert.equal(typeof photo.exists, 'boolean');
+    assert.equal(photo.exists, fs.existsSync(photo.path));
   });
 
   test('handles missing subject gracefully — falls back to lifeskills', () => {
@@ -281,10 +291,11 @@ describe('pickPhoto — deterministic per (subject, slot)', () => {
 });
 
 describe('loadPhotoBuffer', () => {
-  test('returns null when the photo does not exist on disk', () => {
-    const photo = pickPhoto({ subject: 'Mathematics', slot: 0 });
-    assert.equal(photo.exists, false);
-    assert.equal(loadPhotoBuffer(photo), null);
+  test('returns null when the photo descriptor reports exists:false', () => {
+    // Constructed-fake input — tests the early-exit path independently of
+    // whatever's actually on disk for any given category.
+    const fakePhoto = { exists: false, path: '/no-such-file.jpg', category: 'mathematics', fileName: '99.jpg' };
+    assert.equal(loadPhotoBuffer(fakePhoto), null);
   });
 
   test('returns null on null input', () => {

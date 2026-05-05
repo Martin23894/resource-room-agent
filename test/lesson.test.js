@@ -16,6 +16,7 @@ import { getPacingUnitsSlim, getPacingUnitById, getUnitSubtopicHeadings, findUni
 import { renderLessonPptx } from '../lib/pptx-builder.js';
 import { renderResource } from '../lib/render.js';
 import { pickLessonStyle, nthAccent } from '../lib/palette.js';
+import { pickPhoto } from '../lib/illustrations/index.js';
 import { __internals as generateInternals } from '../api/generate.js';
 import { __internals as renderInternals } from '../lib/render.js';
 
@@ -1319,8 +1320,8 @@ describe('Phase D — concept/example layouts route through renderTeachingSlide'
   });
 });
 
-describe('Phase D — PPTX renders cleanly when no photos are vendored', () => {
-  test('a deck with concept slides renders successfully in the no-photo default state', async () => {
+describe('Phase D — concept/example/warmUp render correctly regardless of curation state', () => {
+  test('a deck with teaching layouts renders successfully + matches pickPhoto.exists per slot', async () => {
     const r = makeLesson();
     r.lesson.slides = [
       { ordinal: 1, layout: 'title',   heading: 'Whole numbers', speakerNotes: 'Welcome.' },
@@ -1331,17 +1332,22 @@ describe('Phase D — PPTX renders cleanly when no photos are vendored', () => {
       { ordinal: 4, layout: 'warmUp',  heading: 'How many fingers?',
         bullets: ['Hint: think 10s.'], speakerNotes: 'Get attention.' },
     ];
-    // No photos curated yet — concept/example/warmUp should fall back to
-    // text-only layouts without throwing or producing broken-image slides.
     const b64 = await renderLessonPptx(r);
     assert.ok(b64.length > 1000);
     const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
-    // Slides 2 (concept), 3 (example), 4 (warmUp) should NOT contain a
-    // <p:pic> photo — only the title slide hero (slide 1) has a picture.
+
+    // Photo embedding is curation-dependent: if mathematics/<NN>.jpg is on
+    // disk for that ordinal's slot, the slide should contain a <p:pic>;
+    // if not, it falls back to full-width text. Verify the contract — the
+    // slide's photo state matches what pickPhoto reports.
     for (const ordinal of [2, 3, 4]) {
       const xml = await zip.file(`ppt/slides/slide${ordinal}.xml`).async('string');
-      assert.ok(!/<p:pic>/.test(xml),
-        `slide ${ordinal} should be text-only when no photo is curated, found <p:pic>`);
+      const photo = pickPhoto({ subject: r.meta.subject, slot: ordinal });
+      const slideHasPic = /<p:pic>/.test(xml);
+      assert.equal(
+        slideHasPic, photo.exists,
+        `slide ${ordinal}: <p:pic>=${slideHasPic} but pickPhoto.exists=${photo.exists}`,
+      );
     }
   });
 
@@ -1360,14 +1366,19 @@ describe('Phase D — PPTX renders cleanly when no photos are vendored', () => {
 });
 
 describe('Phase D — tryAddPhotoSidebar', () => {
-  test('returns added:false when the photo file is missing', () => {
-    // Build a stub slide that just records addImage calls
+  test('added flag matches pickPhoto.exists for the (subject, slot) pair', () => {
+    // The contract: tryAddPhotoSidebar returns added:true iff the photo
+    // file is on disk (i.e. pickPhoto reports exists:true). This holds
+    // both before curation (every slot exists:false → added:false) and
+    // after (curated slots exists:true → added:true).
     const calls = [];
     const stubSlide = { addImage: (opts) => calls.push(opts) };
     const stubResource = { meta: { subject: 'Mathematics' } };
     const result = pptxInternals.tryAddPhotoSidebar(stubSlide, stubResource, 0);
-    assert.equal(result.added, false);
-    assert.equal(calls.length, 0, 'no addImage call when photo is missing');
+    const expectedExists = pickPhoto({ subject: 'Mathematics', slot: 0 }).exists;
+    assert.equal(result.added, expectedExists);
+    assert.equal(calls.length, expectedExists ? 1 : 0,
+      `addImage should be called ${expectedExists ? 'once' : 'zero times'}, got ${calls.length}`);
   });
 
   test('PHOTO_BOX geometry sits in the right portion of the slide', () => {
