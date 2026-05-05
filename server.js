@@ -9,6 +9,11 @@ import { logger } from './lib/logger.js';
 import { openCache } from './lib/cache.js';
 import { parseSession, requireAuth } from './lib/auth.js';
 import { checkEmailConfig } from './lib/email.js';
+import { initSentry, sentryErrorHandler } from './lib/sentry.js';
+
+// Sentry must be initialised before route handlers are imported, so any
+// errors thrown during their setup (e.g. a bad env var) are captured.
+initSentry({ logger });
 
 // Import route handlers
 import generateHandler from './api/generate.js';
@@ -29,6 +34,8 @@ import userSettingsHandler from './api/user-settings.js';
 import userHistoryHandler from './api/user-history.js';
 import userProfileHandler from './api/user-profile.js';
 import userAccountHandler from './api/user-account.js';
+import healthStatusHandler from './api/health-status.js';
+import analyticsConfigHandler from './api/analytics-config.js';
 import billingCheckoutHandler from './api/billing-checkout.js';
 import billingPortalHandler from './api/billing-portal.js';
 import stripeWebhookHandler from './api/stripe-webhook.js';
@@ -273,6 +280,16 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Operational status with per-dependency checks. Optionally guarded by
+// HEALTH_STATUS_SECRET so we don't leak config presence to the open
+// internet — see api/health-status.js.
+app.get('/health/status', healthStatusHandler);
+
+// Privacy-friendly analytics loader. Emits a no-op script when
+// PLAUSIBLE_DOMAIN is unset, so HTML pages can include the tag
+// unconditionally. See api/analytics-config.js.
+app.get('/_/analytics.js', analyticsConfigHandler);
+
 // ─── Unknown API routes → 404 (before SPA catch-all) ────────
 app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'Not found' });
@@ -284,6 +301,11 @@ app.all('/api/*', (req, res) => {
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
+
+// ─── Sentry error handler (must come AFTER routes) ─────────
+// Captures any error thrown by a route handler before Express's default
+// 500 page renders. No-op if Sentry isn't initialised (SENTRY_DSN unset).
+app.use(sentryErrorHandler);
 
 // ─── Start ──────────────────────────────────────────────────
 // Open the result cache up-front so any startup pruning happens before
