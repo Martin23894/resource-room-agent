@@ -3,9 +3,8 @@
 CAPS-aligned teaching-resource generator for South African Grades 4–7.
 Teachers pick a grade, term, subject, and resource type; the app returns
 downloadable artefacts grounded in the DBE Annual Teaching Plan: question
-papers + memos as DOCX, full lessons as DOCX + PowerPoint (single lessons
-*or* a complete unit's worth of lessons in one click), and Teacha
-marketplace product listings.
+papers + memos as DOCX, plus full lessons as DOCX + PowerPoint (single
+lessons *or* a complete unit's worth of lessons in one click).
 
 Powered by Claude Sonnet 4.6 via the Anthropic tool API. Built on
 Node/Express. Deployed on Railway.
@@ -551,16 +550,20 @@ server.js                Express boot, CORS, rate limits, SPA fallback, all rout
 api/                     Express handlers (one per route)
   generate.js              MAIN — schema-first generation pipeline (plan → write → verify → DOCX → PPTX)
   refine.js                Single-shot edit on an already-generated resource
-  cover.js                 Teacha marketplace product-listing generator
   rebuild-docx.js          Re-render a DOCX from edited preview text (no Claude call)
   test.js                  Anthropic health check (secret-gated)
   atp.js                   GET /api/atp — returns the full ATP topic database (cached, ETag'd)
   pacing-units.js          GET /api/pacing-units?subject&grade&term — slim Unit list for the Lesson picker
-  auth-request.js          POST /api/auth/request — request a magic link
-  auth-verify.js           GET/POST /api/auth/verify — confirm a magic link
+  auth-signup.js           POST /api/auth/signup — email + password account creation
+  auth-signin.js           POST /api/auth/signin — email + password sign-in
+  auth-forgot.js           POST /api/auth/forgot — send a password-reset link
+  auth-reset.js            GET/POST /api/auth/reset — set a new password
+  auth-verify.js           GET/POST /api/auth/verify — confirm an email-verification link
+  auth-resend-verification.js  POST /api/auth/resend-verification — re-send the verification email
   auth-logout.js           POST /api/auth/logout
-  auth-me.js               GET /api/auth/me — return current user
+  auth-me.js               GET /api/auth/me — return current user (incl. profile + emailVerified)
   user-settings.js         GET/PUT /api/user/settings
+  user-profile.js          GET/PUT /api/user/profile — teacher profile (name, school, role, grades…)
   user-history.js          GET/POST/DELETE /api/user/history[/:id]
   billing-checkout.js      POST /api/billing/checkout — open Stripe Checkout
   billing-portal.js        POST /api/billing/portal — open Stripe Customer Portal
@@ -570,7 +573,8 @@ lib/                     Pure-ish logic (no Express dependencies)
   anthropic.js             Anthropic SDK wrapper — retries, abort, prompt caching
   atp.js                   ATP topic database + pacing helpers (loaded from data/*.json at boot)
   atp-prompt.js            CAPS-pacing prompt-block builders (CAPS reference, lesson directives, …)
-  auth.js                  Magic-link tokens, signed session cookies, requireAuth middleware
+  auth.js                  User/session/magic-link helpers, signed session cookies, requireAuth middleware
+  password.js              scrypt-based password hash + verify (Node-built-in, no native dep)
   billing.js               Stripe price/tier mapping, subscription state helpers
   cache.js                 SQLite-backed result cache
   clean-output.js          Legacy markdown/regex cleanup (mostly unused under v2 schema-first pipeline)
@@ -657,7 +661,6 @@ All `/api/*` endpoints return JSON. Non-auth endpoints under `/api/auth/*` are l
 |---|---|---|
 | POST | `/api/generate` | Generate a CAPS-aligned resource pack. Streams SSE phases when client sends `Accept: text/event-stream`, otherwise returns plain JSON. |
 | POST | `/api/refine` | Apply one refinement instruction to an existing resource. |
-| POST | `/api/cover` | Generate a Teacha marketplace product listing. |
 | POST | `/api/rebuild-docx` | Re-render a DOCX from edited preview text (no Claude call). |
 | GET  | `/api/atp` | Full ATP topic database (subjects, examScope, ATP, ATP_TASKS). Cached + ETag'd. |
 | GET  | `/api/pacing-units` | Slim Unit list for Lesson Unit picker. Query params: `subject`, `grade` (4–7), `term` (1–4). |
