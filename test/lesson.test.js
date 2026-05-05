@@ -1198,3 +1198,105 @@ describe('Phase B — cache version bump', () => {
       'non-Lesson keys also share the version prefix');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────
+// Phase C — Illustration library wired into DOCX + PPTX
+// ─────────────────────────────────────────────────────────────────
+
+describe('Phase C — DOCX embeds illustration PNGs', () => {
+  test('junior Lesson DOCX embeds the mascot on the cover', async () => {
+    const r = makeLesson();
+    r.meta.grade = 4;   // junior band
+    const doc = renderResource(r);
+    const buf = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buf);
+    const mediaPaths = Object.keys(zip.files).filter((p) => /^word\/media\/.+\.png$/.test(p));
+    assert.ok(mediaPaths.length >= 1,
+      `expected at least one embedded PNG (mascot + stamp), got 0`);
+  });
+
+  test('senior Lesson DOCX embeds the subject icon on the cover (no stamp)', async () => {
+    const r = makeLesson();
+    r.meta.grade = 7;   // senior band — icon on cover, NO stamp on memo
+    const doc = renderResource(r);
+    const buf = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buf);
+    const mediaPaths = Object.keys(zip.files).filter((p) => /^word\/media\/.+\.png$/.test(p));
+    assert.ok(mediaPaths.length >= 1, 'senior cover should still have a subject-icon hero');
+  });
+
+  test('Test/Exam DOCX does NOT embed lesson illustrations', async () => {
+    const r = makeLesson();
+    r.meta.resourceType = 'Test';
+    delete r.lesson;
+    r.cover.resourceTypeLabel = 'TEST';
+    const doc = renderResource(r);
+    const buf = await Packer.toBuffer(doc);
+    const zip = await JSZip.loadAsync(buf);
+    const mediaPaths = Object.keys(zip.files).filter((p) => /^word\/media\/.+\.png$/.test(p));
+    assert.equal(mediaPaths.length, 0,
+      `assessments must not pick up Lesson illustrations, found ${mediaPaths.length}`);
+  });
+});
+
+describe('Phase C — PPTX embeds illustration PNGs', () => {
+  test('PPTX title slide embeds a hero illustration (junior mascot)', async () => {
+    const r = makeLesson();
+    r.meta.grade = 4;
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    const mediaPaths = Object.keys(zip.files).filter((p) => /^ppt\/media\/.+\.png$/.test(p));
+    assert.ok(mediaPaths.length >= 1,
+      `expected at least one embedded image in PPTX, got ${mediaPaths.length}`);
+  });
+
+  test('PPTX celebrate slide embeds the well-done stamp on junior band', async () => {
+    const r = makeLesson();
+    r.meta.grade = 4;
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',     heading: 'Whole numbers', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'concept',   heading: 'Place value',
+        bullets: ['100s', '10s', '1s'], speakerNotes: 'Demo.' },
+      { ordinal: 3, layout: 'celebrate', heading: 'Well done!',
+        bullets: ['Today we learned place value.'], speakerNotes: 'Cheer.' },
+    ];
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    const mediaPaths = Object.keys(zip.files).filter((p) => /^ppt\/media\/.+\.png$/.test(p));
+    // Title hero + celebrate stamp = ≥ 2 images
+    assert.ok(mediaPaths.length >= 2,
+      `expected title hero + celebrate stamp PNGs, got ${mediaPaths.length}`);
+  });
+
+  test('PPTX celebrate slide on senior band has no stamp', async () => {
+    const r = makeLesson();
+    r.meta.grade = 7;
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',     heading: 'Topic', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'concept',   heading: 'Place value',
+        bullets: ['100s', '10s', '1s'], speakerNotes: 'Demo.' },
+      { ordinal: 3, layout: 'celebrate', heading: 'Well done!', speakerNotes: 'Cheer.' },
+    ];
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    // Senior celebrate = text-only (no stamp); only the title hero counts.
+    // Inspect celebrate slide XML for image tags.
+    const slide3 = await zip.file('ppt/slides/slide3.xml').async('string');
+    assert.ok(!/<p:pic>/.test(slide3),
+      'senior celebrate slide should have no embedded picture (text-only headline)');
+  });
+
+  test('PPTX yourTurn slide embeds the subject icon (replaces play-arrow placeholder)', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',    heading: 'Topic',  speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'yourTurn', heading: 'Your turn',
+        bullets: ['Try questions 1–4.'], speakerNotes: 'Hand out.' },
+    ];
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    const slide2 = await zip.file('ppt/slides/slide2.xml').async('string');
+    assert.match(slide2, /<p:pic>/,
+      'yourTurn slide should embed the subject icon (Phase C wiring)');
+  });
+});

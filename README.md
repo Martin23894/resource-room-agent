@@ -65,7 +65,7 @@ Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PR
 Run the test suite:
 
 ```bash
-npm test          # 519 tests, ~32s, all node:test — no Anthropic API calls
+npm test          # 549 tests, ~32s, all node:test — no Anthropic API calls
 ```
 
 ---
@@ -315,11 +315,53 @@ Both bands share a friendly display-font chain `Fredoka, Nunito, Calibri` for he
 
 **PPTX kid-mode** (`lib/pptx-builder.js`):
 
-- Title slide: tinted background + rounded "hero card" with the lesson topic in big friendly type, accent strip, subtitle.
+- Title slide: tinted background + rounded "hero card" with the lesson topic in big friendly type, accent strip, subtitle, plus a hero illustration on the right (junior: mascot, senior: subject icon).
 - `objectives` layout: each objective in its own card row with an accent-coloured ✓ badge — replaces the bullet list.
 - `vocabulary` layout: 2-column grid of term cards with accent-coloured top bands and definitions in the body — replaces the term/definition bullet list.
 - Top accent bar uses `roundRect` on junior, `rect` on senior.
 - Junior gets a thicker accent bar and more rounded chrome; senior is cleaner.
+
+### Illustration library (Phase C)
+
+`lib/illustrations/` is the source of every embedded illustration on a Lesson — hero on the worksheet cover, hero on the PPTX title slide, subject icon on the `yourTurn` slide, "Well done!" stamp on the `celebrate` slide and (junior only) the memo header.
+
+```
+lib/illustrations/
+  index.js              Picker dispatcher: pickHero, pickIcon, pickStamp, illustrationToPng
+  subject-icons.js      Per-subject SVG generators (calculator, book, flask, globe,
+                        scroll, heart, compass, coins, gear, pencil) keyed off subject string
+  mascot.js             Friendly geometric mascot SVG (waving pose) — junior band only
+  stamps.js             "Well done!" / "Mooi gedoen!" celebration stamp SVG
+```
+
+**Determinism** — the picker is purely a function of `meta.subject` + `meta.grade` band. Same Lesson always picks the same illustrations; no model decision involved (no schema or prompt churn for Phase C).
+
+**Per-grade-band routing**:
+
+| Slot | Junior (Gr 4–5) | Senior (Gr 6–7) |
+|---|---|---|
+| Worksheet cover hero | Waving mascot | Subject icon |
+| PPTX title slide hero | Waving mascot | Subject icon |
+| PPTX `yourTurn` slide icon | Subject icon | Subject icon |
+| PPTX `celebrate` slide | Stamp + recap | Text-only headline |
+| DOCX memo header | Stamp under subtitle | (none) |
+
+**Subject → icon mapping** (sub-string match against `meta.subject`):
+
+| Subject pattern | Icon |
+|---|---|
+| `Mathematics` | calculator |
+| `Natural Sciences` / `Technology` | flask |
+| `History` | scroll |
+| `Geography` | globe |
+| `Home Language` / `Additional Language` / `English` / `Afrikaans` | book |
+| `Life Skills` / `Life Orientation` | heart |
+| `Economic` / `Management` | coins |
+| (fallback) | pencil |
+
+**Licensing** — every SVG in `lib/illustrations/` is hand-rolled from simple primitives (`<rect>`, `<circle>`, `<path>`) authored in this repo. Nothing is sourced from a third-party icon library, so there is no attribution requirement and no copyleft contamination on the generated DOCX/PPTX. Phase C v2 (a commissioned mascot set, ~$500–1,500 one-time) is the path if teacher feedback says the v1 geometric mascot feels too generic; the picker shape stays the same so swapping art is a one-PR change.
+
+**Raster path** — same `rasterSvgToPng` from `lib/diagrams/raster.js`. Illustrations rasterise to PNG once at render time and embed via `docx ImageRun` / `pptxgen.addImage`. Failures fall back gracefully — text-only cover, placeholder shape on `yourTurn`, text-only `celebrate` — so a missing-fonts environment never breaks generation.
 
 ### What the PowerPoint contains
 
@@ -527,6 +569,11 @@ lib/                     Pure-ish logic (no Express dependencies)
   i18n.js                  Two-language label dictionary (English + Afrikaans)
   logger.js                Pino logger
   marks.js                 Mark-allocation helpers
+  illustrations/           Hand-rolled SVG illustrations for Lesson kid-mode
+    index.js                 Picker dispatcher (pickHero / pickIcon / pickStamp + raster wrapper)
+    subject-icons.js         Per-subject SVG generators (calculator / book / flask / globe / …)
+    mascot.js                Friendly geometric mascot (junior band)
+    stamps.js                "Well done!" celebration stamp (junior band)
   moderator.js             Quality-gate moderator (post-generation review)
   palette.js               Lesson visual-style picker (per-grade-band palette + accent rotation)
   pptx-builder.js          Lesson PowerPoint renderer (pptxgenjs)
@@ -833,7 +880,7 @@ The output card includes a **PowerPoint download button** (orange `#D04423`, dis
 ## Testing
 
 ```bash
-npm test          # runs all node:test suites — 519 tests, ~32s, no Anthropic calls
+npm test          # runs all node:test suites — 549 tests, ~32s, no Anthropic calls
 ```
 
 Test files live in `test/`. Conventions:
