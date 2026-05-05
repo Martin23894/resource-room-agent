@@ -19,6 +19,7 @@ import {
   getPacingFormalAssessments,
   getPacingUnitById,
   getOutOfScopePacingUnits,
+  findUnitSubtopic,
 } from '../lib/atp.js';
 import {
   buildCapsReferenceBlock,
@@ -102,6 +103,7 @@ function buildContext(req) {
   const isLesson = resourceType === 'Lesson';
   let lessonUnit = null;
   let lessonTerm = term;
+  let lessonSubtopic = null;
   if (isLesson) {
     if (!req.unitId) throw new Error('Lesson requests must include a unitId');
     const found = getPacingUnitById(subject, grade, req.unitId);
@@ -110,6 +112,13 @@ function buildContext(req) {
     }
     lessonUnit = found.unit;
     lessonTerm = found.term;
+    // Optional subtopic narrowing. We DON'T error on a missing match —
+    // older cached requests or a Unit whose subtopic list changed
+    // upstream would otherwise become un-regenerable. Falling back to
+    // whole-Unit scope keeps the request servable.
+    if (req.subtopicHeading) {
+      lessonSubtopic = findUnitSubtopic(lessonUnit, req.subtopicHeading);
+    }
   }
 
   const { coversTerms, topics } = isLesson
@@ -187,7 +196,7 @@ function buildContext(req) {
     isCreativeArts, creativeArtsFocus,
     prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
-    isLesson, lessonUnit, lessonMinutes,
+    isLesson, lessonUnit, lessonSubtopic, lessonMinutes,
   };
 }
 
@@ -258,7 +267,7 @@ function buildSystemPrompt(ctx) {
     isCreativeArts, creativeArtsFocus,
     prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
-    isLesson, lessonUnit, lessonMinutes,
+    isLesson, lessonUnit, lessonSubtopic, lessonMinutes,
   } = ctx;
 
   const cogTable = cogLevels
@@ -299,7 +308,7 @@ function buildSystemPrompt(ctx) {
     ...buildCapsReferenceBlock(pacingUnits),
     ...buildAssessmentStructureBlock(pacingFormalAssessments, resourceType, totalMarks),
     ...(isLesson ? [] : buildOutOfScopeBlock(outOfScopePacingUnits || [])),
-    ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language) : []),
+    ...(isLesson ? buildLessonContextBlock(lessonUnit, lessonMinutes, language, lessonSubtopic) : []),
     ...(isCreativeArts ? buildCreativeArtsTaskBriefBlock(creativeArtsFocus, term, language) : []),
     `## Cognitive framework: ${frameworkName}`,
     `Your meta.cognitiveFramework MUST list these levels with these percentages and prescribed marks:`,
@@ -453,6 +462,12 @@ function buildUserPrompt(ctx) {
       `Populate the lesson branch per the "Lesson plan directives" section above. ` +
       `Phase minutes must sum to ${ctx.lessonMinutes} (±5), and exactly ONE phase must have worksheetRef:true.`,
     );
+    if (ctx.lessonSubtopic?.heading) {
+      lines.push(
+        `Focus this lesson narrowly on the subtopic "${ctx.lessonSubtopic.heading}" within the Unit. ` +
+        `Do NOT cover other subtopics of the Unit — they will be taught in separate lessons.`,
+      );
+    }
   }
   return lines.join('\n');
 }
@@ -983,11 +998,17 @@ function parseRequest(body) {
 
   // Lesson-only extras. The Unit picker on the frontend posts a unitId from
   // /api/pacing-units; lessonMinutes is the planned classroom length.
+  // subtopicHeading optionally narrows the lesson focus to one top-level
+  // subtopic of the chosen Unit (so a 6h Unit can be split into ~6 distinct
+  // 45-min lessons instead of N nearly-identical "introduction" lessons).
   if (resourceType === 'Lesson') {
     parsed.unitId = str(body.unitId, { field: 'unitId', max: 200 });
     parsed.lessonMinutes = int(body.lessonMinutes, {
       field: 'lessonMinutes', required: false, min: 20, max: 120,
     }) || 45;
+    parsed.subtopicHeading = str(body.subtopicHeading, {
+      field: 'subtopicHeading', required: false, max: 500,
+    }) || null;
   }
   return parsed;
 }
@@ -1000,22 +1021,23 @@ function buildFilename({ subject, resourceType, grade, term }) {
 // two requests with the same params produce the same key regardless of
 // JSON property order. Bumping the version prefix invalidates the whole
 // cache when the response shape changes (DOCX renderer upgrades, _meta
-// additions). Lesson requests include unitId + lessonMinutes so two
-// different lessons in the same subject/grade/term don't collide.
+// additions). Lesson requests include unitId + lessonMinutes +
+// subtopicHeading so two different lessons in the same subject/grade/term
+// don't collide.
 function buildCacheKey({
   subject, grade, term, language, resourceType, totalMarks, difficulty,
-  unitId, lessonMinutes,
+  unitId, lessonMinutes, subtopicHeading,
 }) {
   const norm = { subject, grade, term, language, resourceType, totalMarks, difficulty };
   if (resourceType === 'Lesson') {
     norm.unitId = unitId || null;
     norm.lessonMinutes = lessonMinutes || null;
+    norm.subtopicHeading = subtopicHeading || null;
   }
-  // v3 invalidates Lesson cache entries from before the schema fix that
-  // promotes `lesson` to top-level required. Old entries can be a "Lesson"
-  // shaped exactly like a worksheet (no lesson plan, no slides) — replaying
-  // them would silently re-serve a broken pack.
-  return `gen:v3:${JSON.stringify(norm)}`;
+  // v4 adds subtopicHeading to the Lesson cache key. Without bumping, a
+  // re-run with a subtopic chosen would hit a stale whole-Unit cached
+  // result and silently serve the wrong lesson.
+  return `gen:v4:${JSON.stringify(norm)}`;
 }
 
 function safeCacheGet(key, log) {
