@@ -647,6 +647,7 @@ schema/                  JSON Schema + runtime validator
 
 scripts/                 Ops + analysis (not run in production)
   extract-atp-pacing.js    Sonnet-driven extractor: PDF → data/atp-pacing.json entry
+  seed-photos.js           Phase D photo-library curation helper — fetches Unsplash candidates into _candidates/
   bundle-grade-review.js   Bundles a grade's outputs for human review
   cost-quality-bench.js    Per-call cost vs quality benchmark
   cost-quality-diff.js     Diff two benchmark runs

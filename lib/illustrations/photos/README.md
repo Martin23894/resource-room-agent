@@ -100,6 +100,53 @@ sources):
 | `history` | `old map`, `ancient artifacts`, `historic building`, `museum`, `cape dutch architecture`, `vintage objects`, `parchment`, `old photographs sepia` |
 | `lifeskills` | `kids playing outside`, `team sports kids`, `family meal`, `helping hands`, `community garden`, `friends laughing`, `first aid kit`, `healthy food` |
 
+## Faster curation: `scripts/seed-photos.js`
+
+Rather than searching Unsplash by hand for 50 photos, run the
+seed-photos helper. It uses the Unsplash API to fetch ~15 candidates per
+category (~90 total), downloads each as a pre-cropped 1200×800 JPG into
+`_candidates/<category>/`, and writes a `_credits.json` sibling so every
+candidate is traceable back to its photographer and source URL.
+
+```sh
+# Get a free API key first: https://unsplash.com/oauth/applications
+export UNSPLASH_ACCESS_KEY="your-access-key-here"
+
+# Fetch candidates for all 6 categories (default 3 per query, ~15 per cat)
+node scripts/seed-photos.js
+
+# One category at a time
+node scripts/seed-photos.js --category=mathematics
+
+# More candidates per query (5 queries × 5 = 25 per category)
+node scripts/seed-photos.js --candidates=5
+```
+
+The `_candidates/` directory is **gitignored** — only the final 50
+curated photos under `<category>/01.jpg` … `NN.jpg` are committed.
+
+After running:
+
+1. Browse each `_candidates/<category>/` folder
+2. Pick 8–9 you like that match the curation guide rules (kid-appropriate,
+   diverse, mix of subject-matter and abstract)
+3. Copy chosen JPGs into the parent `<category>/` directory and rename to
+   `01.jpg`, `02.jpg`, … (slot order doesn't matter for picking but does
+   determine which photo appears on which slide ordinal — see
+   `lib/illustrations/photos.js`)
+4. Delete or keep `_candidates/` — it's gitignored either way
+
+The script:
+
+- Calls Unsplash's `download_location` endpoint per photo, as the API ToS
+  requires (this increments the photographer's stats counter)
+- Skips files already on disk so re-runs are additive
+- Merges the credits manifest across runs so adding new query terms is
+  safe and incremental
+- Saves photos as `<unsplash-id>.jpg` so each candidate is traceable
+- Uses Unsplash CDN URL params to request 1200×800 cropped JPG — no
+  client-side resize / no extra dependencies
+
 ## After dropping photos in
 
 The picker reads from disk at render time — no rebuild needed. Generate
