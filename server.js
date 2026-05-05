@@ -23,6 +23,7 @@ import authLogoutHandler from './api/auth-logout.js';
 import authMeHandler from './api/auth-me.js';
 import userSettingsHandler from './api/user-settings.js';
 import userHistoryHandler from './api/user-history.js';
+import userProfileHandler from './api/user-profile.js';
 import billingCheckoutHandler from './api/billing-checkout.js';
 import billingPortalHandler from './api/billing-portal.js';
 import stripeWebhookHandler from './api/stripe-webhook.js';
@@ -137,8 +138,31 @@ const authRequestLimiters = [
 // ─── Attach session (anonymous requests get req.user = null) ─
 app.use(parseSession);
 
-// ─── Serve static frontend ──────────────────────────────────
-app.use(express.static(path.join(__dirname, 'public')));
+// ─── Serve static assets (favicon, robots, landing/legal HTML
+// addressed by their own paths). We disable the default index so
+// requests for '/' fall through to our explicit handler below
+// (landing page) rather than being short-circuited by the static
+// middleware serving /index.html (which is the authenticated app).
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
+
+// ─── Public marketing routes ───────────────────────────────
+// '/' is the public landing page. The signed-in app lives at '/app'.
+// Anything routed below the SPA catch-all that we want to serve as a
+// real static HTML page must be wired explicitly.
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'landing.html'));
+});
+app.get('/privacy', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'privacy.html'));
+});
+app.get('/terms', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'terms.html'));
+});
+// '/app' (and everything below it) serves the authenticated SPA.
+// The SPA itself shows the auth gate until /api/auth/me succeeds.
+app.get(['/app', '/app/*'], (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // ─── /vendor/* — self-hosted Word preview libs ──────────────
 // docx-preview and JSZip are served from this origin (not a CDN) so
@@ -188,6 +212,8 @@ app.get('/api/test', testHandler);
 // ─── Per-user settings + history (Phase 2.4b) ───────────────
 // Cheap CRUD on the local SQLite DB — no Claude calls — but still
 // auth-gated so the user can only see their own rows.
+app.get('/api/user/profile', requireAuth, userProfileHandler);
+app.put('/api/user/profile', requireAuth, userProfileHandler);
 app.get('/api/user/settings', requireAuth, userSettingsHandler);
 app.put('/api/user/settings', requireAuth, userSettingsHandler);
 app.get('/api/user/history', requireAuth, userHistoryHandler);
@@ -212,9 +238,11 @@ app.all('/api/*', (req, res) => {
   res.status(404).json({ error: 'Not found' });
 });
 
-// ─── Catch-all → serve index.html (SPA fallback) ───────────
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// ─── Catch-all → 404 page (no SPA fallback) ────────────────
+// Unknown URLs get the public 404 page rather than silently rendering
+// the app shell — that makes broken inbound links visible.
+app.use((req, res) => {
+  res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
 // ─── Start ──────────────────────────────────────────────────

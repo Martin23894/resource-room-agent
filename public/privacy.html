@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Privacy Policy — The Resource Room</title>
+<meta name="description" content="How The Resource Room collects, uses and protects your personal information under POPIA."/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--t8:#085041;--t6:#0F6E56;--t4:#1D9E75;--t1:#9FE1CB;--t9:#04342C;--ink:#1a1a18;--ink2:#3d3d3a;--ink3:#73726c;--sur:#f8f7f3;--sur2:#fff;--bdr:#e4e2da;}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sur);color:var(--ink);line-height:1.65;}
+.hdr{background:var(--t8);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{display:flex;flex-direction:column;line-height:1.1;text-decoration:none;}
+.l-the{font-size:8px;font-weight:700;letter-spacing:5px;color:var(--t1);}
+.l-res{font-size:19px;font-weight:700;color:#fff;letter-spacing:-1px;}
+.l-room{font-size:19px;font-weight:700;color:var(--t9);letter-spacing:-1px;background:var(--t4);padding:1px 7px 3px 0;}
+.hdr-link{color:var(--t1);font-size:13px;font-weight:600;padding:8px 12px;border-radius:6px;text-decoration:none;}
+.hdr-link:hover{background:var(--t9);color:#fff;}
+main{max-width:760px;margin:0 auto;padding:50px 28px 80px;background:var(--sur2);}
+h1{font-size:34px;color:var(--t9);margin-bottom:8px;letter-spacing:-0.5px;}
+.meta{font-size:13px;color:var(--ink3);margin-bottom:30px;}
+h2{font-size:20px;color:var(--t8);margin:28px 0 10px;}
+h3{font-size:15px;color:var(--ink);margin:18px 0 6px;}
+p,ul,ol{font-size:15px;color:var(--ink2);margin-bottom:14px;}
+ul,ol{padding-left:24px;}
+li{margin-bottom:6px;}
+a{color:var(--t6);}
+.note{background:#FAEEDA;border:1px solid #E8C98F;border-radius:8px;padding:12px 14px;font-size:13px;color:#633806;margin:18px 0;}
+footer{text-align:center;font-size:12px;color:var(--ink3);padding:30px 20px;}
+footer a{color:var(--t6);margin:0 10px;}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <a href="/" class="logo">
+    <div class="l-the">THE</div>
+    <div><span class="l-res">RESOURCE</span></div>
+    <div><span class="l-room">ROOM</span></div>
+  </a>
+  <a href="/" class="hdr-link">Back to home</a>
+</header>
+<main>
+  <h1>Privacy Policy</h1>
+  <p class="meta">Last updated: <span id="upd"></span></p>
+
+  <div class="note">
+    <strong>Placeholder notice.</strong> This is a draft template intended to outline our
+    approach to teacher data. Before going to production, please review it with a legal
+    advisor familiar with the Protection of Personal Information Act (POPIA).
+  </div>
+
+  <h2>1. Who we are</h2>
+  <p>The Resource Room ("we", "us") is a teaching-resource generator for South African
+     Grades 4–7. This policy explains what personal information we collect, why we
+     collect it and how we protect it.</p>
+
+  <h2>2. Information we collect</h2>
+  <ul>
+    <li><strong>Account information</strong> — your email address, your display name, your
+        school, your role and the grades and subjects you teach (only what you choose to provide).</li>
+    <li><strong>Authentication data</strong> — magic-link tokens and session cookies, used
+        only to keep you signed in.</li>
+    <li><strong>Usage data</strong> — the resources you generate (grade, term, subject, topic,
+        resource type) so we can show you your history and improve the product.</li>
+    <li><strong>Technical data</strong> — IP address and request metadata, for security and
+        rate-limiting.</li>
+  </ul>
+  <p>We do <strong>not</strong> collect learner data, payment card details (those are handled
+     directly by Stripe if you subscribe), or any sensitive personal information.</p>
+
+  <h2>3. How we use your information</h2>
+  <ul>
+    <li>To provide the service — sign you in, generate resources, save your settings and history.</li>
+    <li>To send transactional emails (sign-in links, account notifications).</li>
+    <li>To prevent abuse — rate limiting and security monitoring.</li>
+    <li>To improve the product — aggregated, de-identified usage patterns.</li>
+  </ul>
+  <p>We do not sell your personal information. We do not share it with advertisers.</p>
+
+  <h2>4. How we protect your information</h2>
+  <ul>
+    <li>All traffic is encrypted in transit (HTTPS / TLS).</li>
+    <li>Session cookies are HMAC-signed and HTTP-only.</li>
+    <li>Passwords are not stored — we use passwordless magic-link sign-in.</li>
+    <li>Access to your data is restricted to authorised operators on a need-to-know basis.</li>
+  </ul>
+
+  <h2>5. Your rights under POPIA</h2>
+  <p>You have the right to access, correct, or delete the personal information we hold
+     about you. You can update your profile from your account page, or contact us to
+     request deletion of your account.</p>
+
+  <h2>6. Data retention</h2>
+  <p>We keep your account data while your account is active. If you delete your account,
+     your profile, settings and history are removed within 30 days. We may retain
+     minimal billing records for legal and tax purposes.</p>
+
+  <h2>7. Third-party services</h2>
+  <ul>
+    <li><strong>Anthropic</strong> — generation requests are sent to the Claude API. We do not
+        send your name, email, or any other personal information in those requests.</li>
+    <li><strong>Resend</strong> — used to deliver sign-in emails.</li>
+    <li><strong>Stripe</strong> — used to process subscription payments (if you choose to subscribe).</li>
+    <li><strong>Railway</strong> — used to host the application.</li>
+  </ul>
+
+  <h2>8. Cookies</h2>
+  <p>We use a single first-party cookie (<code>rr_session</code>) to keep you signed in.
+     We do not use advertising cookies or third-party tracking.</p>
+
+  <h2>9. Changes to this policy</h2>
+  <p>We may update this policy from time to time. Material changes will be communicated
+     via email or an in-app notice.</p>
+
+  <h2>10. Contact</h2>
+  <p>Questions, concerns, or requests? Email <a href="mailto:[email protected]">hello@theresourceroom.co.za</a>.</p>
+</main>
+<footer>
+  <a href="/">Home</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>
+</footer>
+<script>document.getElementById('upd').textContent = new Date().toISOString().slice(0,10);</script>
+</body>
+</html>

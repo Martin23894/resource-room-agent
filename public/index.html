@@ -271,6 +271,33 @@ select:focus{outline:none;border-color:var(--t4);}
 .auth-status.success{color:var(--t8);font-weight:600;}
 .auth-status.error{color:#a32d2d;}
 
+/* Profile / onboarding modal — same look-and-feel as the auth gate. */
+.profile-modal{position:fixed;inset:0;background:rgba(4,52,44,.78);display:none;align-items:center;justify-content:center;z-index:210;padding:20px;}
+.profile-modal.on{display:flex;}
+.profile-card{background:#fff;border-radius:14px;max-width:520px;width:100%;padding:28px 28px 22px;box-shadow:0 8px 32px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto;}
+.profile-card h2{font-size:20px;color:var(--t8);margin:0 0 4px;}
+.profile-card .sub{font-size:13px;color:var(--ink3);line-height:1.55;margin:0 0 16px;}
+.profile-row{margin-bottom:12px;}
+.profile-row label{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-bottom:4px;letter-spacing:.4px;text-transform:uppercase;}
+.profile-row input,.profile-row select,.profile-row textarea{width:100%;padding:9px 11px;border:1.5px solid var(--bdr2);border-radius:7px;font-size:13px;font-family:inherit;color:var(--ink);background:var(--sur);}
+.profile-row input:focus,.profile-row select:focus,.profile-row textarea:focus{outline:none;border-color:var(--t4);}
+.profile-grades{display:flex;flex-wrap:wrap;gap:6px;}
+.profile-grades label{display:inline-flex;align-items:center;gap:4px;background:var(--sur);border:1.5px solid var(--bdr2);border-radius:7px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;text-transform:none;letter-spacing:0;margin-bottom:0;}
+.profile-grades label.on{border-color:var(--t6);background:var(--t05);color:var(--t8);}
+.profile-grades input{width:auto;}
+.profile-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:18px;}
+.profile-actions button{padding:10px 18px;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border:none;}
+.profile-actions .save{background:var(--t8);color:#fff;}
+.profile-actions .save:hover:not(:disabled){background:var(--t6);}
+.profile-actions .save:disabled{background:var(--ink4);cursor:wait;}
+.profile-actions .cancel{background:transparent;border:1.5px solid var(--bdr2);color:var(--ink2);}
+.profile-actions .cancel:hover{border-color:var(--ink3);color:var(--ink);}
+.profile-status{font-size:12px;line-height:1.5;min-height:18px;margin-top:10px;}
+.profile-status.error{color:#a32d2d;}
+.profile-status.success{color:var(--t6);font-weight:600;}
+.user-account{background:transparent;border:1px solid var(--t6);color:var(--t1);font-size:11px;font-weight:700;padding:4px 10px;border-radius:14px;cursor:pointer;font-family:inherit;}
+.user-account:hover{background:var(--t9);color:#fff;}
+
 /* Hamburger + drawer overlay (only visible on mobile) */
 .hamburger{display:none;align-items:center;justify-content:center;background:transparent;border:1px solid var(--t6);color:var(--t1);border-radius:7px;width:34px;height:34px;cursor:pointer;padding:0;font-size:18px;line-height:1;}
 .hamburger:hover{background:var(--t9);}
@@ -340,6 +367,7 @@ select:focus{outline:none;border-color:var(--t4);}
     <div class="user-chip" id="user-chip" style="display:none;">
       <span class="tier-badge" id="tier-badge" style="display:none;"></span>
       <span class="user-email" id="user-email"></span>
+      <button type="button" class="user-account" onclick="openAccountModal()">Account</button>
       <button type="button" class="user-billing" id="user-billing" onclick="openBilling()" style="display:none;"></button>
       <button type="button" class="user-logout" onclick="doLogout()">Sign out</button>
     </div>
@@ -365,6 +393,60 @@ select:focus{outline:none;border-color:var(--t4);}
     <div class="auth-status" id="auth-status" aria-live="polite"></div>
   </div>
 </div>
+
+<!-- Profile / onboarding modal. Shown automatically on first sign-in
+     (when /api/auth/me returns profile.complete === false). The same
+     modal is reopened from the "Account" button in the header to edit. -->
+<div class="profile-modal" id="profile-modal" role="dialog" aria-modal="true" aria-labelledby="profile-title">
+  <div class="profile-card">
+    <h2 id="profile-title">Welcome — let's set up your profile</h2>
+    <p class="sub" id="profile-sub">Tell us a bit about yourself so we can personalise your resources. You can edit this any time.</p>
+    <form id="profile-form" onsubmit="event.preventDefault(); saveProfile();">
+      <div class="profile-row">
+        <label for="profile-name">Full name <span style="color:#a32d2d;">*</span></label>
+        <input id="profile-name" type="text" autocomplete="name" maxlength="120" required placeholder="e.g. Thandi Khumalo"/>
+      </div>
+      <div class="profile-row">
+        <label for="profile-school">School</label>
+        <input id="profile-school" type="text" autocomplete="organization" maxlength="160" placeholder="e.g. Sandton Primary"/>
+      </div>
+      <div class="profile-row">
+        <label for="profile-role">Role</label>
+        <input id="profile-role" type="text" maxlength="80" placeholder="e.g. Intermediate Phase Teacher"/>
+      </div>
+      <div class="profile-row">
+        <label>Grades you teach</label>
+        <div class="profile-grades" id="profile-grades">
+          <label data-grade="4"><input type="checkbox" value="4"/> Grade 4</label>
+          <label data-grade="5"><input type="checkbox" value="5"/> Grade 5</label>
+          <label data-grade="6"><input type="checkbox" value="6"/> Grade 6</label>
+          <label data-grade="7"><input type="checkbox" value="7"/> Grade 7</label>
+        </div>
+      </div>
+      <div class="profile-row">
+        <label for="profile-province">Province</label>
+        <select id="profile-province">
+          <option value="">— Optional —</option>
+          <option>Eastern Cape</option>
+          <option>Free State</option>
+          <option>Gauteng</option>
+          <option>KwaZulu-Natal</option>
+          <option>Limpopo</option>
+          <option>Mpumalanga</option>
+          <option>Northern Cape</option>
+          <option>North West</option>
+          <option>Western Cape</option>
+        </select>
+      </div>
+      <div class="profile-status" id="profile-status" aria-live="polite"></div>
+      <div class="profile-actions">
+        <button type="button" class="cancel" id="profile-cancel" onclick="closeProfileModal()">Cancel</button>
+        <button type="submit" class="save" id="profile-save">Save profile</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="layout">
   <!-- SIDEBAR -->
   <div class="side">
@@ -2549,11 +2631,17 @@ function renderSignedIn(user, billing){
   _billingConfig = billing || null;
   const chip = document.getElementById('user-chip');
   const email = document.getElementById('user-email');
-  if (email) email.textContent = user.email;
+  // Show display name if the teacher has set one, otherwise their email.
+  const labelText = user.profile?.displayName || user.email;
+  if (email) email.textContent = labelText;
   if (chip) chip.style.display = 'inline-flex';
   renderTierBadge(user.subscription);
   renderBillingButton(user.subscription);
   hideAuthGate();
+  // First sign-in: profile is empty → pop the onboarding modal.
+  if (user.profile && !user.profile.complete) {
+    openProfileModal({ onboarding: true });
+  }
 }
 
 function renderTierBadge(sub){
@@ -2741,6 +2829,104 @@ async function fetchAuthed(url, opts = {}){
     showAuthGate('Your session has expired — please sign in again.');
   }
   return r;
+}
+
+// ── Profile / onboarding modal ─────────────────────────────────────────────
+// Opened automatically on first sign-in (profile.complete === false), and
+// from the "Account" button in the header for edits. Cancel is hidden during
+// onboarding so first-time users complete the form rather than skip it.
+function openProfileModal({ onboarding = false } = {}){
+  const modal = document.getElementById('profile-modal');
+  if (!modal) return;
+  const title = document.getElementById('profile-title');
+  const sub = document.getElementById('profile-sub');
+  const cancel = document.getElementById('profile-cancel');
+  if (onboarding) {
+    title.textContent = "Welcome — let's set up your profile";
+    sub.textContent = 'Tell us a bit about yourself so we can personalise your resources. You can edit this any time.';
+    cancel.style.display = 'none';
+  } else {
+    title.textContent = 'Account';
+    sub.textContent = 'Update your profile details. Your email is the address you sign in with.';
+    cancel.style.display = 'inline-block';
+  }
+  // Hydrate inputs from cached _currentUser.profile (always fresh because
+  // we re-fetch /me on every page load) — no extra GET needed.
+  const p = _currentUser?.profile || {};
+  document.getElementById('profile-name').value = p.displayName || '';
+  document.getElementById('profile-school').value = p.school || '';
+  document.getElementById('profile-role').value = p.role || '';
+  document.getElementById('profile-province').value = p.province || '';
+  const grades = new Set((p.gradesTaught || []).map(Number));
+  document.querySelectorAll('#profile-grades input[type=checkbox]').forEach((cb) => {
+    cb.checked = grades.has(Number(cb.value));
+    cb.parentElement.classList.toggle('on', cb.checked);
+  });
+  // Toggle .on visual state when checkboxes change.
+  document.querySelectorAll('#profile-grades input[type=checkbox]').forEach((cb) => {
+    cb.onchange = () => cb.parentElement.classList.toggle('on', cb.checked);
+  });
+  const status = document.getElementById('profile-status');
+  status.textContent = '';
+  status.className = 'profile-status';
+  modal.classList.add('on');
+  setTimeout(() => document.getElementById('profile-name')?.focus(), 30);
+}
+
+function closeProfileModal(){
+  document.getElementById('profile-modal')?.classList.remove('on');
+}
+
+function openAccountModal(){ openProfileModal({ onboarding: false }); }
+
+async function saveProfile(){
+  const status = document.getElementById('profile-status');
+  const saveBtn = document.getElementById('profile-save');
+  const name = document.getElementById('profile-name').value.trim();
+  if (!name){
+    status.className = 'profile-status error';
+    status.textContent = 'Please enter your name.';
+    return;
+  }
+  const grades = [...document.querySelectorAll('#profile-grades input[type=checkbox]:checked')]
+    .map((cb) => Number(cb.value));
+  const payload = {
+    displayName: name,
+    school: document.getElementById('profile-school').value.trim() || null,
+    role: document.getElementById('profile-role').value.trim() || null,
+    province: document.getElementById('profile-province').value || null,
+    gradesTaught: grades,
+    subjectsTaught: [],
+  };
+  saveBtn.disabled = true;
+  const orig = saveBtn.textContent;
+  saveBtn.textContent = 'Saving…';
+  status.className = 'profile-status';
+  status.textContent = '';
+  try {
+    const r = await fetchAuthed('/api/user/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok){
+      throw new Error(d.error || 'Could not save profile.');
+    }
+    // Refresh cached user so the chip + future opens show new values.
+    if (_currentUser) _currentUser.profile = d.profile;
+    const email = document.getElementById('user-email');
+    if (email) email.textContent = d.profile?.displayName || _currentUser.email;
+    status.className = 'profile-status success';
+    status.textContent = 'Saved.';
+    setTimeout(closeProfileModal, 600);
+  } catch (err){
+    status.className = 'profile-status error';
+    status.textContent = err.message || 'Could not save profile.';
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.textContent = orig;
+  }
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────

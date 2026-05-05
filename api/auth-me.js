@@ -15,11 +15,30 @@ export default function handler(req, res) {
   const trialEndsAt = req.user.trial_ends_at || null;
   const trialActive = trialEndsAt != null && trialEndsAt > now && !tier;
 
+  // Profile fields are stored as JSON-serialised arrays in SQLite — parse
+  // them out for the client. Bad data (corrupted JSON) is treated as null
+  // rather than 500ing the whole /me call.
+  const safeJson = (s) => {
+    if (!s) return null;
+    try { return JSON.parse(s); } catch { return null; }
+  };
+  const profile = {
+    displayName: req.user.display_name || null,
+    school: req.user.school || null,
+    role: req.user.role || null,
+    gradesTaught: safeJson(req.user.grades_taught) || [],
+    subjectsTaught: safeJson(req.user.subjects_taught) || [],
+    province: req.user.province || null,
+    completedAt: req.user.profile_completed_at || null,
+    complete: !!req.user.profile_completed_at,
+  };
+
   return res.status(200).json({
     user: {
       id: req.user.id,
       email: req.user.email,
       created_at: req.user.created_at,
+      profile,
       subscription: {
         tier,                       // null | 'essential' | 'classroom' | 'pro'
         status,                     // null | 'trialing' | 'active' | 'past_due' | 'canceled'
