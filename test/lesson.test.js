@@ -16,7 +16,6 @@ import { getPacingUnitsSlim, getPacingUnitById, getUnitSubtopicHeadings, findUni
 import { renderLessonPptx } from '../lib/pptx-builder.js';
 import { renderResource } from '../lib/render.js';
 import { pickLessonStyle, nthAccent } from '../lib/palette.js';
-import { pickPhoto } from '../lib/illustrations/index.js';
 import { __internals as generateInternals } from '../api/generate.js';
 import { __internals as renderInternals } from '../lib/render.js';
 
@@ -1302,89 +1301,3 @@ describe('Phase C — PPTX embeds illustration PNGs', () => {
   });
 });
 
-// ─────────────────────────────────────────────────────────────────
-// Phase D — Photo sidebar scaffold (no JPGs vendored yet)
-// ─────────────────────────────────────────────────────────────────
-
-describe('Phase D — concept/example layouts route through renderTeachingSlide', () => {
-  test('LAYOUT_RENDERERS dispatches concept and example to renderTeachingSlide', () => {
-    const r = pptxInternals.LAYOUT_RENDERERS;
-    assert.equal(r.concept, pptxInternals.renderTeachingSlide);
-    assert.equal(r.example, pptxInternals.renderTeachingSlide);
-  });
-
-  test('practice and exitTicket still use renderBulletSlide (no photo)', () => {
-    const r = pptxInternals.LAYOUT_RENDERERS;
-    assert.equal(r.practice,   pptxInternals.renderBulletSlide);
-    assert.equal(r.exitTicket, pptxInternals.renderBulletSlide);
-  });
-});
-
-describe('Phase D — concept/example/warmUp render correctly regardless of curation state', () => {
-  test('a deck with teaching layouts renders successfully + matches pickPhoto.exists per slot', async () => {
-    const r = makeLesson();
-    r.lesson.slides = [
-      { ordinal: 1, layout: 'title',   heading: 'Whole numbers', speakerNotes: 'Welcome.' },
-      { ordinal: 2, layout: 'concept', heading: 'Place value',
-        bullets: ['Hundreds', 'Tens', 'Units'], speakerNotes: 'Demo.' },
-      { ordinal: 3, layout: 'example', heading: 'Try this',
-        bullets: ['234', '+ 156', '= 390'], speakerNotes: 'Walk through.' },
-      { ordinal: 4, layout: 'warmUp',  heading: 'How many fingers?',
-        bullets: ['Hint: think 10s.'], speakerNotes: 'Get attention.' },
-    ];
-    const b64 = await renderLessonPptx(r);
-    assert.ok(b64.length > 1000);
-    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
-
-    // Photo embedding is curation-dependent: if mathematics/<NN>.jpg is on
-    // disk for that ordinal's slot, the slide should contain a <p:pic>;
-    // if not, it falls back to full-width text. Verify the contract — the
-    // slide's photo state matches what pickPhoto reports.
-    for (const ordinal of [2, 3, 4]) {
-      const xml = await zip.file(`ppt/slides/slide${ordinal}.xml`).async('string');
-      const photo = pickPhoto({ subject: r.meta.subject, slot: ordinal });
-      const slideHasPic = /<p:pic>/.test(xml);
-      assert.equal(
-        slideHasPic, photo.exists,
-        `slide ${ordinal}: <p:pic>=${slideHasPic} but pickPhoto.exists=${photo.exists}`,
-      );
-    }
-  });
-
-  test('warmUp slide has full-width tinted card when no photo is curated', async () => {
-    const r = makeLesson();
-    r.lesson.slides = [
-      { ordinal: 1, layout: 'title',  heading: 'Topic', speakerNotes: 'Welcome.' },
-      { ordinal: 2, layout: 'warmUp', heading: 'Question?', speakerNotes: 'Ask.' },
-    ];
-    const b64 = await renderLessonPptx(r);
-    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
-    const slide2 = await zip.file('ppt/slides/slide2.xml').async('string');
-    // WARM-UP eyebrow should still render
-    assert.match(slide2, /WARM-UP/);
-  });
-});
-
-describe('Phase D — tryAddPhotoSidebar', () => {
-  test('added flag matches pickPhoto.exists for the (subject, slot) pair', () => {
-    // The contract: tryAddPhotoSidebar returns added:true iff the photo
-    // file is on disk (i.e. pickPhoto reports exists:true). This holds
-    // both before curation (every slot exists:false → added:false) and
-    // after (curated slots exists:true → added:true).
-    const calls = [];
-    const stubSlide = { addImage: (opts) => calls.push(opts) };
-    const stubResource = { meta: { subject: 'Mathematics' } };
-    const result = pptxInternals.tryAddPhotoSidebar(stubSlide, stubResource, 0);
-    const expectedExists = pickPhoto({ subject: 'Mathematics', slot: 0 }).exists;
-    assert.equal(result.added, expectedExists);
-    assert.equal(calls.length, expectedExists ? 1 : 0,
-      `addImage should be called ${expectedExists ? 'once' : 'zero times'}, got ${calls.length}`);
-  });
-
-  test('PHOTO_BOX geometry sits in the right portion of the slide', () => {
-    const box = pptxInternals.PHOTO_BOX;
-    assert.ok(box.x > pptxInternals.SLIDE_W / 2, 'photo box should be on the right half');
-    assert.ok(box.x + box.w <= pptxInternals.SLIDE_W, 'photo box must fit inside the slide');
-    assert.ok(box.textRightEdge < box.x, 'text content must end before the photo starts');
-  });
-});

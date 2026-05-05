@@ -8,8 +8,3 @@ data/atp-source/
 schema/spike-outputs*/
 schema/g*-teacher-review/
 g*-teacher-review.zip
-
-# Phase D photo curation candidates — populated by scripts/seed-photos.js.
-# Only the curated final photos under lib/illustrations/photos/<category>/
-# are checked in; the unfiltered candidate pool stays local.
-lib/illustrations/photos/_candidates/
