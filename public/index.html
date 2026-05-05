@@ -2054,7 +2054,10 @@ async function generateSeries(plan, startFrom = 0){
 
     if (i > startFrom) {
       const delayMs = paceDelay(prevCacheHit);
-      if (delayMs) await sleep(delayMs);
+      if (delayMs) {
+        console.log(`[series] pacing ${delayMs}ms before lesson ${i + 1}/${total}`);
+        await sleep(delayMs);
+      }
     }
     if (state.cancelled) break;
 
@@ -2062,15 +2065,19 @@ async function generateSeries(plan, startFrom = 0){
 
     const subtopicHeading = headings[i];
     const priorSubtopics = headings.slice(0, i);
+    const requestBody = {
+      subject: subj, grade, term, language: lang, difficulty: diff,
+      resourceType: 'Lesson', includeRubric,
+      duration: parseInt(document.getElementById('dur').value, 10) || 10,
+      unitId, lessonMinutes, subtopicHeading,
+      seriesContext: { position: i + 1, total, priorSubtopics },
+      teacherGuidance: currentGuidance(),
+    };
+    console.log(`[series] starting lesson ${i + 1}/${total}: "${subtopicHeading}"`, {
+      seriesContext: requestBody.seriesContext,
+    });
     try {
-      const result = await callGenerateOnce({
-        subject: subj, grade, term, language: lang, difficulty: diff,
-        resourceType: 'Lesson', includeRubric,
-        duration: parseInt(document.getElementById('dur').value, 10) || 10,
-        unitId, lessonMinutes, subtopicHeading,
-        seriesContext: { position: i + 1, total, priorSubtopics },
-        teacherGuidance: currentGuidance(),
-      });
+      const result = await callGenerateOnce(requestBody);
       state.completed[i] = {
         position: i + 1,
         heading: subtopicHeading,
@@ -2082,20 +2089,29 @@ async function generateSeries(plan, startFrom = 0){
         failed: false,
       };
       prevCacheHit = !!state.completed[i].cached;
+      console.log(`[series] ✓ lesson ${i + 1}/${total} ready` +
+        (prevCacheHit ? ' (cached)' : '') +
+        ` · ${(result.docxBase64?.length || 0)} chars docx` +
+        (result.pptxBase64 ? `, ${result.pptxBase64.length} chars pptx` : ''));
     } catch (err) {
+      const message = err?.message || String(err);
       state.completed[i] = {
         position: i + 1,
         heading: subtopicHeading,
         failed: true,
-        error: err?.message || String(err),
+        error: message,
       };
       state.failedAt = i;
+      console.error(`[series] ✗ lesson ${i + 1}/${total} failed:`, message);
       break;
     }
     renderSeriesProgress(state, true, i + 1);
   }
 
   if (state.cancelled) state.failedAt = null;
+  console.log(`[series] complete · ${state.completed.filter((c) => c && !c.failed).length}/${total} ready` +
+    (state.failedAt != null ? ` · failedAt=${state.failedAt}` : '') +
+    (state.cancelled ? ' · cancelled' : ''));
   renderSeriesProgress(state, /* inProgress */ false);
   // Single-lesson preview state is meaningless during a series — clear so
   // the legacy download buttons don't dangle from a previous run.
@@ -2124,10 +2140,19 @@ async function callGenerateOnce(body){
   if (!ct.includes('application/json')) {
     // Server fell into SSE mode anyway (or returned HTML). Drain text.
     const t = await r.text();
-    throw new Error('Unexpected response: ' + (t || r.statusText).slice(0, 200));
+    console.error('[series] non-JSON response', { status: r.status, contentType: ct, sample: (t || '').slice(0, 200) });
+    throw new Error('Unexpected response (' + r.status + '): ' + (t || r.statusText).slice(0, 200));
   }
   const d = await r.json();
-  if (!r.ok || d.error) throw new Error(d.error || ('Server error ' + r.status));
+  if (!r.ok || d.error) {
+    console.error('[series] error response', { status: r.status, body: d });
+    // 429s come from the rate limiter; surface a clearer hint than the
+    // plain text so the teacher knows it's transient and pacing-related.
+    if (r.status === 429) {
+      throw new Error((d.error || 'Too many requests') + ' (rate limit — try Resume in a minute)');
+    }
+    throw new Error(d.error || ('Server error ' + r.status));
+  }
   return d;
 }
 
@@ -2157,10 +2182,21 @@ function renderSeriesProgress(state, inProgress, currentIdx){
       </div>`;
     }
     if (entry.failed) {
-      return `<div class="series-result-row failed">
+      // Surface the actual error so the teacher can tell us what broke.
+      // Wrap to a second line so long messages stay readable. A retry
+      // button hits the cache for already-completed prior lessons (free)
+      // and re-attempts only this slot.
+      const friendly = friendlyError(entry.error || 'Unknown error');
+      return `<div class="series-result-row failed" style="flex-wrap:wrap;align-items:flex-start;">
         <span class="series-result-num">L${i+1}</span>
         <span class="series-result-title">${esc(heading)}</span>
         <span class="series-result-status failed">Failed</span>
+        <span class="series-result-actions">
+          <button class="abtn" onclick="retrySeriesLesson(${i})">↻ Retry</button>
+        </span>
+        <div style="flex-basis:100%;font-size:11px;color:#A32D2D;margin-top:6px;line-height:1.4;">
+          ${esc(friendly)}
+        </div>
       </div>`;
     }
     const cachedTag = entry.cached ? ' (cached)' : '';
@@ -2271,6 +2307,21 @@ function resumeSeries(){
   generateSeries(
     { unitId: state.unitId, unitTopic: state.unitTopic, headings: state.headings, lessonMinutes: state.lessonMinutes },
     startFrom,
+  );
+}
+
+// Retry a single failed lesson without restarting the whole series.
+// Already-completed prior lessons remain on screen; the orchestrator
+// resumes from this index, hits cache for any subsequent lessons that
+// already succeeded, and only spends credits on the failed slot.
+function retrySeriesLesson(idx){
+  const state = window._series;
+  if (!state) return;
+  state.completed[idx] = null;
+  state.failedAt = null;
+  generateSeries(
+    { unitId: state.unitId, unitTopic: state.unitTopic, headings: state.headings, lessonMinutes: state.lessonMinutes },
+    idx,
   );
 }
 
