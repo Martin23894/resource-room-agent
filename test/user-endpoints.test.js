@@ -9,6 +9,7 @@ import { openCache, closeCache } from '../lib/cache.js';
 import { getOrCreateUserByEmail } from '../lib/auth.js';
 import settingsHandler from '../api/user-settings.js';
 import historyHandler from '../api/user-history.js';
+import profileHandler from '../api/user-profile.js';
 
 const em = (local) => local + '\x40example.com';
 
@@ -258,6 +259,121 @@ describe('/api/user/history', () => {
     const req = makeReq({ method: 'PUT', user, body: {} });
     const res = makeRes();
     await historyHandler(req, res);
+    assert.equal(res.statusCode, 405);
+  });
+});
+
+describe('/api/user/profile', () => {
+  test('GET without auth is a 401', async () => {
+    const req = makeReq({ method: 'GET', user: null });
+    const res = makeRes();
+    await profileHandler(req, res);
+    assert.equal(res.statusCode, 401);
+  });
+
+  test('GET returns an empty profile (complete=false) for a fresh user', async () => {
+    const req = makeReq({ method: 'GET', user });
+    const res = makeRes();
+    await profileHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.jsonBody.profile.complete, false);
+    assert.equal(res.jsonBody.profile.displayName, null);
+    assert.deepEqual(res.jsonBody.profile.gradesTaught, []);
+  });
+
+  test('PUT saves profile and flips complete=true', async () => {
+    const putReq = makeReq({
+      method: 'PUT',
+      user,
+      body: {
+        displayName: 'Thandi Khumalo',
+        school: 'Sandton Primary',
+        role: 'Intermediate Phase Teacher',
+        gradesTaught: [4, 6],
+        subjectsTaught: ['Mathematics'],
+        province: 'Gauteng',
+      },
+    });
+    const putRes = makeRes();
+    await profileHandler(putReq, putRes);
+    assert.equal(putRes.statusCode, 200);
+    assert.equal(putRes.jsonBody.profile.displayName, 'Thandi Khumalo');
+    assert.equal(putRes.jsonBody.profile.school, 'Sandton Primary');
+    assert.equal(putRes.jsonBody.profile.complete, true);
+    assert.deepEqual(putRes.jsonBody.profile.gradesTaught, [4, 6]);
+    assert.deepEqual(putRes.jsonBody.profile.subjectsTaught, ['Mathematics']);
+
+    const completedAt = putRes.jsonBody.profile.completedAt;
+    assert.ok(completedAt);
+
+    // A second PUT with new values must NOT shift completedAt forward.
+    await new Promise((r) => setTimeout(r, 5));
+    const putReq2 = makeReq({
+      method: 'PUT',
+      user,
+      body: {
+        displayName: 'Thandi K.',
+        gradesTaught: [4, 5, 6],
+        subjectsTaught: [],
+      },
+    });
+    const putRes2 = makeRes();
+    await profileHandler(putReq2, putRes2);
+    assert.equal(putRes2.statusCode, 200);
+    assert.equal(putRes2.jsonBody.profile.displayName, 'Thandi K.');
+    assert.deepEqual(putRes2.jsonBody.profile.gradesTaught, [4, 5, 6]);
+    assert.equal(putRes2.jsonBody.profile.completedAt, completedAt);
+  });
+
+  test('PUT requires displayName', async () => {
+    const req = makeReq({
+      method: 'PUT', user,
+      body: { displayName: '   ', school: 'X' },
+    });
+    const res = makeRes();
+    await profileHandler(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.match(res.jsonBody.error, /displayName/);
+  });
+
+  test('PUT rejects an invalid province', async () => {
+    const req = makeReq({
+      method: 'PUT', user,
+      body: { displayName: 'A', province: 'Atlantis' },
+    });
+    const res = makeRes();
+    await profileHandler(req, res);
+    assert.equal(res.statusCode, 400);
+    assert.match(res.jsonBody.error, /province/i);
+  });
+
+  test('PUT silently drops out-of-range grades', async () => {
+    const req = makeReq({
+      method: 'PUT', user,
+      body: { displayName: 'A', gradesTaught: [3, 4, 7, 8, 'six'] },
+    });
+    const res = makeRes();
+    await profileHandler(req, res);
+    assert.equal(res.statusCode, 200);
+    // Only 4 and 7 are valid (3 and 8 out of range, 'six' non-numeric).
+    assert.deepEqual(res.jsonBody.profile.gradesTaught, [4, 7]);
+  });
+
+  test('per-user isolation — A cannot read B\'s profile', async () => {
+    const b = getOrCreateUserByEmail(em('b'));
+    await profileHandler(
+      makeReq({ method: 'PUT', user: b, body: { displayName: 'Bee' } }),
+      makeRes(),
+    );
+    const res = makeRes();
+    await profileHandler(makeReq({ method: 'GET', user }), res);
+    assert.equal(res.jsonBody.profile.displayName, null);
+  });
+
+  test('POST is a 405', async () => {
+    const req = makeReq({ method: 'POST', user, body: {} });
+    const res = makeRes();
+    await profileHandler(req, res);
     assert.equal(res.statusCode, 405);
   });
 });

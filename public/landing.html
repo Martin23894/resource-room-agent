@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Resource Room — CAPS-aligned teaching resources for SA Grades 4–7</title>
+<meta name="description" content="Generate CAPS-aligned worksheets, tests, exams, lessons and slide decks for South African Grades 4–7 in seconds. Built on the DBE Annual Teaching Plan."/>
+<meta property="og:title" content="The Resource Room"/>
+<meta property="og:description" content="CAPS-aligned teaching resources for SA Grades 4–7, generated in seconds."/>
+<meta property="og:type" content="website"/>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --t9:#04342C;--t8:#085041;--t6:#0F6E56;--t4:#1D9E75;--t2:#5DCAA5;
+  --t1:#9FE1CB;--t05:#E1F5EE;
+  --ink:#1a1a18;--ink2:#3d3d3a;--ink3:#73726c;--ink4:#9c9a92;
+  --sur:#f8f7f3;--sur2:#ffffff;--bdr:#e4e2da;--bdr2:#d3d1c7;
+  --amber:#BA7517;--amber05:#FAEEDA;
+}
+html,body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--sur);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased;}
+a{color:var(--t6);text-decoration:none;}
+a:hover{text-decoration:underline;}
+button{font-family:inherit;cursor:pointer;border:none;}
+
+/* ── Header ─────────────────────────────────────────── */
+.hdr{background:var(--t8);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;}
+.logo{line-height:1.1;display:flex;flex-direction:column;}
+.l-the{font-size:8px;font-weight:700;letter-spacing:5px;color:var(--t1);}
+.l-res{font-size:19px;font-weight:700;color:#fff;letter-spacing:-1px;line-height:1;}
+.l-wrap{display:inline-block;background:var(--t4);padding:1px 7px 3px 0;}
+.l-room{font-size:19px;font-weight:700;color:var(--t9);letter-spacing:-1px;line-height:1;}
+.hdr-cta{display:flex;align-items:center;gap:10px;}
+.hdr-link{color:var(--t1);font-size:13px;font-weight:600;padding:8px 12px;border-radius:6px;}
+.hdr-link:hover{background:var(--t9);text-decoration:none;color:#fff;}
+.hdr-btn{background:var(--t4);color:var(--t9);font-size:13px;font-weight:700;padding:9px 18px;border-radius:7px;}
+.hdr-btn:hover{background:var(--t2);text-decoration:none;color:var(--t9);}
+
+/* ── Hero ───────────────────────────────────────────── */
+.hero{padding:80px 28px 60px;max-width:980px;margin:0 auto;text-align:center;}
+.eyebrow{display:inline-block;background:var(--t05);color:var(--t8);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;padding:6px 14px;border-radius:20px;margin-bottom:18px;}
+h1{font-size:46px;font-weight:800;letter-spacing:-1.2px;color:var(--t9);line-height:1.1;margin-bottom:18px;}
+h1 .accent{color:var(--t6);}
+.hero-sub{font-size:18px;color:var(--ink2);max-width:680px;margin:0 auto 30px;line-height:1.6;}
+.hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.btn-primary{background:var(--t8);color:#fff;font-size:15px;font-weight:700;padding:14px 26px;border-radius:9px;display:inline-block;}
+.btn-primary:hover{background:var(--t6);text-decoration:none;color:#fff;}
+.btn-secondary{background:#fff;color:var(--t8);font-size:15px;font-weight:700;padding:14px 26px;border-radius:9px;border:1.5px solid var(--bdr2);display:inline-block;}
+.btn-secondary:hover{border-color:var(--t6);text-decoration:none;color:var(--t6);}
+.hero-note{font-size:12px;color:var(--ink3);margin-top:14px;}
+
+/* ── Inline sign-in form (above the fold) ───────────── */
+.signin-card{max-width:420px;margin:34px auto 0;background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:22px 24px;text-align:left;box-shadow:0 2px 14px rgba(0,0,0,0.04);}
+.signin-card h2{font-size:16px;color:var(--t8);margin-bottom:6px;}
+.signin-card p{font-size:13px;color:var(--ink3);margin-bottom:14px;}
+.signin-form{display:flex;gap:8px;}
+.signin-form input{flex:1;padding:11px 13px;border:1.5px solid var(--bdr2);border-radius:8px;font-size:14px;font-family:inherit;background:var(--sur);}
+.signin-form input:focus{outline:none;border-color:var(--t4);}
+.signin-form button{background:var(--t8);color:#fff;font-weight:700;font-size:13px;padding:0 18px;border-radius:8px;}
+.signin-form button:hover{background:var(--t6);}
+.signin-form button:disabled{background:var(--ink4);cursor:wait;}
+.signin-status{font-size:12px;margin-top:10px;min-height:16px;}
+.signin-status.ok{color:var(--t6);}
+.signin-status.err{color:#a82c2c;}
+
+/* ── Sections ───────────────────────────────────────── */
+.section{padding:64px 28px;max-width:1080px;margin:0 auto;}
+.section-title{font-size:28px;font-weight:800;color:var(--t9);text-align:center;margin-bottom:10px;letter-spacing:-0.5px;}
+.section-sub{font-size:15px;color:var(--ink3);text-align:center;max-width:640px;margin:0 auto 40px;}
+
+/* Features grid */
+.features{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;}
+.feature{background:#fff;border:1px solid var(--bdr);border-radius:12px;padding:24px;}
+.feature-ico{width:42px;height:42px;background:var(--t05);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:14px;font-size:20px;}
+.feature h3{font-size:16px;color:var(--t8);margin-bottom:6px;}
+.feature p{font-size:13px;color:var(--ink2);line-height:1.6;}
+
+/* How it works */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:8px;}
+.step{padding:20px;}
+.step-num{width:32px;height:32px;background:var(--t8);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;margin-bottom:12px;}
+.step h3{font-size:15px;color:var(--t8);margin-bottom:6px;}
+.step p{font-size:13px;color:var(--ink2);line-height:1.6;}
+
+/* Resource types */
+.rtypes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;}
+.rtype{background:#fff;border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;font-size:13px;color:var(--ink2);}
+.rtype strong{color:var(--t8);display:block;font-size:14px;margin-bottom:2px;}
+
+/* CTA banner */
+.cta-banner{background:var(--t8);color:#fff;border-radius:14px;padding:44px 32px;text-align:center;margin:0 28px;max-width:1080px;margin:0 auto;}
+.cta-banner h2{font-size:26px;margin-bottom:10px;color:#fff;}
+.cta-banner p{font-size:15px;color:var(--t1);margin-bottom:22px;}
+.cta-banner .btn-primary{background:var(--t4);color:var(--t9);}
+.cta-banner .btn-primary:hover{background:var(--t2);}
+
+/* Footer */
+footer{background:var(--t9);color:var(--t1);padding:34px 28px 22px;margin-top:60px;font-size:13px;}
+.foot-grid{max-width:1080px;margin:0 auto;display:flex;flex-wrap:wrap;justify-content:space-between;gap:24px;align-items:flex-start;}
+.foot-brand{max-width:300px;color:var(--t1);font-size:12px;line-height:1.6;}
+.foot-links{display:flex;gap:22px;flex-wrap:wrap;}
+.foot-links a{color:var(--t1);font-size:13px;}
+.foot-links a:hover{color:#fff;text-decoration:underline;}
+.foot-bottom{max-width:1080px;margin:24px auto 0;border-top:1px solid var(--t8);padding-top:14px;font-size:11px;color:var(--t2);text-align:center;}
+
+@media (max-width:640px){
+  h1{font-size:34px;}
+  .hero{padding:50px 20px 40px;}
+  .section{padding:46px 20px;}
+  .signin-form{flex-direction:column;}
+  .signin-form button{padding:11px 18px;}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <a href="/" class="logo" aria-label="The Resource Room — home">
+    <div class="l-the">THE</div>
+    <div><span class="l-res">RESOURCE</span></div>
+    <div><div class="l-wrap"><span class="l-room">ROOM</span></div></div>
+  </a>
+  <div class="hdr-cta">
+    <a href="#how" class="hdr-link">How it works</a>
+    <a href="/app" class="hdr-btn">Sign in</a>
+  </div>
+</header>
+
+<section class="hero">
+  <span class="eyebrow">CAPS-aligned · Grades 4–7</span>
+  <h1>Teaching resources, <span class="accent">grounded in CAPS</span>, in seconds.</h1>
+  <p class="hero-sub">
+    Generate worksheets, tests, exams, full lesson plans and slide decks
+    that map directly to the DBE Annual Teaching Plan. Pick a grade, term,
+    subject and topic — we do the rest.
+  </p>
+  <div class="hero-ctas">
+    <a href="/app" class="btn-primary">Start creating</a>
+    <a href="#how" class="btn-secondary">See how it works</a>
+  </div>
+  <div class="hero-note">Free 14-day trial · No credit card required</div>
+
+  <div class="signin-card">
+    <h2>Sign in to The Resource Room</h2>
+    <p>Enter your school email and we'll send a one-click sign-in link.</p>
+    <form class="signin-form" id="signin-form" onsubmit="event.preventDefault();sendMagicLink();">
+      <input type="email" id="signin-email" placeholder="[email protected]" autocomplete="email" required/>
+      <button type="submit" id="signin-btn">Send link</button>
+    </form>
+    <div class="signin-status" id="signin-status" aria-live="polite"></div>
+  </div>
+</section>
+
+<section class="section" id="features">
+  <h2 class="section-title">Built for South African classrooms</h2>
+  <p class="section-sub">Every artefact is grounded in the official DBE Annual Teaching Plan and validated against CAPS pacing data.</p>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-ico">📄</div>
+      <h3>Question papers + memos</h3>
+      <p>Worksheets, tests, exams and final exams as editable Word documents — with marking memoranda matched to every question.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ico">📚</div>
+      <h3>Lesson plans + slide decks</h3>
+      <p>Teacher-facing lesson plan, learner worksheet and PowerPoint slides — generated together so every artefact teaches the same concepts.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ico">🎯</div>
+      <h3>CAPS-aligned, every time</h3>
+      <p>Topics, weeks, hours and assessment splits are pulled from the DBE ATP. Term-scope rules are enforced automatically.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ico">🇿🇦</div>
+      <h3>Bilingual support</h3>
+      <p>Generate in English or Afrikaans, with diagrams, illustrations and authentically South African contexts.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ico">⚡</div>
+      <h3>One-click unit series</h3>
+      <p>Generate every lesson in a CAPS unit in one click — each lesson aware of what came before, so the series builds on itself.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-ico">🛒</div>
+      <h3>Teacha marketplace listings</h3>
+      <p>Spin up product titles, descriptions, search keywords and pricing copy ready to paste into your Teacha shop.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="how">
+  <h2 class="section-title">From cascade to classroom in three steps</h2>
+  <p class="section-sub">No templates, no prompt engineering. Just pick what you need.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Pick the cascade</h3>
+      <p>Grade · Term · Subject · Topic · Resource type · Language · Marks · Difficulty.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Click Generate</h3>
+      <p>We pull the matching ATP topics, ask Claude to fill a strict CAPS schema, then validate and balance the marks.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Download &amp; teach</h3>
+      <p>You get an editable DOCX (and PPTX for lessons) — ready to print, share or paste into your LMS.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <h2 class="section-title">Every resource type covered</h2>
+  <p class="section-sub">All from one CAPS-aligned schema — so worksheets, tests and lessons all teach and assess the same concepts.</p>
+  <div class="rtypes">
+    <div class="rtype"><strong>Worksheet</strong>10–30 marks · single section</div>
+    <div class="rtype"><strong>Test</strong>30–75 marks · term-scoped</div>
+    <div class="rtype"><strong>Exam</strong>50–100 marks · cumulative</div>
+    <div class="rtype"><strong>Final Exam</strong>80–150 marks · full year</div>
+    <div class="rtype"><strong>Investigation</strong>30–50 marks · investigative</div>
+    <div class="rtype"><strong>Project</strong>50–80 marks · multi-stage</div>
+    <div class="rtype"><strong>Practical</strong>30–50 marks · hands-on</div>
+    <div class="rtype"><strong>Assignment</strong>30–50 marks · take-home</div>
+    <div class="rtype"><strong>Lesson</strong>DOCX + PPTX · 30–90 min</div>
+  </div>
+</section>
+
+<section style="padding:0 28px;">
+  <div class="cta-banner">
+    <h2>Ready to spend less time on prep?</h2>
+    <p>Sign in with your school email — first link arrives in seconds.</p>
+    <a href="/app" class="btn-primary">Get started</a>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-grid">
+    <div class="foot-brand">
+      <strong style="color:#fff;display:block;margin-bottom:6px;">The Resource Room</strong>
+      CAPS-aligned teaching resources for South African Grades 4–7. Built by teachers, for teachers.
+    </div>
+    <div class="foot-links">
+      <a href="/app">Sign in</a>
+      <a href="#features">Features</a>
+      <a href="#how">How it works</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+    </div>
+  </div>
+  <div class="foot-bottom">© <span id="yr"></span> The Resource Room. All rights reserved.</div>
+</footer>
+
+<script>
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+async function sendMagicLink(){
+  const emailEl = document.getElementById('signin-email');
+  const btn = document.getElementById('signin-btn');
+  const status = document.getElementById('signin-status');
+  const email = (emailEl.value || '').trim();
+  if (!email) { status.className='signin-status err'; status.textContent='Please enter your email.'; return; }
+
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Sending…';
+  status.className = 'signin-status';
+  status.textContent = '';
+
+  try {
+    const r = await fetch('/api/auth/request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ email }),
+    });
+    if (r.ok) {
+      status.className = 'signin-status ok';
+      status.textContent = `Check your inbox — we sent a sign-in link to ${email}.`;
+      emailEl.value = '';
+    } else {
+      const d = await r.json().catch(() => ({}));
+      status.className = 'signin-status err';
+      status.textContent = d.error || 'Could not send sign-in link. Try again.';
+    }
+  } catch {
+    status.className = 'signin-status err';
+    status.textContent = 'Network error — please try again.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
+// If the user is already signed in, send them straight to the app.
+fetch('/api/auth/me', { credentials: 'same-origin' })
+  .then(r => { if (r.status === 200) location.replace('/app'); })
+  .catch(() => {});
+</script>
+</body>
+</html>

@@ -118,7 +118,7 @@ describe('GET /api/auth/verify — renders confirm page, does NOT consume', () =
     const res = makeRes();
     await authVerifyHandler(makeReq({ method: 'POST', body: { token } }), res);
     assert.equal(res.statusCode, 302);
-    assert.equal(res.redirected, '/');
+    assert.equal(res.redirected, '/app');
     assert.ok(res.cookies.rr_session, 'session cookie should be set');
   });
 
@@ -141,7 +141,7 @@ describe('GET /api/auth/verify — renders confirm page, does NOT consume', () =
     assert.match(res.body, /email provider/i);
   });
 
-  test('GET with an active session → 302 to /', async () => {
+  test('GET with an active session → 302 to /app', async () => {
     const { token } = await createMagicLink(em('teacher'));
     const req = makeReq({
       method: 'GET', query: { token },
@@ -150,7 +150,7 @@ describe('GET /api/auth/verify — renders confirm page, does NOT consume', () =
     const res = makeRes();
     await authVerifyHandler(req, res);
     assert.equal(res.statusCode, 302);
-    assert.equal(res.redirected, '/');
+    assert.equal(res.redirected, '/app');
   });
 });
 
@@ -160,7 +160,7 @@ describe('POST /api/auth/verify — consumes the token', () => {
     const res = makeRes();
     await authVerifyHandler(makeReq({ method: 'POST', body: { token } }), res);
     assert.equal(res.statusCode, 302);
-    assert.equal(res.redirected, '/');
+    assert.equal(res.redirected, '/app');
     assert.ok(res.cookies.rr_session);
   });
 

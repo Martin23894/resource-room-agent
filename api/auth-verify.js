@@ -83,7 +83,7 @@ function errorPage({ title, message, hint }) {
 <h1>${safe(title)}</h1>
 <p class="sub">${safe(message)}</p>
 ${hint ? `<p class="note">${safe(hint)}</p>` : ''}
-<a class="btn" href="/">Back to sign-in</a>`,
+<a class="btn" href="/">Back to home</a>`,
   });
 }
 
@@ -107,7 +107,7 @@ function handleGet(req, res, log) {
 
   // If the user already has a valid session (e.g. clicked the email link
   // from a second tab after already signing in), just send them home.
-  if (req.user) return res.redirect(302, '/');
+  if (req.user) return res.redirect(302, '/app');
 
   let info;
   try {
@@ -153,5 +153,5 @@ function handlePost(req, res, log) {
   const session = createSession(user.id);
   res.cookie(COOKIE_NAME, signValue(session.id), cookieOptions());
   log.info({ userId: user.id, email: user.email }, 'User signed in');
-  return res.redirect(302, '/');
+  return res.redirect(302, '/app');
 }
