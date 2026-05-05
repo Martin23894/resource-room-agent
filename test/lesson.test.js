@@ -1300,3 +1300,80 @@ describe('Phase C — PPTX embeds illustration PNGs', () => {
       'yourTurn slide should embed the subject icon (Phase C wiring)');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────
+// Phase D — Photo sidebar scaffold (no JPGs vendored yet)
+// ─────────────────────────────────────────────────────────────────
+
+describe('Phase D — concept/example layouts route through renderTeachingSlide', () => {
+  test('LAYOUT_RENDERERS dispatches concept and example to renderTeachingSlide', () => {
+    const r = pptxInternals.LAYOUT_RENDERERS;
+    assert.equal(r.concept, pptxInternals.renderTeachingSlide);
+    assert.equal(r.example, pptxInternals.renderTeachingSlide);
+  });
+
+  test('practice and exitTicket still use renderBulletSlide (no photo)', () => {
+    const r = pptxInternals.LAYOUT_RENDERERS;
+    assert.equal(r.practice,   pptxInternals.renderBulletSlide);
+    assert.equal(r.exitTicket, pptxInternals.renderBulletSlide);
+  });
+});
+
+describe('Phase D — PPTX renders cleanly when no photos are vendored', () => {
+  test('a deck with concept slides renders successfully in the no-photo default state', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',   heading: 'Whole numbers', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'concept', heading: 'Place value',
+        bullets: ['Hundreds', 'Tens', 'Units'], speakerNotes: 'Demo.' },
+      { ordinal: 3, layout: 'example', heading: 'Try this',
+        bullets: ['234', '+ 156', '= 390'], speakerNotes: 'Walk through.' },
+      { ordinal: 4, layout: 'warmUp',  heading: 'How many fingers?',
+        bullets: ['Hint: think 10s.'], speakerNotes: 'Get attention.' },
+    ];
+    // No photos curated yet — concept/example/warmUp should fall back to
+    // text-only layouts without throwing or producing broken-image slides.
+    const b64 = await renderLessonPptx(r);
+    assert.ok(b64.length > 1000);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    // Slides 2 (concept), 3 (example), 4 (warmUp) should NOT contain a
+    // <p:pic> photo — only the title slide hero (slide 1) has a picture.
+    for (const ordinal of [2, 3, 4]) {
+      const xml = await zip.file(`ppt/slides/slide${ordinal}.xml`).async('string');
+      assert.ok(!/<p:pic>/.test(xml),
+        `slide ${ordinal} should be text-only when no photo is curated, found <p:pic>`);
+    }
+  });
+
+  test('warmUp slide has full-width tinted card when no photo is curated', async () => {
+    const r = makeLesson();
+    r.lesson.slides = [
+      { ordinal: 1, layout: 'title',  heading: 'Topic', speakerNotes: 'Welcome.' },
+      { ordinal: 2, layout: 'warmUp', heading: 'Question?', speakerNotes: 'Ask.' },
+    ];
+    const b64 = await renderLessonPptx(r);
+    const zip = await JSZip.loadAsync(Buffer.from(b64, 'base64'));
+    const slide2 = await zip.file('ppt/slides/slide2.xml').async('string');
+    // WARM-UP eyebrow should still render
+    assert.match(slide2, /WARM-UP/);
+  });
+});
+
+describe('Phase D — tryAddPhotoSidebar', () => {
+  test('returns added:false when the photo file is missing', () => {
+    // Build a stub slide that just records addImage calls
+    const calls = [];
+    const stubSlide = { addImage: (opts) => calls.push(opts) };
+    const stubResource = { meta: { subject: 'Mathematics' } };
+    const result = pptxInternals.tryAddPhotoSidebar(stubSlide, stubResource, 0);
+    assert.equal(result.added, false);
+    assert.equal(calls.length, 0, 'no addImage call when photo is missing');
+  });
+
+  test('PHOTO_BOX geometry sits in the right portion of the slide', () => {
+    const box = pptxInternals.PHOTO_BOX;
+    assert.ok(box.x > pptxInternals.SLIDE_W / 2, 'photo box should be on the right half');
+    assert.ok(box.x + box.w <= pptxInternals.SLIDE_W, 'photo box must fit inside the slide');
+    assert.ok(box.textRightEdge < box.x, 'text content must end before the photo starts');
+  });
+});

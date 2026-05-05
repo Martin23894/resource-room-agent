@@ -65,7 +65,7 @@ Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PR
 Run the test suite:
 
 ```bash
-npm test          # 549 tests, ~32s, all node:test — no Anthropic API calls
+npm test          # 576 tests, ~32s, all node:test — no Anthropic API calls
 ```
 
 ---
@@ -363,6 +363,54 @@ lib/illustrations/
 
 **Raster path** — same `rasterSvgToPng` from `lib/diagrams/raster.js`. Illustrations rasterise to PNG once at render time and embed via `docx ImageRun` / `pptxgen.addImage`. Failures fall back gracefully — text-only cover, placeholder shape on `yourTurn`, text-only `celebrate` — so a missing-fonts environment never breaks generation.
 
+### Decorative photos (Phase D)
+
+Stock photography is wired into PPTX `concept` / `example` / `warmUp` slides as an optional right-side photo sidebar. The picker is deterministic — `pickPhoto({ subject, slot })` resolves a (subject, slot) pair to a category-routed JPG path — and the actual photos are vendored separately into `lib/illustrations/photos/<category>/NN.jpg` by the curator.
+
+```
+lib/illustrations/photos/
+  README.md            Curation guide (license requirements, sources, sizing, naming)
+  mathematics/         01.jpg .. 08.jpg     (8 slots)
+  sciences/            01.jpg .. 09.jpg     (9 slots)
+  geography/           01.jpg .. 08.jpg     (8 slots)
+  languages/           01.jpg .. 09.jpg     (9 slots)
+  history/             01.jpg .. 08.jpg     (8 slots)
+  lifeskills/          01.jpg .. 08.jpg     (8 slots — also Life Orientation + EMS)
+                                            Total: 50 photo slots
+```
+
+**The picker handles missing files gracefully** — `pickPhoto({ ... })` returns `{ exists: false, ... }` for any slot whose JPG hasn't been curated yet. The PPTX `renderTeachingSlide` checks the flag and falls back to the existing full-width text-only layout, so a freshly-deployed library without curated photos still produces clean decks. Drop in the JPGs as you source them; no rebuild is needed.
+
+**Layouts that get a photo sidebar:**
+
+| Layout | Photo behaviour |
+|---|---|
+| `concept` | Right-side photo (when curated); bullets narrow to left ~⅔ of slide |
+| `example` | Same as `concept` |
+| `warmUp` | Right-side photo; tinted question card narrows to share width |
+| All others | No photo sidebar — `objectives`, `vocabulary`, `wordWall`, `workedExample`, `thinkPairShare`, `practice`, `yourTurn`, `exitTicket`, `celebrate`, `diagram`, `title` keep their existing visuals |
+
+**Slot indexing** uses the slide ordinal — different slides in the same deck pick different photos (`slot % per_category_count`). Same Lesson always picks the same photos for the same slots; the cache layer's determinism is preserved.
+
+**Subject → category mapping** (sub-string match against `meta.subject`, see `lib/illustrations/photos.js → categoryFor()`):
+
+| Subject pattern | Category |
+|---|---|
+| `Mathematics` | `mathematics` |
+| `Natural Sciences` / `Technology` | `sciences` |
+| `Geography` | `geography` |
+| `History` | `history` |
+| `Home Language` / `Additional Language` / `English` / `Afrikaans` | `languages` |
+| `Life Skills` / `Life Orientation` / `Economic` / `Management` | `lifeskills` |
+| (fallback) | `lifeskills` |
+
+**Curation requirements** (full guide in `lib/illustrations/photos/README.md`):
+
+- License: only photos with explicit free-commercial licenses (Unsplash, Pexels, Pixabay) — no attribution required, modify freely. Avoid Google Image search, restrictive Creative Commons (NC / SA), and AI-generated photos.
+- Format: JPG, ~1200×800 px portrait or square, ~150–300 KB each.
+- Content: kid-appropriate, diverse representation, mix beyond the obvious clichés (don't make the maths bucket all chalkboard equations).
+- Naming: `NN.jpg` zero-padded sequential (`01.jpg`, `02.jpg`, …).
+
 ### What the PowerPoint contains
 
 5–15 slides driven by `lesson.slides[]`. Each slide has an `ordinal`, a `layout`, a `heading`, optional `bullets` (≤ 8), optional `speakerNotes` (rendered into the Notes pane), and an optional `stimulusRef`.
@@ -570,10 +618,15 @@ lib/                     Pure-ish logic (no Express dependencies)
   logger.js                Pino logger
   marks.js                 Mark-allocation helpers
   illustrations/           Hand-rolled SVG illustrations for Lesson kid-mode
-    index.js                 Picker dispatcher (pickHero / pickIcon / pickStamp + raster wrapper)
+    index.js                 Picker dispatcher (pickHero / pickIcon / pickStamp / pickPhoto + raster wrapper)
     subject-icons.js         Per-subject SVG generators (calculator / book / flask / globe / …)
     mascot.js                Friendly geometric mascot (junior band)
     stamps.js                "Well done!" celebration stamp (junior band)
+    photos.js                Photo picker — pickPhoto({ subject, slot }) → category-routed JPG path
+    photos/                  Curated stock photos (50 slots × 6 subject categories)
+      README.md                Curation guide — license, sources, sizing, naming
+      mathematics/             01.jpg .. NN.jpg per category, vendored by curator
+      sciences/ geography/ languages/ history/ lifeskills/
   moderator.js             Quality-gate moderator (post-generation review)
   palette.js               Lesson visual-style picker (per-grade-band palette + accent rotation)
   pptx-builder.js          Lesson PowerPoint renderer (pptxgenjs)
@@ -880,7 +933,7 @@ The output card includes a **PowerPoint download button** (orange `#D04423`, dis
 ## Testing
 
 ```bash
-npm test          # runs all node:test suites — 549 tests, ~32s, no Anthropic calls
+npm test          # runs all node:test suites — 576 tests, ~32s, no Anthropic calls
 ```
 
 Test files live in `test/`. Conventions:

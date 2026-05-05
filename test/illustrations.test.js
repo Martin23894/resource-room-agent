@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import {
   pickHero, pickIcon, pickStamp, pickSubjectIcon,
   illustrationToPng, mascotWavingSvg, wellDoneStampSvg,
+  pickPhoto, loadPhotoBuffer, photoCategoryFor, PHOTO_CATEGORIES,
 } from '../lib/illustrations/index.js';
 import { __internals as iconInternals } from '../lib/illustrations/subject-icons.js';
 
@@ -168,5 +169,125 @@ describe('illustrationToPng — raster pipeline', () => {
     const { svg } = pickSubjectIcon('Mathematics', '#F4B942');
     const png = illustrationToPng(svg, { widthPx: 240 });
     assert.ok(png.length > 600);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────
+// Phase D — Photo picker (scaffold; actual JPGs vendored separately)
+// ─────────────────────────────────────────────────────────────────
+
+describe('photoCategoryFor — subject → photo category mapping', () => {
+  test('Mathematics → mathematics', () => {
+    assert.equal(photoCategoryFor('Mathematics'), 'mathematics');
+  });
+
+  test('Natural Sciences and Technology → sciences', () => {
+    assert.equal(photoCategoryFor('Natural Sciences and Technology'), 'sciences');
+  });
+
+  test('Technology → sciences', () => {
+    assert.equal(photoCategoryFor('Technology'), 'sciences');
+  });
+
+  test('Social Sciences — Geography → geography', () => {
+    assert.equal(photoCategoryFor('Social Sciences — Geography'), 'geography');
+  });
+
+  test('Social Sciences — History → history', () => {
+    assert.equal(photoCategoryFor('Social Sciences — History'), 'history');
+  });
+
+  test('English Home Language → languages', () => {
+    assert.equal(photoCategoryFor('English Home Language'), 'languages');
+  });
+
+  test('Afrikaans First Additional Language → languages', () => {
+    assert.equal(photoCategoryFor('Afrikaans First Additional Language'), 'languages');
+  });
+
+  test('Life Skills — Personal and Social Wellbeing → lifeskills', () => {
+    assert.equal(photoCategoryFor('Life Skills — Personal and Social Wellbeing'), 'lifeskills');
+  });
+
+  test('Economic and Management Sciences → lifeskills', () => {
+    assert.equal(photoCategoryFor('Economic and Management Sciences'), 'lifeskills');
+  });
+
+  test('unknown subject falls back to lifeskills (most generic bucket)', () => {
+    assert.equal(photoCategoryFor('Quantum Wizardry'), 'lifeskills');
+  });
+});
+
+describe('PHOTO_CATEGORIES — slot manifest', () => {
+  test('all six categories declared with positive slot counts', () => {
+    for (const key of ['mathematics', 'sciences', 'geography', 'languages', 'history', 'lifeskills']) {
+      assert.ok(PHOTO_CATEGORIES[key] > 0, `missing slot count for ${key}`);
+    }
+  });
+
+  test('total slot count is 50 across all categories', () => {
+    const total = Object.values(PHOTO_CATEGORIES).reduce((a, b) => a + b, 0);
+    assert.equal(total, 50, `expected 50 photo slots total, got ${total}`);
+  });
+});
+
+describe('pickPhoto — deterministic per (subject, slot)', () => {
+  test('returns a category-routed file path with zero-padded fileName', () => {
+    const photo = pickPhoto({ subject: 'Mathematics', slot: 0 });
+    assert.equal(photo.category, 'mathematics');
+    assert.equal(photo.fileName, '01.jpg');
+    assert.match(photo.path, /lib\/illustrations\/photos\/mathematics\/01\.jpg$/);
+  });
+
+  test('slot indexes wrap modulo per-category count', () => {
+    // mathematics has 8 slots — slot 8 wraps back to 01.jpg
+    const a = pickPhoto({ subject: 'Mathematics', slot: 0 });
+    const b = pickPhoto({ subject: 'Mathematics', slot: PHOTO_CATEGORIES.mathematics });
+    assert.equal(a.fileName, b.fileName);
+  });
+
+  test('different slots within a category pick different files', () => {
+    const photos = new Set();
+    for (let i = 0; i < PHOTO_CATEGORIES.mathematics; i++) {
+      photos.add(pickPhoto({ subject: 'Mathematics', slot: i }).fileName);
+    }
+    assert.equal(photos.size, PHOTO_CATEGORIES.mathematics);
+  });
+
+  test('determinism — same (subject, slot) always returns the same file', () => {
+    const a = pickPhoto({ subject: 'Mathematics', slot: 3 });
+    const b = pickPhoto({ subject: 'Mathematics', slot: 3 });
+    assert.deepEqual(a, b);
+  });
+
+  test('reports exists:false when the photo file is not on disk yet', () => {
+    // Phase D ships scaffolded — actual JPGs vendored by the curator.
+    // Until they land, every slot reports exists:false and callers fall
+    // back to text-only layouts.
+    const photo = pickPhoto({ subject: 'Mathematics', slot: 0 });
+    assert.equal(photo.exists, false);
+  });
+
+  test('handles missing subject gracefully — falls back to lifeskills', () => {
+    const photo = pickPhoto({ slot: 0 });
+    assert.equal(photo.category, 'lifeskills');
+    assert.equal(photo.fileName, '01.jpg');
+  });
+
+  test('non-finite slot is treated as 0', () => {
+    const photo = pickPhoto({ subject: 'Mathematics', slot: NaN });
+    assert.equal(photo.fileName, '01.jpg');
+  });
+});
+
+describe('loadPhotoBuffer', () => {
+  test('returns null when the photo does not exist on disk', () => {
+    const photo = pickPhoto({ subject: 'Mathematics', slot: 0 });
+    assert.equal(photo.exists, false);
+    assert.equal(loadPhotoBuffer(photo), null);
+  });
+
+  test('returns null on null input', () => {
+    assert.equal(loadPhotoBuffer(null), null);
   });
 });
