@@ -543,6 +543,7 @@ export async function generate(req, opts = {}) {
   // modes (e.g. forgetting to declare a stimulus it referenced).
   let lastResult = null;
   let lastErrors = null;
+  const usageByAttempt = [];
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const user = lastErrors
       ? `${baseUser}\n\nThe previous attempt failed schema validation with these errors:\n${lastErrors.slice(0, 8).map((e) => `  - ${e.path}: ${e.message}`).join('\n')}\n${buildTargetedRemediation(lastErrors, ctx)}\nPlease emit a fresh, correct Resource that does not repeat these errors.`
@@ -567,6 +568,7 @@ export async function generate(req, opts = {}) {
       logger,
       signal,
       phase: attempt === 0 ? 'generate' : `generate-retry-${attempt}`,
+      onUsage: (u) => usageByAttempt.push(u),
     });
 
     const resource = unwrapStringifiedBranches(raw);
@@ -583,7 +585,7 @@ export async function generate(req, opts = {}) {
     });
     const validation = assertResource(resource);
 
-    lastResult = { resource, validation, rebalance, model: SONNET_4_6, ctx, attempts: attempt + 1 };
+    lastResult = { resource, validation, rebalance, model: SONNET_4_6, ctx, attempts: attempt + 1, usageByAttempt: [...usageByAttempt] };
 
     if (validation.ok) return lastResult;
 
