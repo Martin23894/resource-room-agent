@@ -94,11 +94,17 @@ async function runCell(cell, opts) {
     if (!opts.skipModerate && result.validation.ok) {
       const tm = Date.now();
       const report = await moderate(result.resource);
+      // Defensive: Haiku occasionally emits criticalIssues as an object or
+      // a stringified array instead of an array. The moderator's
+      // unwrapStringifiedBranches handles the string case but not arbitrary
+      // object shapes — coerce here so a malformed report on one cell
+      // doesn't tank the whole bench run.
+      const issues = Array.isArray(report.criticalIssues) ? report.criticalIssues : [];
       cellLog.moderation = {
         verdict: report.verdict,
         overallScore: report.overallScore,
-        blocking: (report.criticalIssues || []).filter((i) => i.severity === 'BLOCKING').length,
-        advisory: (report.criticalIssues || []).filter((i) => i.severity === 'ADVISORY').length,
+        blocking: issues.filter((i) => i.severity === 'BLOCKING').length,
+        advisory: issues.filter((i) => i.severity === 'ADVISORY').length,
         dimensions: Object.fromEntries(
           Object.entries(report.dimensions || {}).map(([k, v]) => [k, v.score])
         ),
