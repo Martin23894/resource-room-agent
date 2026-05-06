@@ -323,6 +323,15 @@ function buildSystemPrompt(ctx) {
     `2. Composite marks are computed from leaves; do NOT put marks on composites.`,
     `3. Every leaf has exactly one matching memo.answer (matched on questionNumber). marks and cognitiveLevel must agree.`,
     `4. Sum of leaf marks across the whole paper MUST equal meta.totalMarks (${totalMarks}). Before you emit the tool call, mentally add up every leaf's marks and verify the total is exactly ${totalMarks}; if it isn't, adjust mark allocations on individual leaves until it is.`,
+    `4a. PER-QUESTION MARK FAIRNESS. Each leaf's \`marks\` value MUST reflect the work the question asks of the learner. Live moderation has shown the most common quality failure is fair-sum totals at paper level masking unfair allocations on individual questions. Apply these heuristics, then sanity-check each leaf:
+       • COUNTING STEMS: when the stem says "Give TWO examples / List THREE reasons / Name FOUR features", marks MUST be at least the stated count (one mark per part). "Give two examples" → ≥2 marks. "List three reasons" → ≥3 marks. Never 1 mark for a multi-part stem.
+       • MULTI-STEP CALCULATION: at least one mark per discrete step a learner is expected to show. A 3-step problem ("convert units, then multiply, then round") is ≥3 marks. A "show your working" instruction implies multi-mark allocation.
+       • COMPOSITION / EXTENDED WRITING: a paragraph (~30–50 words) is ≥5 marks. An 80-word composition is ≥8 marks. A 100–150 word piece is ≥10 marks. NEVER 1–3 marks for an extended-writing task — that's the single most common unfairness pattern (composition under-marked vs trivial language exercises over-marked).
+       • EXTENDED-RESPONSE / EVALUATION ("Why do you think…", "Justify with evidence", "Argue both sides"): ≥2 marks. Multi-sentence reasoning is never 1 mark.
+       • SHORT-ANSWER (1 sentence, single fact): 1–2 marks.
+       • MCQ / TrueFalse / FillBlank / OneWordAnswer / single-fact Identify: 1 mark.
+       • SIBLING CONSISTENCY: within a single section, near-identical question types must have similar mark counts. If 9.3 and 9.4 are 2-mark short-answer items, do NOT make 9.5 a 1-mark question of the same shape.
+       Before emitting the tool call, walk every leaf and verify: does \`marks\` match the work? If not, fix the marks (or the stem) so they match.`,
     `5. Stimuli are first-class. If a question references a passage/visual/data/table, declare it once in stimuli[] and reference it via stimulusRef. NEVER inline tables, data, or passages directly into a question stem.`,
     `5a. RENDERABLE DIAGRAMS — STRICT WHITELIST. The system can render ONLY these diagram types, with these exact constraints:
        • bar_graph — vertical bars; bars MUST be an array of 2 to 10 entries (NO MORE THAN 10). Use for data handling, climate, results.
