@@ -100,7 +100,7 @@ See `.env.example` for the canonical list.
 | `ALLOWED_ORIGINS` | no | Comma-separated allowlist of cross-origin domains. Leave empty for same-origin only. |
 | `TEST_SECRET` | no | If set, `/api/test?secret=<value>` returns an Anthropic health check; otherwise the endpoint 404s. |
 | `CACHE_DB_PATH` | no | SQLite file for the result cache. Default `./data/cache.db`. On Railway, point this at a mounted volume so the cache survives deploys. |
-| `CACHE_TTL_SECONDS` | no | How long a cached `/api/generate` response is served. Default `3600` (1h). `0` means never expire. |
+| `CACHE_TTL_SECONDS` | no | How long a cached `/api/generate` response is served. Default `604800` (7 days). `0` means never expire. The cache key is versioned (`gen:v6:`) so a code change that affects response shape can be invalidated by bumping the prefix; otherwise repeat requests for popular cells (Maths Gr 6 T2 Test 50 marks etc.) come back free. |
 | `AUTH_SECRET` | **prod only** | HMAC key for signing session cookies. Required when `NODE_ENV=production`. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`. |
 | `APP_URL` | prod recommended | Base URL for magic-link verification (e.g. `https://resource-room.up.railway.app`). Leave blank for local dev — links become relative. |
 | `EMAIL_PROVIDER` | no | `console` (logs to stdout — dev default), `resend` (Resend API), or `disabled`. |
