@@ -330,6 +330,35 @@ select:focus{outline:none;border-color:var(--t4);}
 .pack-body[contenteditable="true"]:focus{outline-color:var(--t6);}
 .edit-notice{background:var(--amber05);border:1px solid var(--amber);color:#633806;font-size:12px;line-height:1.5;padding:10px 20px;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);}
 
+/* Toast notifications — replaces every alert() with a non-blocking
+   slide-in card. Stack of up to N at the top-right; auto-dismiss after
+   5s; user can dismiss earlier with the × button. */
+.toast-stack{position:fixed;top:14px;right:14px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:380px;pointer-events:none;}
+.toast{background:#fff;border:1px solid var(--bdr);border-left:4px solid var(--t6);border-radius:8px;padding:11px 14px 11px 16px;font-size:13px;line-height:1.45;color:var(--ink);box-shadow:0 4px 14px rgba(0,0,0,0.10);pointer-events:auto;display:flex;align-items:flex-start;gap:10px;animation:toast-slide-in 180ms ease-out;}
+.toast.success{border-left-color:var(--t4);}
+.toast.error{border-left-color:#a32d2d;}
+.toast.info{border-left-color:#185FA5;}
+.toast.leaving{animation:toast-slide-out 180ms ease-in forwards;}
+.toast .toast-msg{flex:1;word-break:break-word;}
+.toast .toast-close{background:transparent;border:none;color:var(--ink4);font-size:18px;line-height:1;cursor:pointer;padding:0 4px;font-family:inherit;flex-shrink:0;}
+.toast .toast-close:hover{color:var(--ink);}
+@keyframes toast-slide-in{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@keyframes toast-slide-out{to{transform:translateX(40px);opacity:0;}}
+
+/* Beta banner — shown once per browser, dismissible, sits above the
+   verify banner (or directly under the header if email is verified). */
+.beta-banner{background:var(--t05);border-bottom:1px solid #c4dccd;color:var(--t8);padding:8px 16px;font-size:12px;display:flex;align-items:center;justify-content:space-between;gap:14px;line-height:1.4;}
+.beta-banner.hidden{display:none;}
+.beta-banner .b-msg{flex:1;}
+.beta-banner a{color:var(--t6);font-weight:600;text-decoration:none;}
+.beta-banner a:hover{text-decoration:underline;}
+.beta-banner .b-close{background:transparent;border:none;color:var(--t8);font-size:16px;line-height:1;cursor:pointer;padding:0 4px;font-family:inherit;opacity:0.7;}
+.beta-banner .b-close:hover{opacity:1;}
+
+/* Report-a-problem link in the user chip — same affordance as Help. */
+.user-report{background:transparent;border:1px solid var(--t6);color:var(--t1);font-size:11px;font-weight:700;padding:4px 10px;border-radius:14px;cursor:pointer;font-family:inherit;text-decoration:none;display:inline-flex;align-items:center;}
+.user-report:hover{background:var(--t9);color:#fff;}
+
 @media (max-width: 720px){
   .hamburger{display:inline-flex;}
   .layout{display:block;}
@@ -378,6 +407,7 @@ select:focus{outline:none;border-color:var(--t4);}
       <span class="tier-badge" id="tier-badge" style="display:none;"></span>
       <span class="user-email" id="user-email"></span>
       <a class="user-account" href="/help" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;">Help</a>
+      <button type="button" class="user-report" onclick="openReportProblem()">Report a problem</button>
       <button type="button" class="user-account" onclick="openAccountModal()">Account</button>
       <button type="button" class="user-billing" id="user-billing" onclick="openBilling()" style="display:none;"></button>
       <button type="button" class="user-logout" onclick="doLogout()">Sign out</button>
@@ -451,6 +481,13 @@ select:focus{outline:none;border-color:var(--t4);}
 <!-- Email-verification banner. Hidden until /api/auth/me reports
      emailVerified === false. Lets the teacher resend the verification
      email without leaving the app. -->
+<!-- Beta banner — once-per-browser nudge, dismissible. Sets expectations
+     for the early teacher cohort: rough edges are fine, please report. -->
+<div class="beta-banner hidden" id="beta-banner" role="status">
+  <div class="b-msg">🌱 You're testing The Resource Room — found something rough or confusing? <a href="javascript:void(0)" onclick="openReportProblem()">Tell us about it</a> and we'll fix it.</div>
+  <button type="button" class="b-close" aria-label="Dismiss" onclick="dismissBetaBanner()">×</button>
+</div>
+
 <div class="verify-banner hidden" id="verify-banner">
   <div class="v-msg">Please verify your email — we sent a confirmation link to <strong id="verify-banner-email"></strong>. <a href="/help#signin" target="_blank" style="color:#633806;text-decoration:underline;">Didn't get it?</a></div>
   <button type="button" id="verify-banner-btn" onclick="resendVerification()">Resend link</button>
@@ -1503,8 +1540,8 @@ async function doGenerate(bypassCache){
   const lessonMinutes = isLesson ? parseInt(document.getElementById('lesson-len').value, 10) || 45 : null;
   const subtopicHeading = isLesson ? (document.getElementById('subtopic')?.value || '').trim() : null;
 
-  if(!subj){ alert('Please select a subject.'); return; }
-  if (isLesson && !unitId) { alert('Please select a CAPS Unit for the lesson.'); return; }
+  if(!subj){ showError('Please select a subject.'); return; }
+  if (isLesson && !unitId) { showError('Please select a CAPS Unit for the lesson.'); return; }
 
   showGen('l');
   document.getElementById('gbtn').disabled = true;
@@ -1941,7 +1978,7 @@ async function saveEdits(){
     body.textContent = edited;
     exitEditMode();
   } catch (err){
-    alert('Could not save changes: ' + (err?.message || err));
+    showError('Could not save changes: ' + (err?.message || err));
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = originalLabel;
@@ -1951,7 +1988,7 @@ async function saveEdits(){
 async function sendRefinement(){
   const instruction = document.getElementById('refine-input').value.trim();
   if(!instruction) return;
-  if(!window._cur){ alert('No resource loaded to refine.'); return; }
+  if(!window._cur){ showError('No resource loaded to refine.'); return; }
   const sendBtn = document.getElementById('refine-send');
   const histEl = document.getElementById('refine-history');
   const inputEl = document.getElementById('refine-input');
@@ -2058,7 +2095,7 @@ function doCopy(btn){
   if(!window._cur) return;
   navigator.clipboard.writeText(window._cur)
     .then(()=>{ const o=btn.textContent; btn.textContent='Copied!'; setTimeout(()=>btn.textContent=o, 1800); })
-    .catch(()=>alert('Please select and copy manually.'));
+    .catch(()=>showError('Could not copy automatically — please select and copy manually.'));
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -2097,12 +2134,12 @@ function openSeriesModal(){
   const subj = decodeSubj(document.getElementById('subj').value);
   const topicEl = document.getElementById('topic');
   const opt = topicEl?.options?.[topicEl.selectedIndex];
-  if (!subj || !opt) { alert('Please pick a subject and CAPS Unit first.'); return; }
+  if (!subj || !opt) { showError('Please pick a subject and CAPS Unit first.'); return; }
   let headings = [];
   try { headings = opt.dataset.subtopics ? JSON.parse(opt.dataset.subtopics) : []; }
   catch { headings = []; }
   if (!headings.length) {
-    alert('This Unit has no subtopics — generate a single Whole-Unit lesson instead.');
+    showInfo('This Unit has no subtopics — generate a single Whole-Unit lesson instead.');
     return;
   }
   const lessonMinutes = parseInt(document.getElementById('lesson-len').value, 10) || 45;
@@ -2474,9 +2511,9 @@ function renderSeriesProgress(state, inProgress, currentIdx){
 
 function downloadSeriesEntry(idx, kind){
   const entry = window._series?.completed?.[idx];
-  if (!entry || entry.failed) { alert('Lesson not ready.'); return; }
+  if (!entry || entry.failed) { showError('Lesson not ready.'); return; }
   const b64 = kind === 'pptx' ? entry.pptxBase64 : entry.docxBase64;
-  if (!b64) { alert('That file isn\'t available for this lesson.'); return; }
+  if (!b64) { showError('That file isn\'t available for this lesson.'); return; }
   const mime = kind === 'pptx'
     ? 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
     : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -2499,11 +2536,11 @@ async function downloadSeriesZip(){
   const state = window._series;
   if (!state) return;
   const ready = state.completed.filter((c) => c && !c.failed);
-  if (!ready.length) { alert('No lessons ready to bundle.'); return; }
+  if (!ready.length) { showError('No lessons ready to bundle.'); return; }
 
   let JSZip;
   try { JSZip = await ensureJSZip(); }
-  catch (err) { alert('Could not load ZIP library: ' + err.message); return; }
+  catch (err) { showError('Could not load ZIP library: ' + err.message); return; }
 
   const zip = new JSZip();
   let fileCount = 0;
@@ -2563,7 +2600,7 @@ function retrySeriesLesson(idx){
 }
 
 function downloadDocx(){
-  if(!window._docxBase64){alert('Generate a resource first.');return;}
+  if(!window._docxBase64){showError('Generate a resource first.');return;}
   const bytes=Uint8Array.from(atob(window._docxBase64),c=>c.charCodeAt(0));
   const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
   const a=document.createElement('a');
@@ -2575,7 +2612,7 @@ function downloadDocx(){
 }
 
 function downloadPptx(){
-  if(!window._pptxBase64){alert('No PowerPoint available — generate a Lesson first.');return;}
+  if(!window._pptxBase64){showError('No PowerPoint available — generate a Lesson first.');return;}
   const bytes=Uint8Array.from(atob(window._pptxBase64),c=>c.charCodeAt(0));
   const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.presentationml.presentation'});
   const a=document.createElement('a');
@@ -2584,6 +2621,98 @@ function downloadPptx(){
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
+}
+
+// ── Toast notifications ────────────────────────────────────────────────────
+// Drop-in replacement for alert(). showToast(msg, kind?) where kind is
+// 'info' (default), 'success', or 'error'. Auto-dismisses after 5s; user
+// can hit × to dismiss sooner. Multiple toasts stack at the top-right.
+//
+// We deliberately don't try to replicate alert()'s blocking semantics —
+// every legacy alert() in this file was followed by a `return;` which
+// already short-circuited control flow, so a non-blocking toast is fine.
+function showToast(message, kind = 'info', { duration = 5000 } = {}) {
+  if (!message) return;
+  let stack = document.getElementById('toast-stack');
+  if (!stack) {
+    stack = document.createElement('div');
+    stack.id = 'toast-stack';
+    stack.className = 'toast-stack';
+    document.body.appendChild(stack);
+  }
+  const toast = document.createElement('div');
+  toast.className = `toast ${kind}`;
+  toast.setAttribute('role', kind === 'error' ? 'alert' : 'status');
+  toast.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
+  const msgEl = document.createElement('div');
+  msgEl.className = 'toast-msg';
+  msgEl.textContent = String(message);
+  const btn = document.createElement('button');
+  btn.className = 'toast-close';
+  btn.setAttribute('aria-label', 'Dismiss');
+  btn.textContent = '×';
+  toast.append(msgEl, btn);
+  stack.appendChild(toast);
+
+  let timer = setTimeout(dismiss, duration);
+  function dismiss() {
+    clearTimeout(timer);
+    toast.classList.add('leaving');
+    setTimeout(() => toast.remove(), 200);
+  }
+  btn.onclick = dismiss;
+  return dismiss;
+}
+const showError = (msg) => showToast(msg, 'error', { duration: 6500 });
+const showSuccess = (msg) => showToast(msg, 'success');
+const showInfo = (msg) => showToast(msg, 'info');
+
+// ── Beta banner ────────────────────────────────────────────────────────────
+// One-time-per-browser nudge that sets expectations for early teachers.
+// Hidden once dismissed (localStorage flag), so they aren't nagged daily.
+const LS_BETA_DISMISSED = 'rr.betaBannerDismissed';
+function dismissBetaBanner() {
+  try { localStorage.setItem(LS_BETA_DISMISSED, '1'); } catch {}
+  document.getElementById('beta-banner')?.classList.add('hidden');
+}
+function maybeShowBetaBanner() {
+  let dismissed = false;
+  try { dismissed = localStorage.getItem(LS_BETA_DISMISSED) === '1'; } catch {}
+  if (!dismissed) document.getElementById('beta-banner')?.classList.remove('hidden');
+}
+
+// ── Report-a-problem (mailto) ──────────────────────────────────────────────
+// Opens the user's mail client with the support address pre-filled and a
+// body containing context that helps Martin debug without going back-and-forth.
+function openReportProblem() {
+  const subj = decodeSubj(document.getElementById('subj')?.value || '');
+  const grade = document.getElementById('grade')?.value || '';
+  const term = document.getElementById('term')?.value || '';
+  const topic = document.getElementById('topic')?.value || '';
+  const restype = document.getElementById('restype')?.value || '';
+  const lang = (typeof window !== 'undefined' && window.lang) || 'English';
+  const ctx = [
+    'Hi,',
+    '',
+    "What I was trying to do:",
+    '',
+    '(your description here — the more detail the better)',
+    '',
+    '---',
+    'Context (please leave this in — it helps me debug):',
+    `  User: ${_currentUser?.email || '(not signed in)'}`,
+    `  Page: ${location.href}`,
+    `  Grade: ${grade || '—'}   Term: ${term || '—'}   Subject: ${subj || '—'}`,
+    `  Topic: ${topic || '—'}   Resource type: ${restype || '—'}   Language: ${lang}`,
+    `  Browser: ${navigator.userAgent}`,
+    `  Window: ${window.innerWidth}x${window.innerHeight}`,
+    `  Time: ${new Date().toISOString()}`,
+  ].join('\n');
+  const subject = 'The Resource Room — issue report';
+  const href = `mailto:hello\x40theresourceroom.co.za?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(ctx)}`;
+  // Open in a new tab if the user's mail client doesn't intercept the
+  // mailto: — falls through to the browser's default handler either way.
+  window.location.href = href;
 }
 
 // ── Auth gating ────────────────────────────────────────────────────────────
@@ -2620,6 +2749,7 @@ function renderSignedIn(user, billing){
   renderTierBadge(user.subscription);
   renderBillingButton(user.subscription);
   updateVerifyBanner(user);
+  maybeShowBetaBanner();
   hideAuthGate();
   // First sign-in: profile is empty → pop the onboarding modal.
   if (user.profile && !user.profile.complete) {
@@ -2691,7 +2821,7 @@ async function openBilling(){
       btn.textContent = originalLabel;
     }
   } catch (err){
-    alert(err.message || String(err));
+    showError(err.message || String(err));
     btn.disabled = false;
     btn.textContent = originalLabel;
   }
@@ -2743,7 +2873,7 @@ async function startCheckout(tier, billing){
     if (!r.ok || !d.url) throw new Error(d.error || 'Could not start checkout');
     window.location.href = d.url;
   } catch (err){
-    alert(err.message || String(err));
+    showError(err.message || String(err));
     buttons.forEach(b => { b.disabled = false; });
   }
 }
@@ -2900,11 +3030,11 @@ async function resendVerification(){
       setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 4000);
     } else {
       const d = await r.json().catch(() => ({}));
-      alert(d.error || 'Could not send verification email.');
+      showError(d.error || 'Could not send verification email.');
       btn.textContent = orig; btn.disabled = false;
     }
   } catch {
-    alert('Network error — please try again.');
+    showError('Network error — please try again.');
     btn.textContent = orig; btn.disabled = false;
   }
 }
@@ -3053,7 +3183,7 @@ async function doDeleteAccount(){
   const typed = document.getElementById('danger-confirm-input').value.trim().toLowerCase();
   const expected = (_currentUser?.email || '').toLowerCase();
   if (!expected || typed !== expected){
-    alert('Email does not match. Type your email exactly to confirm.');
+    showError('Email does not match. Type your email exactly to confirm.');
     return;
   }
   const btn = document.getElementById('danger-confirm-btn');
@@ -3071,11 +3201,12 @@ async function doDeleteAccount(){
     if (!r.ok){
       throw new Error(d.error || 'Could not delete account.');
     }
-    // Done — drop everything in memory and bounce to the landing page.
-    alert('Your account has been deleted. We sent a confirmation to your email.');
-    window.location.assign('/');
+    // Done — flash a success toast, then bounce to the landing page after
+    // a short delay so the message is actually readable.
+    showSuccess('Your account has been deleted. We sent a confirmation to your email.');
+    setTimeout(() => window.location.assign('/'), 1800);
   } catch (err){
-    alert(err.message || 'Could not delete account.');
+    showError(err.message || 'Could not delete account.');
     btn.disabled = false;
     btn.textContent = orig;
   }
@@ -3098,10 +3229,10 @@ async function doDeleteAccount(){
   const checkoutResult = params.get('checkout');
   if (checkoutResult){
     if (checkoutResult === 'success'){
-      alert('Subscription confirmed — welcome to The Resource Room.');
+      showSuccess('Subscription confirmed — welcome to The Resource Room.');
       setTimeout(checkAuth, 2000);
     } else if (checkoutResult === 'cancelled'){
-      alert('Checkout cancelled — no charge was made.');
+      showInfo('Checkout cancelled — no charge was made.');
     }
     params.delete('checkout');
     const q = params.toString();
