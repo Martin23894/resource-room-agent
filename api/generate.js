@@ -197,6 +197,7 @@ function buildContext(req) {
     prescribedSectionMarks,
     durationMin, localisedDurationLabel, subjectDisplay, localResourceLabel,
     isLesson, lessonUnit, lessonSubtopic, lessonMinutes,
+    isFinalExam: resourceType === 'Final Exam',
     seriesContext: isLesson ? (req.seriesContext || null) : null,
   };
 }
@@ -554,10 +555,23 @@ export async function generate(req, opts = {}) {
       user,
       tool,
       model: SONNET_4_6,
-      // Lessons emit a lesson plan + a slide deck on top of the worksheet,
-      // which roughly doubles the structured output. Other resource types
-      // keep the historical 16k budget.
-      maxTokens: ctx.isLesson ? 24000 : 16000,
+      // Output budgets per resource type:
+      //   Final Exam — full-year scope, 100-mark paper, multi-section
+      //                with stimuli + matched memo. Empirically a 50-mark
+      //                Test consumes ~10k output tokens; a 100-mark Final
+      //                Exam needs ~20-25k. 32k gives comfortable headroom
+      //                so the model can finish under the schema instead of
+      //                truncating mid-tool-call (which fails validation
+      //                and burns the retry budget).
+      //   Lesson    — lesson plan + slide deck + worksheet + memo, roughly
+      //                doubles a worksheet's output.
+      //   Others    — historical 16k is plenty for Tests/Exams/Worksheets.
+      maxTokens: ctx.isFinalExam ? 32000 : ctx.isLesson ? 24000 : 16000,
+      // Final Exam at 32k output @ ~100 tok/s ≈ 320s of model time, so
+      // bump the per-call timeout from the default 240s to 360s so the
+      // call has a full 6 minutes before the wrapper aborts. Other types
+      // keep the default which is comfortable for a 16k/24k budget.
+      timeoutMs: ctx.isFinalExam ? 360000 : undefined,
       // Prompt cache the system prompt. Repeated calls for the same
       // {subject, grade, term, language, resourceType} produce identical
       // system prompts and tool schemas — within the 5-minute ephemeral
@@ -865,16 +879,21 @@ export default async function handler(req, res) {
     }
   }
 
-  // Hard wall-clock ceiling on the whole generation pipeline. The
-  // per-call Anthropic timeout is 180s, and generate() retries up to 3
-  // times on schema-validation failures, so the worst-case before this
-  // fires would be ~9 min — long enough that the heartbeat masks it as
-  // an indefinite hang from the user's perspective. Aborting at 5 min
-  // surfaces a clear error instead.
-  const HARD_TIMEOUT_MS = 5.5 * 60 * 1000;
+  // Hard wall-clock ceiling on the whole generation pipeline. Aborting
+  // here surfaces a clear "took longer than expected" error instead of
+  // letting the heartbeat mask an indefinite hang.
+  //
+  // Final Exam needs a longer ceiling: full-year scope + 32k output budget
+  // means a single Anthropic call can run ~5-6 min on its own. Other
+  // resource types finish well inside 5.5 min even with two schema
+  // retries (240s × 3 = 12 min worst case, but real failures abort earlier
+  // because each attempt's 240s timeout fires).
+  const isFinalExamReq = parsed.resourceType === 'Final Exam';
+  const HARD_TIMEOUT_MS = isFinalExamReq ? 7 * 60 * 1000 : 5.5 * 60 * 1000;
+  const hardTimeoutMinutes = HARD_TIMEOUT_MS / 60000;
   const hardTimeout = setTimeout(() => {
-    log.warn({ cacheKey }, 'generate: hard timeout (5 min) — aborting');
-    abort.abort(new Error('TIMEOUT_5MIN'));
+    log.warn({ cacheKey, hardTimeoutMinutes }, 'generate: hard timeout — aborting');
+    abort.abort(new Error('TIMEOUT_GEN'));
   }, HARD_TIMEOUT_MS);
 
   // Keep-alive heartbeat — the Anthropic call for a Final Exam can take
@@ -969,11 +988,12 @@ export default async function handler(req, res) {
     // Re-shape the hard-timeout abort into a clean user-facing error so
     // the frontend renders 'took too long' instead of a generic abort.
     const isHardTimeout =
-      err?.message === 'TIMEOUT_5MIN' ||
-      abort.signal.reason?.message === 'TIMEOUT_5MIN';
+      err?.message === 'TIMEOUT_GEN' ||
+      abort.signal.reason?.message === 'TIMEOUT_GEN';
+    const timeoutMinutes = isFinalExamReq ? 7 : 5;
     const surfaced = isHardTimeout
       ? Object.assign(
-          new Error('Generation took longer than 5 minutes. Final Exams sometimes hit this; please try again, or generate a Term Test instead which is faster.'),
+          new Error(`Generation took longer than ${timeoutMinutes} minutes. Final Exams sometimes hit this; please try again, or generate a Term Test instead which is faster.`),
           { status: 504, code: 'GENERATE_TIMEOUT' },
         )
       : err;

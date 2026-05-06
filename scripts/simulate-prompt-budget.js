@@ -235,9 +235,9 @@ function main() {
   console.log(`  Sonnet 4.6 input context:    200,000 tokens — margin = ${(200_000 - max).toLocaleString()} tokens (${((200_000 - max)/200_000*100).toFixed(1)}% free)`);
   console.log();
   console.log('Hard limits this PR DOES NOT change (still bounded by existing fixes):');
-  console.log('  Output max_tokens:           16,000  (api/generate.js:362, unchanged)');
-  console.log('  Per-call timeout:            240 sec (lib/anthropic.js:45, unchanged)');
-  console.log('  Wall-clock ceiling:          330 sec (api/generate.js:631, unchanged)');
+  console.log('  Output max_tokens:           16,000 (Tests/Exams/Worksheets), 24,000 (Lesson), 32,000 (Final Exam)');
+  console.log('  Per-call timeout:            240 sec default; 360 sec for Final Exam');
+  console.log('  Wall-clock ceiling:          330 sec default; 420 sec for Final Exam');
   console.log('  Final Exam retries:          0 attempts (single shot, unchanged)');
   console.log();
   console.log('What this script CANNOT tell you (only a live API call can):');

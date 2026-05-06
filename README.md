@@ -1368,11 +1368,18 @@ The most useful section in this README. If something looks weird in production, 
 
 **If this fires often:** bump the `±5` tolerance in `assertResource` lesson invariants, or tighten the prescribed budget formula in `buildLessonContextBlock()`.
 
-### "Generation hangs / times out at 5 min on Final Exam"
+### "Generation hangs / times out on Final Exam"
 
-**Cause:** Final Exam is the worst-case prompt — all four terms in scope, max marks, longest output. A single Anthropic call can take 90–150s, and we set retries to 0 for Final Exam to fit inside the 5-min wall clock. If it still hangs, the per-call timeout (`240s` in `lib/anthropic.js`) is the next thing to check.
+**Cause:** Final Exam is the worst-case prompt — all four terms in scope, max marks, longest output. A single Anthropic call can run 4–6 minutes at the 32k output budget. Final Exam therefore has its own enlarged budgets:
 
-**Friendly error:** the handler reshapes the abort into *"Generation took longer than 5 minutes…"* and surfaces it via SSE.
+- **Output cap**: 32,000 tokens (vs 16,000 for Tests/Exams, 24,000 for Lessons). The earlier 16k budget cut Final Exams off mid-tool-call, which then failed schema validation and chewed the retry budget — at $0.79 a pop. Bumping to 32k lets the model finish under the schema in a single attempt.
+- **Per-call Anthropic timeout**: 360s (vs default 240s). At ~100 tok/s the model needs the full 6 min to emit 32k tokens.
+- **Hard wall-clock**: 7 min (vs 5.5 min for everything else). Wraps the per-call timeout with a small safety margin.
+- **Retries**: 0 (single shot — wall clock is too tight for retry passes).
+
+If a Final Exam still hangs past 7 min, the per-call Anthropic timeout (`lib/anthropic.js`) or the model itself is the next thing to check.
+
+**Friendly error:** the handler reshapes the abort into *"Generation took longer than N minutes…"* (N = 7 for Final Exam, 5 for everything else) and surfaces it via SSE.
 
 ### "Diagram doesn't render in the DOCX/PPTX"
 
