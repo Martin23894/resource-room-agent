@@ -7,7 +7,7 @@ papers + memos as DOCX, plus full lessons as DOCX + PowerPoint (single
 lessons *or* a complete unit's worth of lessons in one click).
 
 Powered by Claude Sonnet 4.6 via the Anthropic tool API. Built on
-Node/Express. Deployed on Railway.
+Node/Express with SQLite for auth + per-user state. Deployed on Railway.
 
 ---
 
@@ -18,34 +18,43 @@ Node/Express. Deployed on Railway.
 3. [Environment variables](#environment-variables)
 4. [Production email setup](#production-email-setup)
 5. [Operational status](#operational-status)
-6. [Resource types](#resource-types)
-5. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
-   1. [Single lesson + Subtopic picker](#single-lesson--subtopic-picker)
-   2. [Lesson series generator](#lesson-series-generator)
-   3. [Visual identity (kid-mode)](#visual-identity-kid-mode)
-6. [Architecture](#architecture)
-7. [Project layout](#project-layout)
-8. [API surface](#api-surface)
-9. [Schema overview](#schema-overview)
-10. [CAPS data files](#caps-data-files)
-11. [Frontend cascade](#frontend-cascade)
-12. [Testing](#testing)
-13. [Deployment](#deployment)
-14. [Bugs we've hit + how to debug](#bugs-weve-hit--how-to-debug)
-15. [Glossary](#glossary)
+6. [Public pages + routing](#public-pages--routing)
+7. [Auth + accounts](#auth--accounts)
+8. [Frontend UX patterns](#frontend-ux-patterns)
+9. [Resource types](#resource-types)
+10. [The Lesson generator](#the-lesson-generator) ← deepest section, read this when touching Lessons
+    1. [Single lesson + Subtopic picker](#single-lesson--subtopic-picker)
+    2. [Lesson series generator](#lesson-series-generator)
+    3. [Visual identity (kid-mode)](#visual-identity-kid-mode)
+11. [Architecture](#architecture)
+12. [Project layout](#project-layout)
+13. [API surface](#api-surface)
+14. [Schema overview](#schema-overview)
+15. [CAPS data files](#caps-data-files)
+16. [Frontend cascade](#frontend-cascade)
+17. [Testing](#testing)
+18. [Deployment](#deployment)
+19. [Bugs we've hit + how to debug](#bugs-weve-hit--how-to-debug)
+20. [Glossary](#glossary)
 
 ---
 
 ## What it does
 
-A teacher signs in, picks `grade × term × subject × resource type × language × marks × difficulty`, and clicks Generate. The app:
+A teacher creates an account at `/`, verifies their email, fills in a
+short profile (name, school, grades they teach), then lands on `/app`.
+From there they pick `grade × term × subject × resource type × language
+× marks × difficulty`, and click Generate. The app:
 
 1. Looks up the relevant ATP topics + rich pacing data (concepts, prerequisites, CAPS strands, formal-assessment splits) from `data/atp.json` + `data/atp-pacing.json`.
 2. Asks Claude Sonnet 4.6 (one forced tool call) to fill a strict JSON schema (`schema/resource.schema.js`) covering meta, cover, stimuli, sections, leaf questions, matched memo, and (for Lessons) a teacher-facing `lesson` branch.
 3. Validates → rebalances marks → renders DOCX via `lib/render.js`. For Lessons, also renders PowerPoint via `lib/pptx-builder.js`.
 4. Returns a payload with base64 DOCX (always), base64 PPTX (Lessons only), text preview, and verification metadata.
 
-The frontend is a single static HTML file (`public/index.html`) with vanilla JS — no build step.
+The public marketing surface (`/`, `/privacy`, `/terms`, `/help`) and
+the authenticated app (`/app`, `/app/*`) are split — see [Public pages
++ routing](#public-pages--routing). Both are vanilla HTML/JS, no build
+step.
 
 ---
 
@@ -61,12 +70,21 @@ npm install
 npm start
 ```
 
-Open <http://localhost:3000>, sign in via the magic-link flow (in dev, `EMAIL_PROVIDER=console` logs the link to stdout — copy it into your browser).
+Open <http://localhost:3000>:
+
+- `/` — public landing page with a sign-in / sign-up form.
+- `/app` — the resource generator (gated behind sign-in).
+
+Create an account: enter an email + a password (≥10 chars). In dev
+(`EMAIL_PROVIDER=console`, the default) the verification email body is
+logged to stdout — copy the verify link into your browser to confirm.
+The app works while you're unverified; verifying just lets you reset
+your password later.
 
 Run the test suite:
 
 ```bash
-npm test          # 549 tests, ~32s, all node:test — no Anthropic API calls
+npm test          # 628 tests, ~32s, all node:test — no Anthropic API calls
 ```
 
 ---
@@ -223,6 +241,214 @@ from the open internet.
 
 The plain `/health` endpoint (no per-dependency detail, always returns
 `{status:"ok"}`) stays unauthenticated and is what Railway probes.
+
+---
+
+## Public pages + routing
+
+The site has two distinct surfaces. Anonymous traffic lands on the
+public marketing pages; the resource generator lives behind sign-in
+at `/app`.
+
+| Path | What it is | Source file |
+|---|---|---|
+| `/` | Landing page — hero, features, sign-in/sign-up form, CTAs | `public/landing.html` |
+| `/app` (and `/app/*`) | Authenticated SPA — the resource generator. Auth gate inside the page redirects unsigned-in visitors to a login modal | `public/index.html` |
+| `/help` | Help / FAQ — 21 collapsible items covering signup, sign-in, resource types, account, AI quality, privacy, billing | `public/help.html` |
+| `/privacy` | POPIA-aware Privacy Policy (placeholder template, review with a SA legal advisor before launch) | `public/privacy.html` |
+| `/terms` | Terms of Service (same template-status note) | `public/terms.html` |
+| `/api/auth/verify`, `/api/auth/reset` | Email-verification + password-reset confirm pages — server-rendered HTML | `api/auth-verify.js`, `api/auth-reset.js` |
+| Anything else | `404` page (`public/404.html`) — replaces the silent SPA fallback so broken inbound links are visible |
+
+**SEO basics**: every page has an explicit `<title>`, `description`,
+OpenGraph tags on the landing page, a `favicon.svg` and a `robots.txt`
+that disallows `/api/` and `/app`.
+
+---
+
+## Auth + accounts
+
+Email + password is the primary sign-in path, with passwordless magic
+links kept only for two narrow flows: **email verification on signup**
+(`purpose=verify`) and **password reset** (`purpose=reset`).
+
+### The `users` table
+
+Every signed-up teacher gets a `users` row. Schema is additive — new
+columns are added via `ALTER TABLE` in `lib/cache.js` so older deploys
+upgrade in place.
+
+| Column | Purpose |
+|---|---|
+| `id` | UUID — PK |
+| `email` | Unique, lower-cased on insert |
+| `password_hash` | scrypt-encoded (`scrypt$N$r$p$salt$hash`); `null` for legacy magic-link-only users until they set a password via Forgot password |
+| `email_verified_at` | unix-ms; `null` until they click the verify link |
+| `created_at`, `last_login_at` | unix-ms timestamps |
+| `display_name`, `school`, `role`, `province` | Profile text fields |
+| `grades_taught`, `subjects_taught` | JSON arrays |
+| `profile_completed_at` | unix-ms; `null` triggers the onboarding modal on next sign-in |
+| `trial_ends_at` | unix-ms; set 14 days after signup |
+| `stripe_customer_id`, `stripe_subscription_id`, `subscription_status`, `subscription_tier`, `current_period_end` | Stripe state, populated by webhook |
+
+### The `magic_links` table
+
+| Column | Purpose |
+|---|---|
+| `token` | 32-byte hex — PK |
+| `email` | Lower-cased recipient |
+| `purpose` | `'verify'` (post-signup), `'reset'` (forgot-password), `'signin'` (legacy back-compat) |
+| `expires_at` | unix-ms; tokens expire 15 min after creation |
+| `used_at` | unix-ms; nulled until consumed |
+
+`peekMagicLink` / `consumeMagicLink` accept an `expectedPurpose` so a
+stolen reset link can't be confirmed against the verify route.
+
+### Password hashing — `lib/password.js`
+
+Uses Node-built-in `crypto.scrypt` (no native dependency).
+`N=16384`, `r=8`, `p=1`, 16-byte salt, 64-byte derived key,
+`timingSafeEqual` for compare. Minimum length 10, whitespace-only
+rejected. Malformed encoded hashes return `false` rather than throw.
+
+### Sessions — `lib/auth.js`
+
+- 32-byte hex session id, 30-day TTL.
+- HMAC-signed cookie (`rr_session`) using `AUTH_SECRET`.
+- `parseSession` middleware decodes the cookie on every request and
+  sets `req.user`. `requireAuth` 401s anonymous requests.
+- Password reset and account deletion both call
+  `deleteAllSessionsForUser(userId)` so a stolen device cookie stops
+  working immediately.
+
+### Sign-up / sign-in flow
+
+```
+Landing page → tabbed form (Sign in / Create account / Forgot password)
+   │
+   ├─ Sign up:
+   │   POST /api/auth/signup { email, password }
+   │   → hash password with scrypt
+   │   → create users row (email_verified_at = null)
+   │   → send TWO emails:
+   │       1. Verification link (purpose='verify')
+   │       2. Welcome email (getting-started bullets, FAQ link)
+   │   → mint session cookie immediately
+   │   → 200 { ok:true, requiresVerification:true }
+   │   → frontend redirects to /app
+   │
+   ├─ Sign in:
+   │   POST /api/auth/signin { email, password }
+   │   → returns the SAME 401 "Incorrect email or password" whether
+   │     the email exists or not (no enumeration)
+   │   → on success mints session cookie, returns
+   │     { ok:true, requiresVerification: !email_verified_at }
+   │
+   └─ Forgot password:
+       POST /api/auth/forgot { email }
+       → always 200 (no enumeration); only emails when account exists
+       → reset link points at GET /api/auth/reset?token=…
+       → POST /api/auth/reset { token, password } applies the new hash,
+         marks email verified (the token proves inbox control), drops
+         every other session, mints a fresh session, redirects to /app
+
+Anywhere in the app:
+   POST /api/auth/resend-verification
+   → re-sends the verification email; auth-gated
+   → no-op (returns alreadyVerified=true) if email is already verified
+```
+
+### Onboarding + profile
+
+After the first successful sign-in, the SPA reads `profile.complete`
+from `/api/auth/me` and pops a blocking onboarding modal asking for
+display name (required), school, role, province, and grades taught.
+The "Account" button in the user chip reopens the same modal for
+edits.
+
+`GET/PUT /api/user/profile` is the underlying CRUD. Validation:
+display name required, grades restricted to 4–7, province must be
+one of the 9 SA provinces or empty, all text capped at 200 chars,
+subjects capped at 20.
+
+### Account deletion (POPIA right-to-erasure)
+
+The Account modal's **Danger zone** lets a teacher type their email
+to confirm, then `DELETE /api/user/account` runs `deleteUserCascade`
+in a SQLite transaction:
+
+- `users` row deleted (cascades to `sessions`, `user_settings`,
+  `user_history` via `ON DELETE CASCADE`)
+- `magic_links` for that email deleted explicitly (no FK to users)
+- Session cookie cleared on the response
+
+A confirmation email is sent **before** the row is removed so the
+teacher has an audit trail even if email is flaky. External state
+(Stripe customer records, log retention) is out of scope — handle
+that in the relevant dashboard.
+
+### Rate limits
+
+- Email-sending endpoints (`/signup`, `/forgot`, `/resend-verification`):
+  3/min, 10/hr per IP — slow enough to stop a hostile actor flooding
+  someone's inbox without nuking a legit retry.
+- Password-checking endpoints (`/signin`, `/reset` POST): 10/min,
+  60/hr per IP — generous on legit retries while throttling
+  credential-stuffing.
+- Claude-backed endpoints (`/generate`, `/refine`, `/cover`,
+  `/rebuild-docx`): 10/min, 50/hr, 200/day **per user** (keyed on
+  `req.user.id`), so a school sharing one IP doesn't share a bucket.
+
+---
+
+## Frontend UX patterns
+
+A few small conventions worth knowing about before touching
+`public/index.html`:
+
+### Toasts replace alert()
+
+`showToast(message, kind, opts?)` with shorthand `showError`,
+`showSuccess`, `showInfo`. Slides in from top-right, auto-dismisses
+after 5s (6.5s for errors), user can hit × earlier. ARIA roles
+(`alert` for errors, `status` for the rest) so screen readers behave.
+Toasts stack vertically.
+
+There are **zero `alert()` calls** in `public/index.html` — every
+error / success path uses a toast. The blocking semantics aren't
+load-bearing because every legacy `alert()` was followed by `return;`
+which already short-circuited control flow.
+
+### Banners
+
+| Banner | Purpose | Source of truth |
+|---|---|---|
+| `#beta-banner` | Light-green "🌱 You're testing" prompt, dismissible × | `localStorage["rr.betaBannerDismissed"]` |
+| `#verify-banner` | Amber "Please verify your email" with a Resend button | Shown when `/api/auth/me` returns `emailVerified: false` |
+
+Both sit between the header and the layout.
+
+### Report a problem
+
+The user chip has a "Report a problem" button. `openReportProblem()`
+opens a `mailto:` to the support address with a pre-filled body
+containing browser, current cascade selection (grade/term/subject/
+topic/resourceType/language), window size, URL and ISO timestamp —
+so the teacher only has to describe what went wrong.
+
+The beta banner's "Tell us about it" link wires to the same function.
+
+### Auth gate
+
+`public/index.html` itself contains a blocking dialog (`.auth-gate`)
+that's visible until `/api/auth/me` returns 200. The gate has tabs:
+
+- **Sign in** (primary) — email + password
+- **Create account** — email + password + confirm
+- **Forgot password?** — email-only
+
+`fetchAuthed()` wraps every API call: a 401 from any endpoint flips
+the gate back on and the user re-authenticates without a reload.
 
 ---
 
@@ -689,17 +915,20 @@ api/                     Express handlers (one per route)
   test.js                  Anthropic health check (secret-gated)
   atp.js                   GET /api/atp — returns the full ATP topic database (cached, ETag'd)
   pacing-units.js          GET /api/pacing-units?subject&grade&term — slim Unit list for the Lesson picker
-  auth-signup.js           POST /api/auth/signup — email + password account creation
+  auth-signup.js           POST /api/auth/signup — email + password account creation, sends verify + welcome
   auth-signin.js           POST /api/auth/signin — email + password sign-in
   auth-forgot.js           POST /api/auth/forgot — send a password-reset link
   auth-reset.js            GET/POST /api/auth/reset — set a new password
   auth-verify.js           GET/POST /api/auth/verify — confirm an email-verification link
   auth-resend-verification.js  POST /api/auth/resend-verification — re-send the verification email
-  auth-logout.js           POST /api/auth/logout
-  auth-me.js               GET /api/auth/me — return current user (incl. profile + emailVerified)
+  auth-logout.js           POST /api/auth/logout — clear session cookie
+  auth-me.js               GET /api/auth/me — return current user (incl. profile + emailVerified + hasPassword)
   user-settings.js         GET/PUT /api/user/settings
-  user-profile.js          GET/PUT /api/user/profile — teacher profile (name, school, role, grades…)
+  user-profile.js          GET/PUT /api/user/profile — teacher profile (name, school, role, grades, province)
   user-history.js          GET/POST/DELETE /api/user/history[/:id]
+  user-account.js          DELETE /api/user/account — POPIA right-to-erasure (cascade-deletes everything)
+  health-status.js         GET /health/status — per-dependency operational snapshot, optional secret guard
+  analytics-config.js      GET /_/analytics.js — Plausible loader (no-op when PLAUSIBLE_DOMAIN unset)
   billing-checkout.js      POST /api/billing/checkout — open Stripe Checkout
   billing-portal.js        POST /api/billing/portal — open Stripe Customer Portal
   stripe-webhook.js        POST /api/stripe/webhook — subscription state source-of-truth
@@ -708,10 +937,12 @@ lib/                     Pure-ish logic (no Express dependencies)
   anthropic.js             Anthropic SDK wrapper — retries, abort, prompt caching
   atp.js                   ATP topic database + pacing helpers (loaded from data/*.json at boot)
   atp-prompt.js            CAPS-pacing prompt-block builders (CAPS reference, lesson directives, …)
-  auth.js                  User/session/magic-link helpers, signed session cookies, requireAuth middleware
+  auth.js                  User/session helpers, magic-link issuing/consuming with purpose, signed session cookies, requireAuth middleware, deleteUserCascade
   password.js              scrypt-based password hash + verify (Node-built-in, no native dep)
+  health.js                Per-dependency status checks (database, auth, anthropic, email, sentry)
+  sentry.js                Sentry server-side init + middleware + captureException helper
   billing.js               Stripe price/tier mapping, subscription state helpers
-  cache.js                 SQLite-backed result cache
+  cache.js                 SQLite-backed result cache + DB schema (users, sessions, magic_links, user_settings, user_history)
   clean-output.js          Legacy markdown/regex cleanup (mostly unused under v2 schema-first pipeline)
   cognitive.js             marksToTime(), getCogLevels(), largestRemainder() — cog-framework math
   diagrams/                SVG renderers for bar_graph / number_line / food_chain
@@ -722,7 +953,7 @@ lib/                     Pure-ish logic (no Express dependencies)
     silhouettes.js           Reusable organism silhouettes used by food_chain
     raster.js                SVG → PNG via @resvg/resvg-js (uses /fonts/Inter*.ttf for determinism)
   docx-builder.js          Legacy v1 DOCX builder (still used by api/rebuild-docx.js)
-  email.js                 Email provider switch (console / Resend / disabled)
+  email.js                 Email provider switch (console / Resend / disabled), Reply-To, sandbox warning, checkEmailConfig
   i18n.js                  Two-language label dictionary (English + Afrikaans)
   logger.js                Pino logger
   marks.js                 Mark-allocation helpers
@@ -778,8 +1009,15 @@ fonts/                   TTFs vendored for deterministic SVG rasterisation
   SourceSerif4-*.ttf
 
 mockups/                 Design references
-public/
-  index.html               Entire frontend — single file, no build step
+public/                  Static assets served as-is
+  landing.html             Public landing page — hero, features, sign-in/up form
+  index.html               Authenticated SPA — entire generator (single file, no build step)
+  help.html                Help / FAQ page (21 collapsible items)
+  privacy.html             Privacy Policy (POPIA-aware draft template)
+  terms.html               Terms of Service (draft template)
+  404.html                 Public 404 page (replaces silent SPA fallback)
+  favicon.svg              Inline-SVG favicon
+  robots.txt               Disallows /api/ and /app
 *.pdf                    DBE Annual Teaching Plan PDFs (source of truth for atp-pacing.json)
 ResourceRoom_MASTER_v2_7.xlsx  Internal pacing spreadsheet (deprecated by atp-pacing.json)
 ```
@@ -788,7 +1026,11 @@ ResourceRoom_MASTER_v2_7.xlsx  Internal pacing spreadsheet (deprecated by atp-pa
 
 ## API surface
 
-All `/api/*` endpoints return JSON. Non-auth endpoints under `/api/auth/*` are limited to 3/min and 10/hr per IP. All other Claude-backed endpoints are auth-gated and limited per **user** (10/min, 50/hr, 200/day).
+All `/api/*` endpoints return JSON. Rate limits, per route family:
+
+- **Email-sending** (`/auth/signup`, `/auth/forgot`, `/auth/resend-verification`): 3/min, 10/hr per IP.
+- **Sign-in / reset** (`/auth/signin`, `/auth/reset` POST): 10/min, 60/hr per IP.
+- **Claude-backed** (`/generate`, `/refine`, `/rebuild-docx`): auth-gated, **per-user** 10/min, 50/hr, 200/day.
 
 ### Generation
 
@@ -805,19 +1047,26 @@ All `/api/*` endpoints return JSON. Non-auth endpoints under `/api/auth/*` are l
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/api/auth/request` | Request a magic-link sign-in email. |
-| GET  | `/api/auth/verify` | Magic-link landing page (renders confirm UI). |
-| POST | `/api/auth/verify` | Consume the magic-link token, set the session cookie. |
-| POST | `/api/auth/logout` | Clear the session cookie. |
-| GET  | `/api/auth/me` | Return the current authenticated user (or null). |
+| POST | `/api/auth/signup` | Create an account with email + password. Sends verify + welcome emails. Returns 200 even if email is already registered (no enumeration). |
+| POST | `/api/auth/signin` | Verify password, mint session cookie. Generic 401 on any failure. |
+| POST | `/api/auth/forgot` | Send a password-reset email. Always 200 regardless of whether the email is registered. |
+| GET  | `/api/auth/reset` | Render the "set new password" form (token NOT consumed — defeats email-scanner prefetch). |
+| POST | `/api/auth/reset` | Apply the new password, mark email verified, drop other sessions, mint a fresh session, redirect to `/app`. |
+| GET  | `/api/auth/verify` | Render the "confirm email" page (token NOT consumed). |
+| POST | `/api/auth/verify` | Consume the verify token, set `email_verified_at`, sign the user in if not already, redirect to `/app`. |
+| POST | `/api/auth/resend-verification` | Re-send the verification email. Auth-gated. No-op if already verified. |
+| POST | `/api/auth/logout` | Delete the session row + clear the cookie. |
+| GET  | `/api/auth/me` | Return the current user (with `profile`, `emailVerified`, `hasPassword`, `subscription`) or 401. |
 
 ### User state
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET / PUT | `/api/user/settings` | Per-user JSON settings blob. |
+| GET / PUT | `/api/user/profile` | Teacher profile (name, school, role, grades, subjects, province). PUT also flips `profile_completed_at`. |
+| GET / PUT | `/api/user/settings` | Per-user JSON settings blob (the sidebar cascade state). |
 | GET / POST / DELETE | `/api/user/history` | Recent generation history (capped per user). |
 | DELETE | `/api/user/history/:id` | Delete one history entry. |
+| DELETE | `/api/user/account` | Permanently delete the account (POPIA right-to-erasure). Requires `confirmEmail` matching the signed-in email. |
 
 ### Billing
 
@@ -827,13 +1076,15 @@ All `/api/*` endpoints return JSON. Non-auth endpoints under `/api/auth/*` are l
 | POST | `/api/billing/portal` | Open Stripe Customer Portal. |
 | POST | `/api/stripe/webhook` | Subscription-state source of truth. Uses **raw body** for signature verification — mounted before `express.json()`. |
 
-### Health / fallback
+### Health / operational
 
 | Method | Path | Purpose |
 |---|---|---|
 | GET | `/health` | Unauthenticated 200 for Railway health checks. |
-| ALL | `/api/*` | 404 for unknown API routes (before SPA catch-all). |
-| GET | `*` | SPA fallback — serves `public/index.html`. |
+| GET | `/health/status` | Per-dependency status snapshot (database, auth, anthropic, email, sentry). Optionally guarded by `?secret=$HEALTH_STATUS_SECRET`. |
+| GET | `/_/analytics.js` | Plausible analytics loader. Emits the script tag when `PLAUSIBLE_DOMAIN` is set, a no-op otherwise. |
+| ALL | `/api/*` | 404 for unknown API routes (before HTML catch-all). |
+| GET | `*` | Catch-all → public 404 page. |
 
 ### Generate request body
 
