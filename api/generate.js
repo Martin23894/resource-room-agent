@@ -832,6 +832,7 @@ export const __internals = {
   buildCapsReferenceBlock,
   buildAssessmentStructureBlock,
   buildSystemPrompt,
+  buildUserPrompt,
 };
 
 // ─────────────────────────────────────────────────────────────────────
