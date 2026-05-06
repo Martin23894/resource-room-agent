@@ -63,58 +63,123 @@ const STRIPE_FIXED_ZAR = 2;
 // `archetypeMix` keys must match cell ids (or archetype labels) we have
 // bench numbers for. `cacheHit` is the fraction of calls served from the
 // SQLite result cache (zero Anthropic cost).
+//
+// Two scenarios:
+//   • baseline  — typical usage at tier targets, moderate cache hits,
+//                 mix skewed toward cheap content (worksheets/tests).
+//   • worst     — every paid user maxes the tier hard cap; zero cache
+//                 hits; mix shifted toward expensive content (Lesson +
+//                 Final Exam); retry inflation factor applied via
+//                 RETRY_INFLATION below. Use to stress-test margins.
+//
+// Pick with --scenario=baseline (default) or --scenario=worst.
 // ─────────────────────────────────────────────────────────────
-const PERSONAS = [
-  {
-    id: 'light',
-    label: 'Light teacher (Essential tier target)',
-    cacheHit: 0.30,
-    archetypeMix: {
-      'maths-g5-t2-test':       3,  // worksheet-ish small assessments
-      'nst-g6-t1-worksheet':    4,
-      'eng-hl-g4-t2-exam':      0,
-      'maths-g7-final-exam':    0,
-      'maths-g6-t2-lesson':     1,
+const PERSONA_SETS = {
+  baseline: [
+    {
+      id: 'light',
+      label: 'Light teacher (Essential tier target)',
+      cacheHit: 0.30,
+      archetypeMix: {
+        'maths-g5-t2-test':       3,  // worksheet-ish small assessments
+        'nst-g6-t1-worksheet':    4,
+        'eng-hl-g4-t2-exam':      0,
+        'maths-g7-final-exam':    0,
+        'maths-g6-t2-lesson':     1,
+      },
     },
-  },
-  {
-    id: 'classroom',
-    label: 'Classroom regular (Classroom tier target)',
-    cacheHit: 0.40,
-    archetypeMix: {
-      'maths-g5-t2-test':       6,
-      'nst-g6-t1-worksheet':    6,
-      'eng-hl-g4-t2-exam':      2,
-      'maths-g7-final-exam':    1,
-      'maths-g6-t2-lesson':     8,   // ≈ one 8-lesson series — series cost = N×single
+    {
+      id: 'classroom',
+      label: 'Classroom regular (Classroom tier target)',
+      cacheHit: 0.40,
+      archetypeMix: {
+        'maths-g5-t2-test':       6,
+        'nst-g6-t1-worksheet':    6,
+        'eng-hl-g4-t2-exam':      2,
+        'maths-g7-final-exam':    1,
+        'maths-g6-t2-lesson':     8,   // ≈ one 8-lesson series — series cost = N×single
+      },
     },
-  },
-  {
-    id: 'pro',
-    label: 'Power user / HOD (Pro tier target)',
-    cacheHit: 0.50,
-    archetypeMix: {
-      'maths-g5-t2-test':      10,
-      'nst-g6-t1-worksheet':    8,
-      'eng-hl-g4-t2-exam':      4,
-      'maths-g7-final-exam':    2,
-      'maths-g6-t2-lesson':    24,   // ≈ three 8-lesson series
+    {
+      id: 'pro',
+      label: 'Power user / HOD (Pro tier target)',
+      cacheHit: 0.50,
+      archetypeMix: {
+        'maths-g5-t2-test':      10,
+        'nst-g6-t1-worksheet':    8,
+        'eng-hl-g4-t2-exam':      4,
+        'maths-g7-final-exam':    2,
+        'maths-g6-t2-lesson':    24,   // ≈ three 8-lesson series
+      },
     },
-  },
-];
+  ],
+  // Worst case: tier hard cap on calls, zero cache hits, expensive-content
+  // skew (Lessons + Final Exams dominate). The cap numbers come from
+  // lib/billing.js TIERS[*].monthlyCap (15 / 40 / 80) — every Anthropic
+  // call hits the API, every retry counts.
+  worst: [
+    {
+      id: 'light',
+      label: 'Light teacher MAXED (Essential cap = 15)',
+      cacheHit: 0,
+      archetypeMix: {
+        'maths-g5-t2-test':       3,
+        'nst-g6-t1-worksheet':    2,
+        'eng-hl-g4-t2-exam':      2,
+        'maths-g7-final-exam':    1,
+        'maths-g6-t2-lesson':     7,   // shifted toward Lessons
+      },
+    },
+    {
+      id: 'classroom',
+      label: 'Classroom MAXED (Classroom cap = 40)',
+      cacheHit: 0,
+      archetypeMix: {
+        'maths-g5-t2-test':       4,
+        'nst-g6-t1-worksheet':    4,
+        'eng-hl-g4-t2-exam':      4,
+        'maths-g7-final-exam':    4,
+        'maths-g6-t2-lesson':    24,   // three 8-lesson series
+      },
+    },
+    {
+      id: 'pro',
+      label: 'Power user MAXED (Pro cap = 80)',
+      cacheHit: 0,
+      archetypeMix: {
+        'maths-g5-t2-test':       8,
+        'nst-g6-t1-worksheet':    8,
+        'eng-hl-g4-t2-exam':      8,
+        'maths-g7-final-exam':    8,
+        'maths-g6-t2-lesson':    48,   // six 8-lesson series
+      },
+    },
+  ],
+};
+
+// Worst-case retry inflation: bench attempt counts come from a small
+// sample, so worst-case applies a 1.5× multiplier on Anthropic spend to
+// approximate a high-retry month (schema-fail retries, transient 429/5xx
+// re-runs). Baseline uses 1.0× (the actual measured attempts).
+const RETRY_INFLATION = { baseline: 1.0, worst: 1.5 };
 
 // ─────────────────────────────────────────────────────────────
 // CLI
 // ─────────────────────────────────────────────────────────────
 function parseArgs(argv) {
-  const args = { bench: null, usdZar: 18.5, paidUsers: 100 };
+  const args = { bench: null, usdZar: 18.5, paidUsers: 100, scenario: 'baseline' };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a.startsWith('--bench=')) args.bench = a.slice('--bench='.length);
     else if (a.startsWith('--usd-zar=')) args.usdZar = Number(a.slice('--usd-zar='.length));
     else if (a.startsWith('--paid-users=')) args.paidUsers = Number(a.slice('--paid-users='.length));
+    else if (a.startsWith('--scenario=')) args.scenario = a.slice('--scenario='.length);
     else if (a === '-h' || a === '--help') { console.log('see header'); process.exit(0); }
     else { console.error('Unknown flag:', a); process.exit(2); }
+  }
+  if (!PERSONA_SETS[args.scenario]) {
+    console.error(`Unknown --scenario=${args.scenario}. Choices: ${Object.keys(PERSONA_SETS).join(', ')}`);
+    process.exit(2);
   }
   return args;
 }
@@ -159,7 +224,7 @@ function buildCellIndex(bench) {
   return idx;
 }
 
-function projectPersona(persona, cellIndex) {
+function projectPersona(persona, cellIndex, retryInflation = 1.0) {
   const detail = [];
   let monthlyAnthropicUsd = 0;
   let monthlyCalls = 0;
@@ -171,7 +236,7 @@ function projectPersona(persona, cellIndex) {
       continue;
     }
     const billableCalls = count * (1 - persona.cacheHit);
-    const unitCostUsd = costPerCallUsd(cell.usageTotals, SONNET);
+    const unitCostUsd = costPerCallUsd(cell.usageTotals, SONNET) * retryInflation;
     const lineUsd = billableCalls * unitCostUsd;
     monthlyAnthropicUsd += lineUsd;
     monthlyCalls += count;
@@ -204,8 +269,12 @@ function main() {
   const bench = JSON.parse(readFileSync(benchPath, 'utf-8'));
   const cellIndex = buildCellIndex(bench);
 
+  const personas = PERSONA_SETS[args.scenario];
+  const retryInflation = RETRY_INFLATION[args.scenario] ?? 1.0;
+
   console.log(`Bench:        ${benchPath}`);
   console.log(`Bench label:  ${bench.label}  (run ${bench.runAt})`);
+  console.log(`Scenario:     ${args.scenario}  (retry inflation ×${retryInflation})`);
   console.log(`USD/ZAR:      ${args.usdZar}`);
   console.log(`Paid users:   ${args.paidUsers}  (for fixed-cost allocation)\n`);
 
@@ -233,8 +302,8 @@ function main() {
   const fixedMonthlyUsd = Object.values(FIXED_MONTHLY_USD).reduce((a, b) => a + b, 0);
   const fixedPerUserUsd = fixedMonthlyUsd / Math.max(1, args.paidUsers);
 
-  for (const persona of PERSONAS) {
-    const p = projectPersona(persona, cellIndex);
+  for (const persona of personas) {
+    const p = projectPersona(persona, cellIndex, retryInflation);
     const tierKey = tierForPersona(persona.id);
     const tier = TIERS[tierKey];
     const grossZar = tier.monthlyPriceZar;
