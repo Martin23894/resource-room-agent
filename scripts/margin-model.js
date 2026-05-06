@@ -280,8 +280,8 @@ function main() {
 
   // Per-archetype unit cost table.
   console.log('=== Per-call cost (measured) ===');
-  console.log('archetype'.padEnd(28) + 'in'.padEnd(8) + 'out'.padEnd(8) + 'cR'.padEnd(8) + 'cW'.padEnd(8) + 'attempts'.padEnd(10) + '$/call');
-  console.log('-'.repeat(80));
+  console.log('archetype'.padEnd(28) + 'in'.padEnd(8) + 'out'.padEnd(8) + 'cR'.padEnd(8) + 'cW'.padEnd(8) + 'attempts'.padEnd(10) + '$/call'.padEnd(12) + 'R/call');
+  console.log('-'.repeat(94));
   for (const cell of bench.cells || []) {
     if (!cell.usageTotals) continue;
     const u = cell.usageTotals;
@@ -293,7 +293,8 @@ function main() {
       String(u.cacheRead).padEnd(8) +
       String(u.cacheWrite).padEnd(8) +
       String(cell.attempts || 1).padEnd(10) +
-      `$${cost.toFixed(4)}`
+      `$${cost.toFixed(4)}`.padEnd(12) +
+      `R${(cost * args.usdZar).toFixed(2)}`
     );
   }
 
@@ -314,13 +315,19 @@ function main() {
     const marginUsd = netUsd - totalCostUsd;
     const marginPct = (marginUsd / netUsd) * 100;
 
+    const anthropicZar = p.monthlyAnthropicUsd * args.usdZar;
+    const fixedPerUserZar = fixedPerUserUsd * args.usdZar;
+    const totalCostZar = totalCostUsd * args.usdZar;
+    const marginZar = marginUsd * args.usdZar;
+
     console.log(`-- ${p.label} → ${tier.name} (R${grossZar}/mo) --`);
     console.log(`  Monthly calls:       ${p.monthlyCalls}  (cache hit assumed ${(p.cacheHit * 100).toFixed(0)}%)`);
-    console.log(`  Anthropic spend:     $${p.monthlyAnthropicUsd.toFixed(2)}`);
-    console.log(`  Fixed-cost share:    $${fixedPerUserUsd.toFixed(2)}  (= $${fixedMonthlyUsd}/mo ÷ ${args.paidUsers} users)`);
-    console.log(`  Total cost:          $${totalCostUsd.toFixed(2)}`);
-    console.log(`  Net revenue:         R${netZar.toFixed(0)}  =  $${netUsd.toFixed(2)}  (after Stripe fees)`);
-    console.log(`  Gross margin:        $${marginUsd.toFixed(2)}  (${marginPct.toFixed(1)}%)`);
+    console.log(`  Anthropic spend:     R${anthropicZar.toFixed(2)}   ($${p.monthlyAnthropicUsd.toFixed(2)})`);
+    console.log(`  Fixed-cost share:    R${fixedPerUserZar.toFixed(2)}    ($${fixedPerUserUsd.toFixed(2)})  — R${(fixedMonthlyUsd * args.usdZar).toFixed(0)}/mo ÷ ${args.paidUsers} users`);
+    console.log(`  Total cost:          R${totalCostZar.toFixed(2)}   ($${totalCostUsd.toFixed(2)})`);
+    console.log(`  Gross revenue:       R${grossZar}/mo`);
+    console.log(`  Net revenue:         R${netZar.toFixed(2)}   ($${netUsd.toFixed(2)}) after Stripe fees`);
+    console.log(`  Gross margin:        R${marginZar.toFixed(2)}   ($${marginUsd.toFixed(2)})  (${marginPct.toFixed(1)}%)`);
     if (p.detail.some((d) => d.missing)) {
       console.log(`  ⚠ missing bench cells: ${p.detail.filter((d) => d.missing).map((d) => d.cellId).join(', ')}`);
     }
@@ -330,6 +337,7 @@ function main() {
   // Sensitivity hints.
   console.log('=== Notes ===');
   console.log(`• Anthropic prices used (USD/1M):  Sonnet 4.6 in/out/cR/cW = ${PRICE_USD_PER_M[SONNET].input}/${PRICE_USD_PER_M[SONNET].output}/${PRICE_USD_PER_M[SONNET].cacheRead}/${PRICE_USD_PER_M[SONNET].cacheWrite}`);
+  console.log(`• ZAR figures use USD/ZAR=${args.usdZar}. Pass --usd-zar=N to flex.`);
   console.log(`• A series of N lessons costs ≈ N × the single-lesson unit cost (each lesson is one /api/generate call).`);
   console.log(`• Cache-hit % is the SQLite result cache, not the Anthropic prompt cache. Real usage is closer to 5–15% on first-time content, 50%+ on repeated subjects.`);
   console.log(`• Fixed-cost share assumes ${args.paidUsers} paid users — pass --paid-users=N to flex.`);
