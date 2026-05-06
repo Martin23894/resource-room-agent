@@ -282,10 +282,14 @@ function buildSystemPrompt(ctx) {
   const isGeography = subject.includes('Geography') || subject.includes('Geografie');
   const isHistory  = subject.includes('History')   || subject.includes('Geskiedenis');
   const isAfrikaansHL = subject === 'Afrikaans Home Language';
+  const isMaths = subject.includes('Mathematics') || subject.includes('Wiskunde');
+  const isNST = (subject.includes('Natural Sciences') || subject.includes('Natuurwetenskappe'))
+    && !subject.includes('Technology') && !subject.includes('Tegnologie')
+    || subject.includes('Natural Sciences and Technology');
   const isIntermediatePhase = grade >= 4 && grade <= 6;
 
   const subjectGuidance = buildSubjectGuidance({
-    isRTT, isExamType, isGeography, isHistory, isAfrikaansHL, isIntermediatePhase, grade,
+    isRTT, isExamType, isGeography, isHistory, isAfrikaansHL, isMaths, isNST, isIntermediatePhase, grade,
   });
 
   return [
@@ -397,7 +401,7 @@ function buildSystemPrompt(ctx) {
 //   • History Intermediate Phase: 3/3 under-supplied Middle Order. Stem
 //     patterns for Middle Order ("explain why", "compare", "describe
 //     consequences") fix this. (Grade 7 already lands clean — skipped.)
-function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isAfrikaansHL, isIntermediatePhase, grade }) {
+function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isAfrikaansHL, isMaths, isNST, isIntermediatePhase, grade }) {
   const blocks = [];
 
   if (isRTT && isExamType) {
@@ -412,6 +416,48 @@ function buildSubjectGuidance({ isRTT, isExamType, isGeography, isHistory, isAfr
       `Before emitting the tool call: count your comprehension stems by cognitive level and confirm they match the prescribed marks. If Inferential or Evaluation is under-supplied, REPLACE Literal/Reorganisation questions with Inferential/Evaluation ones — do not just add more questions.`,
       ``,
       `HARD RULE — Reorganisation cap: Reorganisation marks MUST NOT exceed the prescribed allocation by more than 1. Live testing shows the most common drift is over-supplying Reorganisation at the cost of Inferential. If your draft puts Reorganisation above prescribed, your FIRST corrective action is to convert Reorganisation questions into Inferential ones (e.g. "List three reasons" → "Why do you think the writer included these three reasons?"), not to add more questions or shrink existing ones.`,
+    ].join('\n'));
+  }
+
+  // Language-structures sections (typically Section C in HL Tests, Section D in HL Exams,
+  // and the Language section of FAL papers) test grammar, parts of speech, punctuation,
+  // tenses, etc. These are mechanical recall/transformation tasks — almost never
+  // Inferential. Live moderation found Eng HL Section D and Afr HL Q3.2/4.1/4.2 mislabelled
+  // as Inferential when they're actually Literal or Reorganisation.
+  if (isRTT) {
+    blocks.push([
+      `## Cognitive-level stems for LANGUAGE STRUCTURES sections (grammar / punctuation / parts of speech)`,
+      `Language-structures questions are mechanical operations on text. Default to LITERAL or REORGANISATION cognitive levels — they are almost NEVER Inferential and NEVER Evaluation:`,
+      `  - Literal — "Identify the noun/verb/adjective in this sentence", "Underline the subject", "What punctuation mark belongs here?", single-word fill-in-the-blank, simple synonym/antonym match, parts-of-speech tagging.`,
+      `  - Reorganisation — "Rewrite this sentence in past tense / passive voice / direct speech / negative form", "Combine these two sentences using a conjunction", "Change the singular noun to plural and adjust agreement", "Punctuate this sentence correctly".`,
+      `  - Inferential is reserved for questions about MEANING IN THE PASSAGE (the comprehension section), not grammar transformations. Tense changes, conjunctions, and grammar rules are Reorganisation by definition — there is no inference required, only a transformation.`,
+      ``,
+      `Before emitting: any question in the language-structures section labelled Inferential or Evaluation should be re-checked. If it asks the learner to apply a grammar rule mechanically, it's Reorganisation. If it asks the learner to identify or recognise a feature, it's Literal.`,
+    ].join('\n'));
+  }
+
+  if (isMaths) {
+    blocks.push([
+      `## Cognitive-level stem patterns (Mathematics — Bloom's framework)`,
+      `Live moderation showed two recurring mismatch patterns on Maths papers: (a) routine 1-2 step calculations LABELLED as Complex Procedures when they're actually Routine Procedures, and (b) creative/synthesis questions LABELLED as Knowledge when they require Problem Solving. Apply these stem patterns:`,
+      `  - Knowledge — pure recall: "Define ___", "What is the place value of ___?", "State the formula for ___", "Name the property that ___". No calculation, no application.`,
+      `  - Routine Procedures — single algorithmic step the learner has practised: "Calculate 247 + 358", "Solve 3x + 5 = 20", "Convert 0.75 to a fraction", "Find the perimeter of a rectangle 4 cm by 6 cm". One operation, one answer.`,
+      `  - Complex Procedures — MULTI-STEP problems requiring chained operations or multiple concepts: "A shop sells apples at R3.50 each. Sipho buys 12. He pays with a R50 note. How much change?" (3 steps: multiply, subtract, then state). "Find the area of an L-shape" (decompose then sum). Generally 2-4 distinct operations.`,
+      `  - Problem Solving — non-routine, learner must DEVISE the approach: "Make up a number sentence whose answer is 24 using exactly three operations", "Investigate which dimensions for a rectangular pen with 20 m of fencing maximise area", "Explain why any 3-digit number minus its reverse is divisible by 9", open-ended investigations, justification with proof.`,
+      ``,
+      `HARD CHECK: a single-step calculation can NEVER be Problem Solving and rarely Complex Procedures. A "make up", "investigate", "explain why always", or "justify" stem can NEVER be Knowledge. Before emitting, scan each question: count the distinct operations — 1 op → Routine, 2-3 ops → Complex, "devise/justify/investigate" → Problem Solving.`,
+    ].join('\n'));
+  }
+
+  if (isNST) {
+    blocks.push([
+      `## Cognitive-level stem patterns (Natural Sciences and Technology / Natural Sciences)`,
+      `NST papers commonly over-supply Low Order recall ("Name ___", "List ___") and under-supply Middle Order application. Worse, the model has been mislabelling extended-response questions ("Explain in detail why ___") as Low Order when they require multi-sentence reasoning. Apply these stem patterns:`,
+      `  - Low Order — single-fact recall + recognition: "Name the parts of a flower", "Identify the food group that ___ belongs to", "What is the function of the heart?", "List three sources of energy", multiple choice with ONE correct factual answer.`,
+      `  - Middle Order — APPLICATION + interpretation: "Explain how ___ adapts to its environment", "Describe what would happen if ___", "Compare a producer and a consumer", "Use the food chain diagram to explain energy flow", "Predict the result of mixing X with Y based on what you've learned about ___".`,
+      `  - High Order — analysis, design, evaluation: "Design a simple experiment to test ___ (state your hypothesis, method, and expected results)", "Evaluate the impact of ___ on ___", "Justify why ___ is more sustainable than ___ giving at least three reasons", multi-paragraph extended-response items with hypothesis-method-results structure.`,
+      ``,
+      `HARD CHECK: an extended-response question (3+ sentences expected, design/justify/evaluate verbs) is HIGH ORDER even if the topic looks elementary. A "list / name / state" stem is LOW ORDER even if the topic is sophisticated. Cognitive level is determined by the MENTAL OPERATION the learner performs, not by the topic.`,
     ].join('\n'));
   }
 
